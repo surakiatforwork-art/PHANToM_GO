@@ -1,12 +1,17 @@
 package com.phantom.carnavrelay
 
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
@@ -19,6 +24,7 @@ import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.io.PrintWriter
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -58,6 +64,15 @@ class MainSender(
             val sender = MainSender(context)
             Log.d(TAG, "[$source] Sending URL: $mapsUrl")
             sender.sendOpenUrl(mapsUrl, null) // No callback needed for async capture
+        }
+
+        fun triggerAutoReconnect(context: Context, reason: String = "manual") {
+            try {
+                val sender = MainSender(context.applicationContext, toastEnabled = false, queueOnFailure = false)
+                sender.triggerAutoReconnect(reason)
+            } catch (e: Exception) {
+                Log.w(TAG, "⚠️ triggerAutoReconnect failed: ${e.message}")
+            }
         }
     }
 
@@ -101,13 +116,35 @@ class MainSender(
     }
 
     fun sendOpenUrl(url: String, callback: SendCallback? = null) {
+        when (prefsManager.getConnectionTransport()) {
+            PrefsManager.TRANSPORT_BLUETOOTH -> {
+                Log.d(TAG, "📡 Transport=BLUETOOTH")
+                sendOpenUrlViaBluetooth(url, callback)
+            }
+            PrefsManager.TRANSPORT_AUTO -> {
+                Log.d(TAG, "📡 Transport=AUTO")
+                sendOpenUrlAuto(url, callback)
+            }
+            else -> {
+                Log.d(TAG, "📡 Transport=WIFI")
+                sendOpenUrlWifi(url, callback)
+            }
+        }
+    }
+
+    private fun sendOpenUrlWifi(
+        url: String,
+        callback: SendCallback? = null,
+        queueOnFailureForCall: Boolean = queueOnFailure,
+        toastEnabledForCall: Boolean = toastEnabled
+    ) {
         Log.d(TAG, "📤 sendOpenUrl() called - state: $currentState")
         
         // Guard: Check if paired
         if (!isPaired()) {
             Log.w(TAG, "❌ Cannot send - not paired with any display device")
             setState(STATE_UNPAIRED)
-            showToast("Please pair with a Display device first")
+            showToast("Please pair with a Display device first", toastEnabledForCall)
             callback?.onFailure("Not paired with any display device", false)
             return
         }
@@ -120,7 +157,7 @@ class MainSender(
         if (ip.isEmpty() || token.isEmpty()) {
             Log.e(TAG, "❌ Invalid pairing config - IP or token is empty")
             setState(STATE_AUTH_FAILED)
-            showToast("Invalid pairing configuration")
+            showToast("Invalid pairing configuration", toastEnabledForCall)
             callback?.onFailure("Invalid pairing configuration", false, true)
             return
         }
@@ -134,7 +171,7 @@ class MainSender(
             }.toString()
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to create JSON body", e)
-            showToast("Internal error: ${e.message}")
+            showToast("Internal error: ${e.message}", toastEnabledForCall)
             callback?.onFailure("Internal error: ${e.message}", false)
             return
         }
@@ -152,15 +189,29 @@ class MainSender(
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to build request", e)
             setState(STATE_OFFLINE)
-            showToast("Failed to create request: ${e.message}")
+            showToast("Failed to create request: ${e.message}", toastEnabledForCall)
             callback?.onFailure("Failed to create request: ${e.message}", false)
             return
         }
 
-        sendWithRetry(request, url, callback, 0)
+        sendWithRetry(
+            request = request,
+            url = url,
+            callback = callback,
+            retryCount = 0,
+            queueOnFailureForCall = queueOnFailureForCall,
+            toastEnabledForCall = toastEnabledForCall
+        )
     }
 
-    private fun sendWithRetry(request: Request, url: String, callback: SendCallback?, retryCount: Int) {
+    private fun sendWithRetry(
+        request: Request,
+        url: String,
+        callback: SendCallback?,
+        retryCount: Int,
+        queueOnFailureForCall: Boolean,
+        toastEnabledForCall: Boolean
+    ) {
         try {
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
@@ -176,18 +227,25 @@ class MainSender(
                     if (retryCount < MAX_RETRIES) {
                         Log.d(TAG, "🔄 Retrying... (${retryCount + 1}/$MAX_RETRIES)")
                         mainHandler.postDelayed({
-                            sendWithRetry(request, url, callback, retryCount + 1)
+                            sendWithRetry(
+                                request = request,
+                                url = url,
+                                callback = callback,
+                                retryCount = retryCount + 1,
+                                queueOnFailureForCall = queueOnFailureForCall,
+                                toastEnabledForCall = toastEnabledForCall
+                            )
                         }, 500)
                     } else {
                         // All retries failed - queue for later
-                        Log.w(TAG, "❌ All retries failed${if (queueOnFailure) ", queuing URL" else ""}: $url")
+                        Log.w(TAG, "❌ All retries failed${if (queueOnFailureForCall) ", queuing URL" else ""}: $url")
                         setState(STATE_OFFLINE)
-                        if (queueOnFailure) {
+                        if (queueOnFailureForCall) {
                             prefsManager.addToPendingQueue(url)
-                            showToast("Failed to send. Queued for retry.")
+                            showToast("Failed to send. Queued for retry.", toastEnabledForCall)
                         }
                         maybeDiscoverDisplay("send-failure")
-                        callback?.onFailure(errorMsg, queueOnFailure)
+                        callback?.onFailure(errorMsg, queueOnFailureForCall)
                     }
                 }
 
@@ -206,7 +264,11 @@ class MainSender(
                             Log.d(TAG, "✅ URL sent successfully")
                             setState(STATE_CONNECTED)
                             prefsManager.setPairedVerified(true)
-                            showToast("Sent to display device!")
+                            val pairedIp = prefsManager.getPairedIp()
+                            if (!pairedIp.isNullOrBlank()) {
+                                prefsManager.rememberDisplayIp(pairedIp)
+                            }
+                            showToast("Sent to display device!", toastEnabledForCall)
                             callback?.onSuccess()
                         }
                         401 -> {
@@ -214,7 +276,7 @@ class MainSender(
                             Log.e(TAG, "💥 Authentication failed (401) - token mismatch")
                             setState(STATE_AUTH_FAILED)
                             prefsManager.setPairedVerified(false)
-                            showToast("Authentication failed. Please pair again.")
+                            showToast("Authentication failed. Please pair again.", toastEnabledForCall)
                             callback?.onFailure("Authentication failed. Token mismatch.", false, true)
                         }
                         409 -> {
@@ -222,7 +284,7 @@ class MainSender(
                             Log.e(TAG, "💥 Not paired (409) - device requires pairing")
                             setState(STATE_AUTH_FAILED)
                             prefsManager.setPairedVerified(false)
-                            showToast("Device not paired. Please scan QR again.")
+                            showToast("Device not paired. Please scan QR again.", toastEnabledForCall)
                             callback?.onFailure("Device not paired. Please scan QR again.", false, true)
                         }
                         else -> {
@@ -239,14 +301,14 @@ class MainSender(
                             // Queue for retry unless it's an auth error
                             if (response.code == 403) {
                                 setState(STATE_AUTH_FAILED)
-                                showToast("Access forbidden: $reason")
+                                showToast("Access forbidden: $reason", toastEnabledForCall)
                                 callback?.onFailure("Access forbidden: $reason", false)
                             } else {
-                                if (queueOnFailure) {
+                                if (queueOnFailureForCall) {
                                     prefsManager.addToPendingQueue(url)
-                                    showToast("Failed ($reason). Queued for retry.")
+                                    showToast("Failed ($reason). Queued for retry.", toastEnabledForCall)
                                 }
-                                callback?.onFailure("$errorMsg - $reason", queueOnFailure)
+                                callback?.onFailure("$errorMsg - $reason", queueOnFailureForCall)
                             }
                         }
                     }
@@ -256,9 +318,146 @@ class MainSender(
         } catch (e: Exception) {
             Log.e(TAG, "💥 Exception in sendWithRetry", e)
             setState(STATE_OFFLINE)
-            showToast("Error: ${e.message}")
+            showToast("Error: ${e.message}", toastEnabledForCall)
             callback?.onFailure("Error: ${e.message}", false)
         }
+    }
+
+    private fun sendOpenUrlAuto(url: String, callback: SendCallback?) {
+        val hasBtTarget = prefsManager.hasBluetoothTarget()
+        sendOpenUrlWifi(
+            url = url,
+            callback = object : SendCallback {
+                override fun onSuccess() {
+                    callback?.onSuccess()
+                }
+
+                override fun onFailure(error: String, queued: Boolean, authFailed: Boolean) {
+                    if (authFailed || !hasBtTarget) {
+                        callback?.onFailure(error, queued, authFailed)
+                        return
+                    }
+                    Log.w(TAG, "↪️ Wi-Fi send failed in AUTO mode, trying Bluetooth fallback: $error")
+                    PhantomLog.w("AUTO transport fallback WIFI->BT: $error")
+                    sendOpenUrlViaBluetooth(url, object : SendCallback {
+                        override fun onSuccess() {
+                            callback?.onSuccess()
+                        }
+
+                        override fun onFailure(btError: String, btQueued: Boolean, btAuthFailed: Boolean) {
+                            if (queueOnFailure && !btQueued) {
+                                prefsManager.addToPendingQueue(url)
+                                showToast("Failed to send. Queued for retry.")
+                            }
+                            val combined = "Wi-Fi: $error | BT: $btError"
+                            callback?.onFailure(combined, btQueued || queueOnFailure, btAuthFailed)
+                        }
+                    })
+                }
+            },
+            queueOnFailureForCall = false,
+            toastEnabledForCall = false
+        )
+    }
+
+    private fun sendOpenUrlViaBluetooth(url: String, callback: SendCallback?) {
+        Log.d(TAG, "📤 sendOpenUrlViaBluetooth() called - state: $currentState")
+
+        if (!isPaired()) {
+            setState(STATE_UNPAIRED)
+            showToast("Please pair with a Display device first")
+            callback?.onFailure("Not paired with any display device", false)
+            return
+        }
+
+        val address = prefsManager.getBluetoothTargetAddress()
+        if (address.isNullOrBlank()) {
+            showToast("No Bluetooth display selected")
+            callback?.onFailure("No Bluetooth display selected", false)
+            return
+        }
+
+        val token = prefsManager.getPairedToken()
+        if (token.isNullOrBlank()) {
+            setState(STATE_AUTH_FAILED)
+            callback?.onFailure("Missing pairing token", false, true)
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val hasConnect = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!hasConnect) {
+                showToast("Bluetooth permission required")
+                callback?.onFailure("BLUETOOTH_CONNECT permission required", false)
+                return
+            }
+        }
+
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        if (adapter == null) {
+            callback?.onFailure("Bluetooth not supported", false)
+            return
+        }
+        if (!adapter.isEnabled) {
+            callback?.onFailure("Bluetooth is disabled", false)
+            return
+        }
+
+        setState(STATE_CONNECTING)
+        Thread {
+            var socket: android.bluetooth.BluetoothSocket? = null
+            try {
+                val device = adapter.getRemoteDevice(address)
+                @Suppress("MissingPermission")
+                socket = device.createRfcommSocketToServiceRecord(BtConst.APP_UUID)
+                adapter.cancelDiscovery()
+                socket.connect()
+
+                val writer = PrintWriter(socket.outputStream, true)
+                val hello = JSONObject().apply {
+                    put("type", "HELLO")
+                    put("code", token)
+                }.toString()
+                writer.println(hello)
+
+                val openUrl = JSONObject().apply {
+                    put("type", "OPEN_URL")
+                    put("url", url)
+                }.toString()
+                writer.println(openUrl)
+                writer.flush()
+
+                prefsManager.setLastBtClientAt(System.currentTimeMillis())
+                setState(STATE_CONNECTED)
+                mainHandler.post {
+                    showToast("Sent to display via Bluetooth")
+                    callback?.onSuccess()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "💥 Bluetooth send failed: ${e.message}", e)
+                setState(STATE_OFFLINE)
+                mainHandler.post {
+                    maybeDiscoverDisplay("bt-send-failure")
+                    if (queueOnFailure) {
+                        prefsManager.addToPendingQueue(url)
+                        showToast("Bluetooth send failed. Queued for retry.")
+                    }
+                    callback?.onFailure("Bluetooth error: ${e.message}", queueOnFailure)
+                }
+            } finally {
+                try {
+                    socket?.close()
+                } catch (_: Exception) {
+                }
+            }
+        }.start()
+    }
+
+    fun triggerAutoReconnect(reason: String = "manual") {
+        maybeDiscoverDisplay(reason)
     }
 
     fun retryPending(callback: SendCallback? = null) {
@@ -318,8 +517,8 @@ class MainSender(
         showToast("Pending queue cleared")
     }
 
-    private fun showToast(message: String) {
-        if (!toastEnabled) return
+    private fun showToast(message: String, enabled: Boolean = toastEnabled) {
+        if (!enabled) return
         mainHandler.post {
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         }
@@ -390,6 +589,7 @@ class MainSender(
                                 Log.d(TAG, "✅ Server verified - paired and token matches")
                                 setState(STATE_CONNECTED)
                                 prefsManager.setPairedVerified(true)
+                                prefsManager.rememberDisplayIp(ip)
                                 mainHandler.post {
                                     callback?.invoke(true, null)
                                 }
@@ -454,6 +654,30 @@ class MainSender(
         val token = prefsManager.getPairedToken() ?: return
         val tokenHint = prefsManager.getTokenHint(token)
         val port = prefsManager.getPairedPort()
+        val localMainId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: ""
+
+        val discoveryClient = OkHttpClient.Builder()
+            .connectTimeout(DISCOVERY_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .readTimeout(DISCOVERY_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .writeTimeout(DISCOVERY_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .build()
+
+        val knownCandidates = mutableListOf<String>()
+        prefsManager.getPairedIp()?.let { if (it.isNotBlank()) knownCandidates += it }
+        knownCandidates += prefsManager.getKnownDisplayIps()
+        knownCandidates.distinct().forEach { candidateIp ->
+            val foundPort = probeDisplayStatus(
+                client = discoveryClient,
+                targetIp = candidateIp,
+                port = port,
+                localTokenHint = tokenHint,
+                localMainId = localMainId
+            )
+            if (foundPort != null) {
+                applyDiscoveredDisplay(candidateIp, foundPort, token, reason, "known-ip")
+                return
+            }
+        }
 
         val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
         val ipInt = wifiManager?.connectionInfo?.ipAddress ?: 0
@@ -485,13 +709,6 @@ class MainSender(
 
         val localIpString = uintToIp(ip)
         val localTokenHint = tokenHint
-        val localMainId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: ""
-
-        val discoveryClient = OkHttpClient.Builder()
-            .connectTimeout(DISCOVERY_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .readTimeout(DISCOVERY_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .writeTimeout(DISCOVERY_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-            .build()
 
         val found = AtomicBoolean(false)
         val foundIp = AtomicReference<String?>(null)
@@ -508,28 +725,17 @@ class MainSender(
             }
             executor.execute {
                 if (found.get()) return@execute
-                val request = Request.Builder()
-                    .url("http://$targetIp:$port/status")
-                    .get()
-                    .build()
                 try {
-                    discoveryClient.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) return@use
-                        val body = response.body?.string() ?: return@use
-                        val json = JSONObject(body)
-                        val serverTokenHint = json.optString("tokenHint", "")
-                        val paired = json.optBoolean("paired", false)
-                        val pairedMainId = json.optString("pairedMainId", "")
-
-                        if (paired &&
-                            serverTokenHint == localTokenHint &&
-                            (pairedMainId.isEmpty() || pairedMainId == localMainId)
-                        ) {
-                            if (found.compareAndSet(false, true)) {
-                                foundIp.set(targetIp)
-                                foundPort.set(json.optInt("port", port))
-                            }
-                        }
+                    val probedPort = probeDisplayStatus(
+                        client = discoveryClient,
+                        targetIp = targetIp,
+                        port = port,
+                        localTokenHint = localTokenHint,
+                        localMainId = localMainId
+                    )
+                    if (probedPort != null && found.compareAndSet(false, true)) {
+                        foundIp.set(targetIp)
+                        foundPort.set(probedPort)
                     }
                 } catch (e: Exception) {
                     // Ignore individual host failures
@@ -548,19 +754,56 @@ class MainSender(
 
         val ipFound = foundIp.get()
         if (!ipFound.isNullOrEmpty()) {
-            prefsManager.savePairing(ipFound, foundPort.get(), token, verified = true)
-            setState(STATE_CONNECTED)
-            val message = "🔁 Auto-reconnect: Display found at $ipFound:${foundPort.get()} ($reason)"
-            Log.d(TAG, message)
-            PhantomLog.i(message)
-            showToast("Reconnected to Display")
-
-            if (prefsManager.getPendingCount() > 0) {
-                Log.d(TAG, "🔄 Auto-retry pending queue after reconnect")
-                retryPending(null)
-            }
+            applyDiscoveredDisplay(ipFound, foundPort.get(), token, reason, "subnet-scan")
         } else {
             Log.d(TAG, "ℹ️ Auto-reconnect: display not found ($reason)")
+        }
+    }
+
+    private fun probeDisplayStatus(
+        client: OkHttpClient,
+        targetIp: String,
+        port: Int,
+        localTokenHint: String,
+        localMainId: String
+    ): Int? {
+        val request = Request.Builder()
+            .url("http://$targetIp:$port/status")
+            .get()
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return null
+            val body = response.body?.string() ?: return null
+            val json = JSONObject(body)
+            val serverTokenHint = json.optString("tokenHint", "")
+            val paired = json.optBoolean("paired", false)
+            val pairedMainId = json.optString("pairedMainId", "")
+            val matches = paired &&
+                serverTokenHint == localTokenHint &&
+                (pairedMainId.isEmpty() || pairedMainId == localMainId)
+            if (!matches) return null
+            return json.optInt("port", port)
+        }
+    }
+
+    private fun applyDiscoveredDisplay(
+        ip: String,
+        port: Int,
+        token: String,
+        reason: String,
+        source: String
+    ) {
+        prefsManager.savePairing(ip, port, token, verified = true)
+        prefsManager.rememberDisplayIp(ip)
+        setState(STATE_CONNECTED)
+        val message = "🔁 Auto-reconnect: Display found at $ip:$port ($reason/$source)"
+        Log.d(TAG, message)
+        PhantomLog.i(message)
+        showToast("Reconnected to Display")
+
+        if (prefsManager.getPendingCount() > 0) {
+            Log.d(TAG, "🔄 Auto-retry pending queue after reconnect")
+            retryPending(null)
         }
     }
 

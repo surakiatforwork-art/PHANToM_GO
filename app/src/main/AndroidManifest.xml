@@ -165,6 +165,16 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <service
+            android:name=".bt.DisplayServerService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <service
+            android:name=".bt.MainClientService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!-- Receiver for opening Maps from notification -->
         <receiver
             android:name=".receiver.OpenMapsReceiver"

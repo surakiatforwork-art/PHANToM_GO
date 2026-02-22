@@ -1,5 +1,6 @@
 package com.phantom.carnavrelay.bt
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,7 +8,6 @@ import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -15,9 +15,9 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import android.Manifest
 import com.phantom.carnavrelay.BtConst
 import com.phantom.carnavrelay.CrashReporter
+import com.phantom.carnavrelay.PrefsManager
 import com.phantom.carnavrelay.R
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -25,192 +25,196 @@ import java.io.InputStreamReader
 
 class DisplayServerService : Service() {
 
-  companion object {
-    private const val TAG = "PHANTOM_GO"
-    private const val NOTIFICATION_ID = 2001
-  }
-
-  private var code: String = "000000"
-  private var server: BluetoothServerSocket? = null
-  private var worker: Thread? = null
-
-  override fun onCreate() {
-    super.onCreate()
-    Log.d(TAG, "🔧 DisplayServerService onCreate")
-  }
-
-  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    Log.d(TAG, "▶️ DisplayServerService onStartCommand, startId=$startId")
-    code = intent?.getStringExtra("code") ?: code
-    Log.d(TAG, "🔢 Pairing code: $code")
-    
-    try {
-      startForeground(NOTIFICATION_ID, notif(getString(R.string.notification_listening) + " (code $code)"))
-      Log.d(TAG, "✅ Foreground service started")
-    } catch (e: Exception) {
-      Log.e(TAG, "💥 Failed to start foreground service", e)
-    CrashReporter.recordException(applicationContext, "DisplayServerService:startForeground", e)
-      stopSelf()
-      return START_NOT_STICKY
+    companion object {
+        private const val TAG = "PHANTOM_GO"
+        private const val NOTIFICATION_ID = 2001
+        private const val ACTION_NAVIGATION_RECEIVED = "com.phantom.carnavrelay.NAVIGATION_RECEIVED"
     }
 
-    if (worker == null) {
-      Log.d(TAG, "🏃 Starting server worker thread")
-      worker = Thread { runServerLoop() }.also { it.start() }
+    private lateinit var prefsManager: PrefsManager
+    private var tokenCode: String = "000000"
+    private var server: BluetoothServerSocket? = null
+    private var worker: Thread? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        prefsManager = PrefsManager(applicationContext)
+        prefsManager.setBtClientConnected(false)
+        Log.d(TAG, "🔧 BT DisplayServerService onCreate")
     }
-    return START_STICKY
-  }
 
-  private fun runServerLoop() {
-    Log.d(TAG, "🔄 Server loop started")
-    try {
-      val adapter = BluetoothAdapter.getDefaultAdapter()
-      if (adapter == null) {
-        Log.e(TAG, "❌ No Bluetooth adapter available")
-        return
-      }
-      
-      // Check Bluetooth permissions
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val hasConnect = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-        if (!hasConnect) {
-          Log.e(TAG, "❌ BLUETOOTH_CONNECT permission not granted")
-          return
-        }
-      }
-      
-      Log.d(TAG, "📡 Creating RFCOMM server socket...")
-      try {
-        server = adapter.listenUsingRfcommWithServiceRecord(BtConst.SERVICE_NAME, BtConst.APP_UUID)
-        Log.d(TAG, "✅ Server socket created, waiting for connections...")
-      } catch (e: SecurityException) {
-        Log.e(TAG, "❌ SecurityException: Bluetooth permission denied", e)
-        return
-      }
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        tokenCode = intent?.getStringExtra("code")
+            ?.takeIf { it.isNotBlank() }
+            ?: prefsManager.getServerToken()
+        Log.d(TAG, "▶️ BT DisplayServerService start, tokenHint=${prefsManager.getTokenHint(tokenCode)}")
 
-      while (true) {
-        val socket = server?.accept()
-        if (socket == null) {
-          Log.w(TAG, "⚠️ Server socket closed")
-          break
-        }
-        Log.d(TAG, "📱 Client connected: ${socket.remoteDevice.address}")
-        handleClient(socket)
-      }
-    } catch (e: Throwable) {
-      Log.e(TAG, "💥 Server loop error", e)
-      CrashReporter.recordException(applicationContext, "DisplayServerService:runServerLoop", e)
-    }
-    Log.d(TAG, "🛑 Server loop ended")
-  }
-
-  private fun handleClient(socket: BluetoothSocket) {
-    val clientAddr = socket.remoteDevice.address
-    Log.d(TAG, "👤 Handling client: $clientAddr")
-    
-    try {
-      val reader = BufferedReader(InputStreamReader(socket.inputStream))
-      var paired = false
-
-      while (true) {
-        val line = reader.readLine()
-        if (line == null) {
-          Log.d(TAG, "📴 Client $clientAddr disconnected")
-          break
-        }
-        
-        Log.d(TAG, "📨 Received from $clientAddr: $line")
-        val obj = try {
-          JSONObject(line)
+        try {
+            startForeground(
+                NOTIFICATION_ID,
+                notif("${getString(R.string.notification_listening)} (BT)")
+            )
         } catch (e: Exception) {
-          Log.e(TAG, "💥 Invalid JSON from $clientAddr: $line", e)
-          CrashReporter.recordException(applicationContext, "DisplayServerService:parseJSON", e)
-          continue
+            Log.e(TAG, "💥 Failed to start BT foreground service", e)
+            CrashReporter.recordException(applicationContext, "BtDisplayServerService:startForeground", e)
+            stopSelf()
+            return START_NOT_STICKY
         }
 
-        when (obj.optString("type")) {
-          "HELLO" -> {
-            val got = obj.optString("code")
-            paired = (got == code)
-            Log.d(TAG, "🔑 Pairing attempt: received=$got, expected=$code, matched=$paired")
-            // ถ้าไม่ตรง ตัดการเชื่อมต่อทันที
-            if (!paired) {
-              Log.w(TAG, "❌ Pairing failed, disconnecting client")
-              break
+        if (worker == null) {
+            worker = Thread { runServerLoop() }.also { it.start() }
+        }
+        return START_STICKY
+    }
+
+    private fun runServerLoop() {
+        Log.d(TAG, "🔄 BT server loop started")
+        try {
+            val adapter = BluetoothAdapter.getDefaultAdapter()
+            if (adapter == null) {
+                Log.e(TAG, "❌ No Bluetooth adapter available")
+                return
             }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val hasConnect = ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) == PackageManager.PERMISSION_GRANTED
+                if (!hasConnect) {
+                    Log.e(TAG, "❌ BLUETOOTH_CONNECT permission not granted")
+                    return
+                }
+            }
+
             try {
-              sendBroadcast(Intent(BtConst.ACTION_CONNECTED))
-            } catch (e: Exception) {
-              Log.e(TAG, "💥 Failed to broadcast CONNECTED", e)
-              CrashReporter.recordException(applicationContext, "DisplayServerService:broadcastConnected", e)
+                server = adapter.listenUsingRfcommWithServiceRecord(BtConst.SERVICE_NAME, BtConst.APP_UUID)
+            } catch (e: SecurityException) {
+                Log.e(TAG, "❌ Bluetooth permission denied", e)
+                return
             }
-          }
+            Log.d(TAG, "✅ BT server socket ready")
 
-          "OPEN_URL" -> {
-            if (!paired) {
-              Log.w(TAG, "⚠️ OPEN_URL from unpaired client, ignoring")
-              continue
+            while (true) {
+                val socket = server?.accept() ?: break
+                Log.d(TAG, "📱 BT client connected: ${socket.remoteDevice.address}")
+                handleClient(socket)
             }
-            val url = obj.optString("url")
-            Log.d(TAG, "🗺️ OPEN_URL received: $url")
-            if (url.isNotBlank()) {
-              try {
-                sendBroadcast(Intent(BtConst.ACTION_OPEN_URL).putExtra(BtConst.EXTRA_URL, url))
-              } catch (e: Exception) {
-                Log.e(TAG, "💥 Failed to broadcast OPEN_URL", e)
-                CrashReporter.recordException(applicationContext, "DisplayServerService:broadcastOpenUrl", e)
-              }
-            }
-          }
+        } catch (e: Throwable) {
+            Log.e(TAG, "💥 BT server loop error", e)
+            CrashReporter.recordException(applicationContext, "BtDisplayServerService:runServerLoop", e)
+        } finally {
+            prefsManager.setBtClientConnected(false)
+            Log.d(TAG, "🛑 BT server loop ended")
         }
-      }
-    } catch (e: Throwable) {
-      Log.e(TAG, "💥 Client handler error for $clientAddr", e)
-      CrashReporter.recordException(applicationContext, "DisplayServerService:handleClient", e)
-    } finally {
-      try {
-        socket.close()
-        Log.d(TAG, "🔌 Client socket closed: $clientAddr")
-      } catch (e: Throwable) {
-        Log.e(TAG, "💥 Error closing client socket", e)
-        CrashReporter.recordException(applicationContext, "DisplayServerService:closeSocket", e)
-      }
-      try {
-        sendBroadcast(Intent(BtConst.ACTION_DISCONNECTED))
-      } catch (e: Exception) {
-        Log.e(TAG, "💥 Failed to broadcast DISCONNECTED", e)
-      }
     }
-  }
 
-  private fun notif(text: String): Notification {
-    val chId = "car_nav_display"
-    if (Build.VERSION.SDK_INT >= 26) {
-      val nm = getSystemService(NotificationManager::class.java)
-      nm.createNotificationChannel(
-        NotificationChannel(chId, getString(R.string.channel_display_name), NotificationManager.IMPORTANCE_LOW)
-      )
+    private fun handleClient(socket: BluetoothSocket) {
+        val clientAddr = runCatching { socket.remoteDevice.address }.getOrNull() ?: "unknown"
+        var paired = false
+        try {
+            val reader = BufferedReader(InputStreamReader(socket.inputStream))
+            while (true) {
+                val line = reader.readLine() ?: break
+                val obj = try {
+                    JSONObject(line)
+                } catch (e: Exception) {
+                    Log.e(TAG, "💥 Invalid JSON from $clientAddr: $line", e)
+                    CrashReporter.recordException(applicationContext, "BtDisplayServerService:parseJSON", e)
+                    continue
+                }
+
+                when (obj.optString("type")) {
+                    "HELLO" -> {
+                        val got = obj.optString("code")
+                        val expectedToken = prefsManager.getServerToken()
+                        tokenCode = expectedToken
+                        paired = got == expectedToken
+                        Log.d(
+                            TAG,
+                            "🔑 BT HELLO from $clientAddr matched=$paired tokenHint=${prefsManager.getTokenHint(got)}"
+                        )
+                        if (!paired) {
+                            break
+                        }
+                        prefsManager.setBtClientConnected(true)
+                        prefsManager.setLastBtClientAt(System.currentTimeMillis())
+                        sendBroadcast(Intent(BtConst.ACTION_CONNECTED))
+                    }
+
+                    "OPEN_URL" -> {
+                        if (!paired) {
+                            Log.w(TAG, "⚠️ OPEN_URL from unpaired BT client")
+                            continue
+                        }
+                        val url = obj.optString("url")
+                        if (url.isBlank()) continue
+
+                        prefsManager.setLastBtClientAt(System.currentTimeMillis())
+                        Log.d(TAG, "🗺️ BT OPEN_URL received: $url")
+
+                        // Keep legacy broadcast for diagnostics/compat
+                        sendBroadcast(Intent(BtConst.ACTION_OPEN_URL).putExtra(BtConst.EXTRA_URL, url))
+
+                        // Forward into the active display flow used by HTTP transport.
+                        val serviceIntent = Intent(applicationContext, com.phantom.carnavrelay.DisplayServerService::class.java).apply {
+                            action = ACTION_NAVIGATION_RECEIVED
+                            putExtra("url", url)
+                        }
+                        try {
+                            ContextCompat.startForegroundService(applicationContext, serviceIntent)
+                        } catch (_: Exception) {
+                            applicationContext.startService(serviceIntent)
+                        }
+                    }
+                }
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "💥 BT client handler error for $clientAddr", e)
+            CrashReporter.recordException(applicationContext, "BtDisplayServerService:handleClient", e)
+        } finally {
+            try {
+                socket.close()
+            } catch (e: Throwable) {
+                Log.e(TAG, "💥 Error closing BT client socket", e)
+            }
+            prefsManager.setBtClientConnected(false)
+            try {
+                sendBroadcast(Intent(BtConst.ACTION_DISCONNECTED))
+            } catch (e: Exception) {
+                Log.e(TAG, "💥 Failed to broadcast BT DISCONNECTED", e)
+            }
+        }
     }
-    return NotificationCompat.Builder(this, chId)
-      .setContentTitle(getString(R.string.app_name_display))
-      .setContentText(text)
-      .setSmallIcon(R.drawable.ic_display_mode)
-      .setOngoing(true)
-      .build()
-  }
 
-  override fun onDestroy() {
-    Log.d(TAG, "💀 DisplayServerService onDestroy")
-    try {
-      server?.close()
-      Log.d(TAG, "🔌 Server socket closed")
-    } catch (e: Throwable) {
-      Log.e(TAG, "Error closing server socket", e)
-      CrashReporter.recordException(applicationContext, "DisplayServerService:onDestroy", e)
+    private fun notif(text: String): Notification {
+        val chId = "car_nav_display_bt"
+        if (Build.VERSION.SDK_INT >= 26) {
+            val nm = getSystemService(NotificationManager::class.java)
+            nm.createNotificationChannel(
+                NotificationChannel(chId, getString(R.string.channel_display_name), NotificationManager.IMPORTANCE_LOW)
+            )
+        }
+        return NotificationCompat.Builder(this, chId)
+            .setContentTitle(getString(R.string.app_name_display))
+            .setContentText(text)
+            .setSmallIcon(R.drawable.ic_display_mode)
+            .setOngoing(true)
+            .build()
     }
-    worker = null
-    super.onDestroy()
-  }
 
-  override fun onBind(intent: Intent?): IBinder? = null
+    override fun onDestroy() {
+        Log.d(TAG, "💀 BT DisplayServerService onDestroy")
+        prefsManager.setBtClientConnected(false)
+        try {
+            server?.close()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error closing BT server socket", e)
+            CrashReporter.recordException(applicationContext, "BtDisplayServerService:onDestroy", e)
+        }
+        worker = null
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
 }

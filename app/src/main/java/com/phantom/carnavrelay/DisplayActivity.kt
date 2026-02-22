@@ -208,6 +208,7 @@ class DisplayActivity : AppCompatActivity() {
             } else {
                 startService(intent)
             }
+            startBluetoothServer()
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to start server", e)
             Toast.makeText(this, "Failed to start server: ${e.message}", Toast.LENGTH_LONG).show()
@@ -287,6 +288,7 @@ class DisplayActivity : AppCompatActivity() {
             } else {
                 startService(intent)
             }
+            startBluetoothServer()
             updateUI()
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to start server", e)
@@ -300,9 +302,35 @@ class DisplayActivity : AppCompatActivity() {
         try {
             val intent = Intent(this, DisplayServerService::class.java)
             stopService(intent)
+            stopBluetoothServer()
             updateUI()
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to stop server", e)
+        }
+    }
+
+    private fun startBluetoothServer() {
+        try {
+            val btIntent = Intent(this, com.phantom.carnavrelay.bt.DisplayServerService::class.java).apply {
+                putExtra("code", prefsManager.getServerToken())
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(btIntent)
+            } else {
+                startService(btIntent)
+            }
+            Log.d(TAG, "✅ BT DisplayServerService start requested")
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ BT DisplayServerService not started: ${e.message}")
+        }
+    }
+
+    private fun stopBluetoothServer() {
+        try {
+            stopService(Intent(this, com.phantom.carnavrelay.bt.DisplayServerService::class.java))
+            Log.d(TAG, "🛑 BT DisplayServerService stop requested")
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Failed to stop BT DisplayServerService", e)
         }
     }
     
@@ -462,11 +490,16 @@ class DisplayActivity : AppCompatActivity() {
     }
 
     private fun updateConnectionIndicator(isPaired: Boolean, isMainActive: Boolean) {
-        if (isPaired && isMainActive) {
+        val btRecent = isBtRecentlyConnected()
+        if (isPaired && (isMainActive || btRecent)) {
             statusDot.visibility = View.VISIBLE
             statusDot.setBackgroundResource(R.drawable.status_dot_cyan)
             statusGhost.visibility = View.GONE
-            tvStatus.text = "Bluetooth Connected"
+            tvStatus.text = when {
+                isMainActive && btRecent -> "Connected (Wi-Fi + Bluetooth)"
+                isMainActive -> "Connected (Wi-Fi)"
+                else -> "Connected (Bluetooth)"
+            }
             tvStatus.setTextColor(getColor(R.color.aurora_cyan))
             startStatusBlink()
         } else {
@@ -483,6 +516,12 @@ class DisplayActivity : AppCompatActivity() {
         val lastPing = prefsManager.getLastMainPingAt()
         if (lastPing <= 0L) return false
         return (System.currentTimeMillis() - lastPing) <= MAIN_PING_TIMEOUT_MS
+    }
+
+    private fun isBtRecentlyConnected(): Boolean {
+        val lastBt = prefsManager.getLastBtClientAt()
+        if (lastBt <= 0L) return false
+        return (System.currentTimeMillis() - lastBt) <= MAIN_PING_TIMEOUT_MS
     }
 
     override fun onResume() {

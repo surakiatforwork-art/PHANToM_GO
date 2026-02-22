@@ -68,7 +68,10 @@ class MainActivity : AppCompatActivity() {
     private val statusCheckRunnable = object : Runnable {
         override fun run() {
             if (mainSender.isPaired()) {
-                checkServerStatus()
+                val transport = prefsManager.getConnectionTransport()
+                if (transport != PrefsManager.TRANSPORT_BLUETOOTH) {
+                    checkServerStatus()
+                }
             }
             handler.postDelayed(this, STATUS_CHECK_INTERVAL_MS)
         }
@@ -398,6 +401,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         Log.d(TAG, "▶️ MainActivity.onResume()")
         setMapLinkHandlerEnabled(!isDisplayServiceRunning(), "MainActivity.onResume")
+        MainSender.triggerAutoReconnect(this, "main-resume")
         updateUI()
         handler.post(statusCheckRunnable)
     }

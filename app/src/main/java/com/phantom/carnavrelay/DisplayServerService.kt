@@ -108,6 +108,8 @@ class DisplayServerService : Service() {
             return START_NOT_STICKY
         }
 
+        startBluetoothBridgeService()
+
         // Start HTTP server
         try {
             if (httpServer == null || !httpServer!!.isServerRunning()) {
@@ -151,6 +153,8 @@ class DisplayServerService : Service() {
         } catch (e: Exception) {
             Log.e(TAG, "💥 Error stopping HTTP Server", e)
         }
+
+        stopBluetoothBridgeService()
         
         // Release wake lock
         releaseWakeLock()
@@ -170,6 +174,31 @@ class DisplayServerService : Service() {
             }
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun startBluetoothBridgeService() {
+        try {
+            val btIntent = Intent(this, com.phantom.carnavrelay.bt.DisplayServerService::class.java).apply {
+                putExtra("code", prefsManager.getServerToken())
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(this, btIntent)
+            } else {
+                startService(btIntent)
+            }
+            Log.d(TAG, "✅ BT bridge service start requested")
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ BT bridge service unavailable: ${e.message}")
+        }
+    }
+
+    private fun stopBluetoothBridgeService() {
+        try {
+            stopService(Intent(this, com.phantom.carnavrelay.bt.DisplayServerService::class.java))
+            Log.d(TAG, "🛑 BT bridge service stop requested")
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Failed to stop BT bridge service", e)
         }
     }
 

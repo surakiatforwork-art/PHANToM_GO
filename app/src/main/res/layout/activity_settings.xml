@@ -193,6 +193,87 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:text="🔌 Connection Transport"
+                    android:textColor="@color/aurora_cyan"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/transportModeStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Current transport: AUTO"
+                    android:textColor="@color/aurora_cyan"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="8dp" />
+
+                <RadioGroup
+                    android:id="@+id/transportModeGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp">
+
+                    <RadioButton
+                        android:id="@+id/transportModeAuto"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:paddingVertical="12dp"
+                        android:text="AUTO (Wi‑Fi ก่อน, Bluetooth สำรอง)" />
+
+                    <RadioButton
+                        android:id="@+id/transportModeWifi"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:paddingVertical="12dp"
+                        android:text="Wi‑Fi Local (HTTP)" />
+
+                    <RadioButton
+                        android:id="@+id/transportModeBluetooth"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:paddingVertical="12dp"
+                        android:text="Bluetooth (RFCOMM)" />
+
+                </RadioGroup>
+
+                <TextView
+                    android:id="@+id/bluetoothTargetStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="BT target: not selected"
+                    android:textColor="@color/aurora_warning"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="8dp" />
+
+                <Button
+                    android:id="@+id/pickBluetoothDeviceButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="📶 เลือกอุปกรณ์ Bluetooth"
+                    android:textColor="@color/white"
+                    android:background="@drawable/aurora_button_ripple" />
+
+                <Button
+                    android:id="@+id/clearBluetoothDeviceButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="🗑️ ล้างอุปกรณ์ Bluetooth"
+                    android:textColor="@color/white"
+                    android:background="@drawable/aurora_button_ripple"
+                    android:visibility="gone" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="12dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:text="โหมดฉลาด (Smart Mode)"
                     android:textColor="@color/aurora_cyan"
                     android:textSize="16sp"

@@ -38,6 +38,20 @@ class PrefsManager(context: Context) {
         const val MODE_MAIN = "MAIN"
         const val MODE_DISPLAY = "DISPLAY"
 
+        // Main -> Display transport selection
+        private const val KEY_CONNECTION_TRANSPORT = "connection_transport"
+        const val TRANSPORT_AUTO = "AUTO"
+        const val TRANSPORT_WIFI = "WIFI"
+        const val TRANSPORT_BLUETOOTH = "BLUETOOTH"
+
+        // Main-side stored Bluetooth target (system-paired device)
+        private const val KEY_BT_TARGET_ADDRESS = "bt_target_address"
+        private const val KEY_BT_TARGET_NAME = "bt_target_name"
+
+        // Display-side observed Bluetooth connection state
+        private const val KEY_BT_CONNECTED = "bt_connected"
+        private const val KEY_LAST_BT_CLIENT_AT = "last_bt_client_at"
+
         // Map link hub toggle
         private const val KEY_MAP_LINK_HUB_ENABLED = "map_link_hub_enabled"
 
@@ -73,6 +87,9 @@ class PrefsManager(context: Context) {
 
         // Display: last time main device pinged /status
         private const val KEY_LAST_MAIN_PING_AT = "last_main_ping_at"
+
+        // Main-side cache for auto-reconnect (recent working IPs)
+        private const val KEY_KNOWN_DISPLAY_IPS = "known_display_ips"
     }
     
     // Display device: Server token
@@ -232,6 +249,61 @@ class PrefsManager(context: Context) {
         prefs.edit().putString(KEY_DEVICE_MODE, mode).apply()
     }
 
+    fun getConnectionTransport(): String {
+        return prefs.getString(KEY_CONNECTION_TRANSPORT, TRANSPORT_AUTO) ?: TRANSPORT_AUTO
+    }
+
+    fun setConnectionTransport(transport: String) {
+        prefs.edit().putString(KEY_CONNECTION_TRANSPORT, transport).apply()
+    }
+
+    fun getBluetoothTargetAddress(): String? {
+        return prefs.getString(KEY_BT_TARGET_ADDRESS, null)
+    }
+
+    fun getBluetoothTargetName(): String? {
+        return prefs.getString(KEY_BT_TARGET_NAME, null)
+    }
+
+    fun hasBluetoothTarget(): Boolean {
+        return !getBluetoothTargetAddress().isNullOrBlank()
+    }
+
+    fun saveBluetoothTarget(address: String, name: String?) {
+        prefs.edit().apply {
+            putString(KEY_BT_TARGET_ADDRESS, address)
+            putString(KEY_BT_TARGET_NAME, name)
+            apply()
+        }
+    }
+
+    fun clearBluetoothTarget() {
+        prefs.edit().apply {
+            remove(KEY_BT_TARGET_ADDRESS)
+            remove(KEY_BT_TARGET_NAME)
+            apply()
+        }
+    }
+
+    fun isBtClientConnected(): Boolean {
+        return prefs.getBoolean(KEY_BT_CONNECTED, false)
+    }
+
+    fun setBtClientConnected(connected: Boolean) {
+        prefs.edit().putBoolean(KEY_BT_CONNECTED, connected).apply()
+        if (connected) {
+            setLastBtClientAt(System.currentTimeMillis())
+        }
+    }
+
+    fun getLastBtClientAt(): Long {
+        return prefs.getLong(KEY_LAST_BT_CLIENT_AT, 0L)
+    }
+
+    fun setLastBtClientAt(timestampMs: Long) {
+        prefs.edit().putLong(KEY_LAST_BT_CLIENT_AT, timestampMs).apply()
+    }
+
     fun isMapLinkHubEnabled(): Boolean {
         return prefs.getBoolean(KEY_MAP_LINK_HUB_ENABLED, false)
     }
@@ -298,6 +370,27 @@ class PrefsManager(context: Context) {
 
     fun setLastMainPingAt(timestampMs: Long) {
         prefs.edit().putLong(KEY_LAST_MAIN_PING_AT, timestampMs).apply()
+    }
+
+    fun getKnownDisplayIps(): List<String> {
+        val csv = prefs.getString(KEY_KNOWN_DISPLAY_IPS, "") ?: ""
+        return csv.split(',')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+    }
+
+    fun rememberDisplayIp(ip: String) {
+        val clean = ip.trim()
+        if (clean.isEmpty()) return
+        val updated = (listOf(clean) + getKnownDisplayIps())
+            .distinct()
+            .take(8)
+        prefs.edit().putString(KEY_KNOWN_DISPLAY_IPS, updated.joinToString(",")).apply()
+    }
+
+    fun clearKnownDisplayIps() {
+        prefs.edit().remove(KEY_KNOWN_DISPLAY_IPS).apply()
     }
 
     fun getResolvedUrlFor(shortUrl: String): String? {

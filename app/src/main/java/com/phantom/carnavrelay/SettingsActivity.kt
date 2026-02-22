@@ -1,10 +1,12 @@
 package com.phantom.carnavrelay
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -41,6 +43,14 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var mapLinkHubDefaultStatusText: TextView
     private lateinit var deviceModeStatusText: TextView
     private lateinit var openByDefaultButton: Button
+    private lateinit var transportModeStatusText: TextView
+    private lateinit var transportModeGroup: android.widget.RadioGroup
+    private lateinit var transportModeAuto: android.widget.RadioButton
+    private lateinit var transportModeWifi: android.widget.RadioButton
+    private lateinit var transportModeBluetooth: android.widget.RadioButton
+    private lateinit var bluetoothTargetStatusText: TextView
+    private lateinit var pickBluetoothDeviceButton: Button
+    private lateinit var clearBluetoothDeviceButton: Button
     private lateinit var smartModeSwitch: Switch
     private lateinit var smartModeStatusText: TextView
     private lateinit var smartPolicyGroup: android.widget.RadioGroup
@@ -74,8 +84,10 @@ class SettingsActivity : AppCompatActivity() {
     private var updatingSmartModeUi = false
     private var updatingPolicyUi = false
     private var updatingAfterSendUi = false
+    private var updatingTransportUi = false
     private var updatingDisplayNavModeUi = false
     private var updatingDisplayOpenModeUi = false
+    private var bluetoothPickPending = false
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -91,6 +103,21 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private val requestBluetoothPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        val granted = result.values.all { it }
+        if (!granted) {
+            Toast.makeText(this, "Bluetooth permission required to select device", Toast.LENGTH_SHORT).show()
+            bluetoothPickPending = false
+            return@registerForActivityResult
+        }
+        if (bluetoothPickPending) {
+            bluetoothPickPending = false
+            showBluetoothDevicePicker()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "⚙️ SettingsActivity onCreate")
@@ -102,6 +129,7 @@ class SettingsActivity : AppCompatActivity() {
         setupClickListeners()
         updateOverlayStatus()
         updateMapLinkHubStatus()
+        updateTransportStatus()
         updateSmartModeStatus()
         updateDisplayNavModeStatus()
         updateDisplayOpenModeStatus()
@@ -118,6 +146,14 @@ class SettingsActivity : AppCompatActivity() {
         mapLinkHubDefaultStatusText = findViewById(R.id.mapLinkHubDefaultStatusText)
         deviceModeStatusText = findViewById(R.id.deviceModeStatusText)
         openByDefaultButton = findViewById(R.id.openByDefaultButton)
+        transportModeStatusText = findViewById(R.id.transportModeStatusText)
+        transportModeGroup = findViewById(R.id.transportModeGroup)
+        transportModeAuto = findViewById(R.id.transportModeAuto)
+        transportModeWifi = findViewById(R.id.transportModeWifi)
+        transportModeBluetooth = findViewById(R.id.transportModeBluetooth)
+        bluetoothTargetStatusText = findViewById(R.id.bluetoothTargetStatusText)
+        pickBluetoothDeviceButton = findViewById(R.id.pickBluetoothDeviceButton)
+        clearBluetoothDeviceButton = findViewById(R.id.clearBluetoothDeviceButton)
         smartModeSwitch = findViewById(R.id.smartModeSwitch)
         smartModeStatusText = findViewById(R.id.smartModeStatusText)
         smartPolicyGroup = findViewById(R.id.smartPolicyGroup)
@@ -164,6 +200,32 @@ class SettingsActivity : AppCompatActivity() {
             setMapLinkHandlerEnabled(isChecked)
             updateMapLinkHubStatus()
             mapLinkHubSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        transportModeGroup.setOnCheckedChangeListener { _, checkedId ->
+            if (updatingTransportUi) return@setOnCheckedChangeListener
+            val transport = when (checkedId) {
+                R.id.transportModeWifi -> PrefsManager.TRANSPORT_WIFI
+                R.id.transportModeBluetooth -> PrefsManager.TRANSPORT_BLUETOOTH
+                else -> PrefsManager.TRANSPORT_AUTO
+            }
+            prefsManager.setConnectionTransport(transport)
+            if (transport == PrefsManager.TRANSPORT_BLUETOOTH && !prefsManager.hasBluetoothTarget()) {
+                requestBluetoothDeviceSelection()
+            }
+            updateTransportStatus()
+        }
+
+        pickBluetoothDeviceButton.setOnClickListener {
+            requestBluetoothDeviceSelection()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        clearBluetoothDeviceButton.setOnClickListener {
+            prefsManager.clearBluetoothTarget()
+            updateTransportStatus()
+            Toast.makeText(this, "Bluetooth target cleared", Toast.LENGTH_SHORT).show()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
         smartModeSwitch.setOnCheckedChangeListener { _, isChecked ->
@@ -310,6 +372,98 @@ class SettingsActivity : AppCompatActivity() {
         updatingOpenMapsUi = true
         openMapsAfterSendSwitch.isChecked = prefsManager.isOpenMapsAfterSendEnabled()
         updatingOpenMapsUi = false
+    }
+
+    private fun updateTransportStatus() {
+        val transport = prefsManager.getConnectionTransport()
+        val targetName = prefsManager.getBluetoothTargetName()
+        val targetAddress = prefsManager.getBluetoothTargetAddress()
+
+        updatingTransportUi = true
+        transportModeGroup.check(
+            when (transport) {
+                PrefsManager.TRANSPORT_WIFI -> R.id.transportModeWifi
+                PrefsManager.TRANSPORT_BLUETOOTH -> R.id.transportModeBluetooth
+                else -> R.id.transportModeAuto
+            }
+        )
+        updatingTransportUi = false
+
+        transportModeStatusText.text = "Current transport: $transport"
+        transportModeStatusText.setTextColor(
+            ContextCompat.getColor(this, R.color.aurora_cyan)
+        )
+
+        if (!targetAddress.isNullOrBlank()) {
+            bluetoothTargetStatusText.text = "BT target: ${targetName ?: "Unknown"} ($targetAddress)"
+            bluetoothTargetStatusText.setTextColor(ContextCompat.getColor(this, R.color.aurora_success))
+            clearBluetoothDeviceButton.visibility = View.VISIBLE
+        } else {
+            bluetoothTargetStatusText.text = "BT target: not selected"
+            bluetoothTargetStatusText.setTextColor(ContextCompat.getColor(this, R.color.aurora_warning))
+            clearBluetoothDeviceButton.visibility = View.GONE
+        }
+    }
+
+    private fun requestBluetoothDeviceSelection() {
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        if (adapter == null) {
+            Toast.makeText(this, "Device does not support Bluetooth", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!adapter.isEnabled) {
+            Toast.makeText(this, "Please enable Bluetooth first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!hasBluetoothPermissions()) {
+            bluetoothPickPending = true
+            requestBluetoothPermissionsLauncher.launch(requiredBluetoothPermissions())
+            return
+        }
+        showBluetoothDevicePicker()
+    }
+
+    private fun hasBluetoothPermissions(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+        return requiredBluetoothPermissions().all { permission ->
+            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requiredBluetoothPermissions(): Array<String> {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
+        } else {
+            emptyArray()
+        }
+    }
+
+    @Suppress("MissingPermission")
+    private fun showBluetoothDevicePicker() {
+        val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
+        val bonded = try {
+            adapter.bondedDevices?.toList().orEmpty()
+        } catch (e: SecurityException) {
+            Toast.makeText(this, "Bluetooth permission denied", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (bonded.isEmpty()) {
+            Toast.makeText(this, "No paired Bluetooth devices found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val labels = bonded.map { "${it.name ?: "Unknown"}\n${it.address}" }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Select Bluetooth Display")
+            .setItems(labels) { _, which ->
+                val device = bonded[which]
+                prefsManager.saveBluetoothTarget(device.address, device.name)
+                updateTransportStatus()
+                Toast.makeText(this, "Selected ${device.name ?: device.address}", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun updateSmartModeStatus() {
@@ -527,6 +681,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onResume()
         updateOverlayStatus()
         updateMapLinkHubStatus()
+        updateTransportStatus()
         updateSmartModeStatus()
         updateDisplayNavModeStatus()
         updateDisplayOpenModeStatus()
