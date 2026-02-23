@@ -28,6 +28,7 @@ class DisplayServerService : Service() {
         private const val ACTION_OPEN_MAPS = "com.phantom.carnavrelay.OPEN_MAPS"
         private const val ACTION_STOP_SERVER = "com.phantom.carnavrelay.STOP_SERVER"
         const val ACTION_APP_FOREGROUND = "com.phantom.carnavrelay.APP_FOREGROUND"
+        private const val ROUTE_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000L
         
         // Wake lock
         private const val WAKE_LOCK_TAG = "PHANTOM_GO:DisplayServer"
@@ -286,13 +287,17 @@ class DisplayServerService : Service() {
 
     private fun handleNavigationReady(rawUrl: String, resolvedUrl: String) {
         val finalUrl = if (resolvedUrl.isBlank()) rawUrl else resolvedUrl
+        val previousUrl = lastUrl
+        val previousCmdAt = lastCmdAt
+        val now = System.currentTimeMillis()
+        val isRouteUpdate = isLikelyRouteUpdate(previousUrl, previousCmdAt, finalUrl, now)
         if (finalUrl != rawUrl) {
             Log.d(TAG, "🔁 Display resolved short link: $rawUrl -> $finalUrl")
             PhantomLog.i("NAV display resolved: $rawUrl -> $finalUrl")
         }
 
         lastUrl = finalUrl
-        lastCmdAt = System.currentTimeMillis()
+        lastCmdAt = now
 
         // Save to prefs for diagnostics
         val prefs = getSharedPreferences("phantom_go_prefs", Context.MODE_PRIVATE)
@@ -303,7 +308,7 @@ class DisplayServerService : Service() {
         }
 
         // Show navigation notification with Open Navigation action
-        showNavigationNotification(finalUrl)
+        showNavigationNotification(finalUrl, allowFullScreenIntent = false)
 
         // Check if app is in foreground
         if (PhantomGoApplication.isInForeground()) {
@@ -312,6 +317,13 @@ class DisplayServerService : Service() {
         } else {
             Log.d(TAG, "📱 App in background, opening Maps directly")
             openMapsDirectly(finalUrl)
+
+            // In active navigation updates, avoid overlay focus churn so Google Maps reroute popup stays visible.
+            if (isRouteUpdate) {
+                Log.d(TAG, "🛣️ Route update detected - skipping overlay to preserve Google Maps confirmation popup")
+                PhantomLog.i("NAV routeUpdate overlaySkipped")
+                return
+            }
 
             // Try to show overlay if enabled and permission granted
             overlayController?.let { controller ->
@@ -331,6 +343,13 @@ class DisplayServerService : Service() {
                 Log.w(TAG, "⚠️ Overlay controller not initialized")
             }
         }
+    }
+
+    private fun isLikelyRouteUpdate(previousUrl: String?, previousCmdAtMs: Long, nextUrl: String, nowMs: Long): Boolean {
+        if (previousUrl.isNullOrBlank()) return false
+        if (previousCmdAtMs <= 0L) return false
+        if ((nowMs - previousCmdAtMs) > ROUTE_UPDATE_WINDOW_MS) return false
+        return previousUrl != nextUrl
     }
     
     private fun openMapsDirectly(url: String) {
@@ -366,7 +385,7 @@ class DisplayServerService : Service() {
         }
     }
     
-    private fun showNavigationNotification(url: String) {
+    private fun showNavigationNotification(url: String, allowFullScreenIntent: Boolean = true) {
         try {
             val notificationManager = ContextCompat.getSystemService(this, NotificationManager::class.java)
             
@@ -380,7 +399,7 @@ class DisplayServerService : Service() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
             
-            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            val builder = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("🗺️ Navigation Received")
                 .setContentText("Tap to open Maps")
                 .setSmallIcon(android.R.drawable.ic_menu_directions)
@@ -392,8 +411,10 @@ class DisplayServerService : Service() {
                     "Open Navigation",
                     openNavPendingIntent
                 )
-                .setFullScreenIntent(openNavPendingIntent, true)
-                .build()
+            if (allowFullScreenIntent) {
+                builder.setFullScreenIntent(openNavPendingIntent, true)
+            }
+            val notification = builder.build()
             
             notificationManager?.notify(NOTIFICATION_ID + 1, notification)
             Log.d(TAG, "✅ Navigation notification shown")
