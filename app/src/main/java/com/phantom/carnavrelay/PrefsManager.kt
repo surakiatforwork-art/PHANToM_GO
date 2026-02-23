@@ -250,11 +250,18 @@ class PrefsManager(context: Context) {
     }
 
     fun getConnectionTransport(): String {
-        return prefs.getString(KEY_CONNECTION_TRANSPORT, TRANSPORT_AUTO) ?: TRANSPORT_AUTO
+        val stored = prefs.getString(KEY_CONNECTION_TRANSPORT, TRANSPORT_WIFI) ?: TRANSPORT_WIFI
+        // Wi‑Fi only mode: migrate legacy AUTO/BLUETOOTH selections to WIFI.
+        if (stored != TRANSPORT_WIFI) {
+            prefs.edit().putString(KEY_CONNECTION_TRANSPORT, TRANSPORT_WIFI).apply()
+            return TRANSPORT_WIFI
+        }
+        return stored
     }
 
     fun setConnectionTransport(transport: String) {
-        prefs.edit().putString(KEY_CONNECTION_TRANSPORT, transport).apply()
+        // Bluetooth transport is disabled; persist WIFI regardless of caller input.
+        prefs.edit().putString(KEY_CONNECTION_TRANSPORT, TRANSPORT_WIFI).apply()
     }
 
     fun getBluetoothTargetAddress(): String? {

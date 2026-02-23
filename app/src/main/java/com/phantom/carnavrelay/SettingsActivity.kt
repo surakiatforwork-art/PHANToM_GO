@@ -204,15 +204,8 @@ class SettingsActivity : AppCompatActivity() {
 
         transportModeGroup.setOnCheckedChangeListener { _, checkedId ->
             if (updatingTransportUi) return@setOnCheckedChangeListener
-            val transport = when (checkedId) {
-                R.id.transportModeWifi -> PrefsManager.TRANSPORT_WIFI
-                R.id.transportModeBluetooth -> PrefsManager.TRANSPORT_BLUETOOTH
-                else -> PrefsManager.TRANSPORT_AUTO
-            }
-            prefsManager.setConnectionTransport(transport)
-            if (transport == PrefsManager.TRANSPORT_BLUETOOTH && !prefsManager.hasBluetoothTarget()) {
-                requestBluetoothDeviceSelection()
-            }
+            // Bluetooth transport disabled; keep Wi‑Fi selected.
+            prefsManager.setConnectionTransport(PrefsManager.TRANSPORT_WIFI)
             updateTransportStatus()
         }
 
@@ -375,34 +368,33 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun updateTransportStatus() {
-        val transport = prefsManager.getConnectionTransport()
+        prefsManager.setConnectionTransport(PrefsManager.TRANSPORT_WIFI)
         val targetName = prefsManager.getBluetoothTargetName()
         val targetAddress = prefsManager.getBluetoothTargetAddress()
 
         updatingTransportUi = true
-        transportModeGroup.check(
-            when (transport) {
-                PrefsManager.TRANSPORT_WIFI -> R.id.transportModeWifi
-                PrefsManager.TRANSPORT_BLUETOOTH -> R.id.transportModeBluetooth
-                else -> R.id.transportModeAuto
-            }
-        )
+        transportModeGroup.check(R.id.transportModeWifi)
         updatingTransportUi = false
 
-        transportModeStatusText.text = "Current transport: $transport"
+        transportModeAuto.visibility = View.GONE
+        transportModeBluetooth.visibility = View.GONE
+        transportModeWifi.text = "Wi‑Fi Local (HTTP) - Recommended"
+        transportModeWifi.isEnabled = false
+        transportModeGroup.isEnabled = false
+
+        transportModeStatusText.text = "Current transport: WIFI (Bluetooth disabled)"
         transportModeStatusText.setTextColor(
             ContextCompat.getColor(this, R.color.aurora_cyan)
         )
 
-        if (!targetAddress.isNullOrBlank()) {
-            bluetoothTargetStatusText.text = "BT target: ${targetName ?: "Unknown"} ($targetAddress)"
-            bluetoothTargetStatusText.setTextColor(ContextCompat.getColor(this, R.color.aurora_success))
-            clearBluetoothDeviceButton.visibility = View.VISIBLE
+        bluetoothTargetStatusText.text = if (!targetAddress.isNullOrBlank()) {
+            "Bluetooth transport disabled (saved target kept: ${targetName ?: "Unknown"})"
         } else {
-            bluetoothTargetStatusText.text = "BT target: not selected"
-            bluetoothTargetStatusText.setTextColor(ContextCompat.getColor(this, R.color.aurora_warning))
-            clearBluetoothDeviceButton.visibility = View.GONE
+            "Bluetooth transport disabled"
         }
+        bluetoothTargetStatusText.setTextColor(ContextCompat.getColor(this, R.color.aurora_warning))
+        pickBluetoothDeviceButton.visibility = View.GONE
+        clearBluetoothDeviceButton.visibility = View.GONE
     }
 
     private fun requestBluetoothDeviceSelection() {

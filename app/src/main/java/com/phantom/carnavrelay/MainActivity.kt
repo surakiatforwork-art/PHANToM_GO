@@ -68,14 +68,7 @@ class MainActivity : AppCompatActivity() {
     private val statusCheckRunnable = object : Runnable {
         override fun run() {
             if (mainSender.isPaired()) {
-                val transport = prefsManager.getConnectionTransport()
-                if (transport == PrefsManager.TRANSPORT_BLUETOOTH) {
-                    mainSender.checkBluetoothStatus(reason = "main-status") { _, _ ->
-                        runOnUiThread { updateUI() }
-                    }
-                } else {
-                    checkServerStatus()
-                }
+                checkServerStatus()
             }
             handler.postDelayed(this, STATUS_CHECK_INTERVAL_MS)
         }
@@ -406,11 +399,6 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "▶️ MainActivity.onResume()")
         setMapLinkHandlerEnabled(!isDisplayServiceRunning(), "MainActivity.onResume")
         MainSender.triggerAutoReconnect(this, "main-resume")
-        if (prefsManager.getConnectionTransport() == PrefsManager.TRANSPORT_BLUETOOTH && mainSender.isPaired()) {
-            mainSender.checkBluetoothStatus(reason = "main-resume") { _, _ ->
-                runOnUiThread { updateUI() }
-            }
-        }
         updateUI()
         handler.post(statusCheckRunnable)
     }
@@ -470,7 +458,7 @@ class MainActivity : AppCompatActivity() {
         }
         AlertDialog.Builder(this)
             .setTitle("About PHANToM GO")
-            .setMessage("Version: $versionName\n\nSend navigation from main device to display device over Bluetooth/Wi-Fi.")
+            .setMessage("Version: $versionName\n\nSend navigation from main device to display device over local Wi‑Fi.")
             .setPositiveButton("OK", null)
             .show()
     }

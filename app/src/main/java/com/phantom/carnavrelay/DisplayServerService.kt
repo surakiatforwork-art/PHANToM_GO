@@ -108,7 +108,7 @@ class DisplayServerService : Service() {
             return START_NOT_STICKY
         }
 
-        startBluetoothBridgeService()
+        Log.d(TAG, "ℹ️ Bluetooth bridge disabled (Wi‑Fi only mode)")
 
         // Start HTTP server
         try {
@@ -154,7 +154,7 @@ class DisplayServerService : Service() {
             Log.e(TAG, "💥 Error stopping HTTP Server", e)
         }
 
-        stopBluetoothBridgeService()
+        Log.d(TAG, "ℹ️ Bluetooth bridge stop skipped (Wi‑Fi only mode)")
         
         // Release wake lock
         releaseWakeLock()
@@ -178,28 +178,11 @@ class DisplayServerService : Service() {
     }
 
     private fun startBluetoothBridgeService() {
-        try {
-            val btIntent = Intent(this, com.phantom.carnavrelay.bt.DisplayServerService::class.java).apply {
-                putExtra("code", prefsManager.getServerToken())
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ContextCompat.startForegroundService(this, btIntent)
-            } else {
-                startService(btIntent)
-            }
-            Log.d(TAG, "✅ BT bridge service start requested")
-        } catch (e: Exception) {
-            Log.w(TAG, "⚠️ BT bridge service unavailable: ${e.message}")
-        }
+        Log.d(TAG, "ℹ️ startBluetoothBridgeService() no-op (disabled)")
     }
 
     private fun stopBluetoothBridgeService() {
-        try {
-            stopService(Intent(this, com.phantom.carnavrelay.bt.DisplayServerService::class.java))
-            Log.d(TAG, "🛑 BT bridge service stop requested")
-        } catch (e: Exception) {
-            Log.w(TAG, "⚠️ Failed to stop BT bridge service", e)
-        }
+        Log.d(TAG, "ℹ️ stopBluetoothBridgeService() no-op (disabled)")
     }
 
     private fun createNotification(): Notification {

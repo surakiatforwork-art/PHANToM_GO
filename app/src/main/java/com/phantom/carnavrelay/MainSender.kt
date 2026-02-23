@@ -4,6 +4,8 @@ import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.LinkProperties
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Handler
@@ -22,9 +24,11 @@ import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
 import java.net.ConnectException
+import java.net.Inet4Address
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.io.PrintWriter
+import java.net.InetAddress
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -41,7 +45,8 @@ class MainSender(
         private const val TAG = "PHANTOM_GO"
         private const val TIMEOUT_SECONDS = 3L
         private const val MAX_RETRIES = 2
-        private const val DISCOVERY_COOLDOWN_MS = 30000L
+        private const val DISCOVERY_COOLDOWN_MS = 12000L
+        private const val DISCOVERY_COOLDOWN_FAST_MS = 3000L
         private const val DISCOVERY_TIMEOUT_MS = 300L
         private const val DISCOVERY_MAX_HOSTS = 254
         
@@ -88,6 +93,7 @@ class MainSender(
     private var currentState = STATE_UNPAIRED
     @Volatile private var discoveryInProgress = false
     @Volatile private var lastDiscoveryAt = 0L
+    @Volatile private var lastDiscoveryReason: String = ""
     @Volatile private var lastBtStatusCheckAt = 0L
 
     fun isPaired(): Boolean {
@@ -117,20 +123,13 @@ class MainSender(
     }
 
     fun sendOpenUrl(url: String, callback: SendCallback? = null) {
-        when (prefsManager.getConnectionTransport()) {
-            PrefsManager.TRANSPORT_BLUETOOTH -> {
-                Log.d(TAG, "📡 Transport=BLUETOOTH")
-                sendOpenUrlViaBluetooth(url, callback)
-            }
-            PrefsManager.TRANSPORT_AUTO -> {
-                Log.d(TAG, "📡 Transport=AUTO")
-                sendOpenUrlAuto(url, callback)
-            }
-            else -> {
-                Log.d(TAG, "📡 Transport=WIFI")
-                sendOpenUrlWifi(url, callback)
-            }
+        val transport = prefsManager.getConnectionTransport()
+        if (transport != PrefsManager.TRANSPORT_WIFI) {
+            Log.w(TAG, "⚠️ Legacy transport '$transport' requested; forcing Wi‑Fi")
+            PhantomLog.w("Legacy transport '$transport' requested; forcing WIFI")
         }
+        Log.d(TAG, "📡 Transport=WIFI")
+        sendOpenUrlWifi(url, callback)
     }
 
     private fun sendOpenUrlWifi(
@@ -458,108 +457,15 @@ class MainSender(
     }
 
     fun triggerAutoReconnect(reason: String = "manual") {
-        when (prefsManager.getConnectionTransport()) {
-            PrefsManager.TRANSPORT_BLUETOOTH -> {
-                checkBluetoothStatus(reason = "auto-$reason", callback = null)
-            }
-            PrefsManager.TRANSPORT_AUTO -> {
-                // Prefer keeping Wi‑Fi pairing healthy, but also refresh BT reachability when configured.
-                maybeDiscoverDisplay(reason)
-                if (prefsManager.hasBluetoothTarget()) {
-                    checkBluetoothStatus(reason = "auto-$reason", callback = null)
-                }
-            }
-            else -> {
-                maybeDiscoverDisplay(reason)
-            }
-        }
+        maybeDiscoverDisplay(reason)
     }
 
     fun checkBluetoothStatus(
         reason: String = "manual",
         callback: ((Boolean, String?) -> Unit)? = null
     ) {
-        if (!isPaired()) {
-            setState(STATE_UNPAIRED)
-            callback?.invoke(false, "Not paired")
-            return
-        }
-
-        val address = prefsManager.getBluetoothTargetAddress()
-        if (address.isNullOrBlank()) {
-            callback?.invoke(false, "No Bluetooth target selected")
-            return
-        }
-        val token = prefsManager.getPairedToken()
-        if (token.isNullOrBlank()) {
-            setState(STATE_AUTH_FAILED)
-            callback?.invoke(false, "Missing pairing token")
-            return
-        }
-
-        val now = System.currentTimeMillis()
-        if ((now - lastBtStatusCheckAt) < 8000L && currentState == STATE_CONNECTED) {
-            callback?.invoke(true, null)
-            return
-        }
-        lastBtStatusCheckAt = now
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val hasConnect = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) == PackageManager.PERMISSION_GRANTED
-            if (!hasConnect) {
-                setState(STATE_OFFLINE)
-                callback?.invoke(false, "BLUETOOTH_CONNECT permission required")
-                return
-            }
-        }
-
-        val adapter = BluetoothAdapter.getDefaultAdapter()
-        if (adapter == null) {
-            setState(STATE_OFFLINE)
-            callback?.invoke(false, "Bluetooth not supported")
-            return
-        }
-        if (!adapter.isEnabled) {
-            setState(STATE_OFFLINE)
-            callback?.invoke(false, "Bluetooth disabled")
-            return
-        }
-
-        Thread {
-            var socket: android.bluetooth.BluetoothSocket? = null
-            try {
-                val device = adapter.getRemoteDevice(address)
-                @Suppress("MissingPermission")
-                socket = device.createRfcommSocketToServiceRecord(BtConst.APP_UUID)
-                adapter.cancelDiscovery()
-                socket.connect()
-
-                val writer = PrintWriter(socket.outputStream, true)
-                val hello = JSONObject().apply {
-                    put("type", "HELLO")
-                    put("code", token)
-                }.toString()
-                writer.println(hello)
-                writer.flush()
-
-                prefsManager.setLastBtClientAt(System.currentTimeMillis())
-                setState(STATE_CONNECTED)
-                Log.d(TAG, "✅ Bluetooth status check connected ($reason) -> $address")
-                mainHandler.post { callback?.invoke(true, null) }
-            } catch (e: Exception) {
-                Log.w(TAG, "⚠️ Bluetooth status check failed ($reason): ${e.message}")
-                setState(STATE_OFFLINE)
-                mainHandler.post { callback?.invoke(false, e.message ?: "Bluetooth error") }
-            } finally {
-                try {
-                    socket?.close()
-                } catch (_: Exception) {
-                }
-            }
-        }.start()
+        Log.i(TAG, "ℹ️ Bluetooth status check skipped ($reason): Bluetooth transport disabled")
+        callback?.invoke(false, "Bluetooth transport disabled")
     }
 
     fun retryPending(callback: SendCallback? = null) {
@@ -735,17 +641,23 @@ class MainSender(
     private fun maybeDiscoverDisplay(reason: String) {
         if (!isPaired()) return
         val now = System.currentTimeMillis()
-        if (discoveryInProgress || now - lastDiscoveryAt < DISCOVERY_COOLDOWN_MS) {
+        val cooldown = if (reason.contains("network", ignoreCase = true) || reason.contains("manual", ignoreCase = true)) {
+            DISCOVERY_COOLDOWN_FAST_MS
+        } else {
+            DISCOVERY_COOLDOWN_MS
+        }
+        if (discoveryInProgress || now - lastDiscoveryAt < cooldown) {
             return
         }
         discoveryInProgress = true
         lastDiscoveryAt = now
+        lastDiscoveryReason = reason
 
         Thread {
             try {
                 discoverDisplayOnLocalNetwork(reason)
             } catch (e: Exception) {
-                Log.e(TAG, "💥 Auto-reconnect discovery failed", e)
+                Log.e(TAG, "💥 Auto-reconnect discovery failed ($reason)", e)
             } finally {
                 discoveryInProgress = false
             }
@@ -781,16 +693,16 @@ class MainSender(
             }
         }
 
-        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-        val ipInt = wifiManager?.connectionInfo?.ipAddress ?: 0
-        val maskInt = wifiManager?.dhcpInfo?.netmask ?: 0
-        if (ipInt == 0 || maskInt == 0) {
+        val subnet = resolveCurrentIpv4Subnet()
+        val ipInt = subnet?.first ?: 0u
+        val maskInt = subnet?.second ?: 0u
+        if (ipInt == 0u || maskInt == 0u) {
             Log.w(TAG, "⚠️ Auto-reconnect skipped: no Wi-Fi IP")
             return
         }
 
-        val ip = ipInt.toUInt()
-        val mask = maskInt.toUInt()
+        val ip = ipInt
+        val mask = maskInt
         val network = ip and mask
         val broadcast = network or mask.inv()
         var start = network + 1u
@@ -858,8 +770,78 @@ class MainSender(
         if (!ipFound.isNullOrEmpty()) {
             applyDiscoveredDisplay(ipFound, foundPort.get(), token, reason, "subnet-scan")
         } else {
-            Log.d(TAG, "ℹ️ Auto-reconnect: display not found ($reason)")
+            Log.d(TAG, "ℹ️ Auto-reconnect: display not found ($reason), lastReason=$lastDiscoveryReason")
         }
+    }
+
+    private fun resolveCurrentIpv4Subnet(): Pair<UInt, UInt>? {
+        resolveIpv4SubnetFromActiveNetwork()?.let { return it }
+        return resolveIpv4SubnetFromWifiManager()
+    }
+
+    private fun resolveIpv4SubnetFromActiveNetwork(): Pair<UInt, UInt>? {
+        return try {
+            val cm = ContextCompat.getSystemService(context, ConnectivityManager::class.java) ?: return null
+            val network = cm.activeNetwork ?: return null
+            val linkProperties = cm.getLinkProperties(network) ?: return null
+            extractIpv4Subnet(linkProperties)
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Could not read active network subnet: ${e.message}")
+            null
+        }
+    }
+
+    private fun extractIpv4Subnet(linkProperties: LinkProperties): Pair<UInt, UInt>? {
+        val linkAddress = linkProperties.linkAddresses.firstOrNull { address ->
+            val inet = address.address
+            inet is Inet4Address && !inet.isLoopbackAddress
+        } ?: return null
+
+        val ip = inetToLittleEndianUInt(linkAddress.address) ?: return null
+        val prefix = linkAddress.prefixLength.coerceIn(0, 32)
+        val mask = prefixToLittleEndianMask(prefix)
+        if (mask == 0u) return null
+        return ip to mask
+    }
+
+    private fun resolveIpv4SubnetFromWifiManager(): Pair<UInt, UInt>? {
+        return try {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            val ipInt = wifiManager?.connectionInfo?.ipAddress ?: 0
+            val maskInt = wifiManager?.dhcpInfo?.netmask ?: 0
+            if (ipInt == 0 || maskInt == 0) return null
+            ipInt.toUInt() to maskInt.toUInt()
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Could not read WifiManager subnet: ${e.message}")
+            null
+        }
+    }
+
+    private fun inetToLittleEndianUInt(address: InetAddress?): UInt? {
+        val bytes = (address as? Inet4Address)?.address ?: return null
+        if (bytes.size != 4) return null
+        return ((bytes[0].toInt() and 0xFF)
+            or ((bytes[1].toInt() and 0xFF) shl 8)
+            or ((bytes[2].toInt() and 0xFF) shl 16)
+            or ((bytes[3].toInt() and 0xFF) shl 24)).toUInt()
+    }
+
+    private fun prefixToLittleEndianMask(prefixLength: Int): UInt {
+        if (prefixLength <= 0) return 0u
+        var remaining = prefixLength
+        val octets = IntArray(4)
+        for (i in 0 until 4) {
+            octets[i] = when {
+                remaining >= 8 -> 0xFF
+                remaining <= 0 -> 0x00
+                else -> (0xFF shl (8 - remaining)) and 0xFF
+            }
+            remaining -= 8
+        }
+        return (octets[0].toUInt()
+            or (octets[1].toUInt() shl 8)
+            or (octets[2].toUInt() shl 16)
+            or (octets[3].toUInt() shl 24))
     }
 
     private fun probeDisplayStatus(

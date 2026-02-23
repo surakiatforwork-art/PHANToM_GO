@@ -5,6 +5,8 @@ import android.app.Application
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 
 /**
@@ -14,6 +16,8 @@ import android.util.Log
 class PhantomGoApplication : Application(), Application.ActivityLifecycleCallbacks {
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private val appHandler = Handler(Looper.getMainLooper())
+    @Volatile private var reconnectBurstSeq = 0L
 
     companion object {
         const val TAG = "PHANTOM_GO"
@@ -46,12 +50,12 @@ class PhantomGoApplication : Application(), Application.ActivityLifecycleCallbac
             }
             networkCallback = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
-                    maybeTriggerAutoReconnect("network-available")
+                    scheduleReconnectBurst("network-available")
                 }
 
                 override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
                     if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
-                        maybeTriggerAutoReconnect("network-capabilities")
+                        scheduleReconnectBurst("network-capabilities")
                     }
                 }
 
@@ -63,6 +67,18 @@ class PhantomGoApplication : Application(), Application.ActivityLifecycleCallbac
             Log.d(TAG, "✅ Network reconnect callback registered")
         } catch (e: Exception) {
             Log.w(TAG, "⚠️ Failed to register network callback", e)
+        }
+    }
+
+    private fun scheduleReconnectBurst(reason: String) {
+        val seq = System.currentTimeMillis()
+        reconnectBurstSeq = seq
+        val delays = longArrayOf(0L, 1500L, 4000L)
+        delays.forEach { delayMs ->
+            appHandler.postDelayed({
+                if (reconnectBurstSeq != seq) return@postDelayed
+                maybeTriggerAutoReconnect("$reason+$delayMs")
+            }, delayMs)
         }
     }
 

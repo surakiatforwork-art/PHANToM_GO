@@ -208,7 +208,6 @@ class DisplayActivity : AppCompatActivity() {
             } else {
                 startService(intent)
             }
-            startBluetoothServer()
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to start server", e)
             Toast.makeText(this, "Failed to start server: ${e.message}", Toast.LENGTH_LONG).show()
@@ -288,7 +287,6 @@ class DisplayActivity : AppCompatActivity() {
             } else {
                 startService(intent)
             }
-            startBluetoothServer()
             updateUI()
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to start server", e)
@@ -302,7 +300,6 @@ class DisplayActivity : AppCompatActivity() {
         try {
             val intent = Intent(this, DisplayServerService::class.java)
             stopService(intent)
-            stopBluetoothServer()
             updateUI()
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to stop server", e)
@@ -490,16 +487,11 @@ class DisplayActivity : AppCompatActivity() {
     }
 
     private fun updateConnectionIndicator(isPaired: Boolean, isMainActive: Boolean) {
-        val btRecent = isBtRecentlyConnected()
-        if (isPaired && (isMainActive || btRecent)) {
+        if (isPaired && isMainActive) {
             statusDot.visibility = View.VISIBLE
             statusDot.setBackgroundResource(R.drawable.status_dot_cyan)
             statusGhost.visibility = View.GONE
-            tvStatus.text = when {
-                isMainActive && btRecent -> "Connected (Wi-Fi + Bluetooth)"
-                isMainActive -> "Connected (Wi-Fi)"
-                else -> "Connected (Bluetooth)"
-            }
+            tvStatus.text = "Connected (Wi‑Fi)"
             tvStatus.setTextColor(getColor(R.color.aurora_cyan))
             startStatusBlink()
         } else {
