@@ -10,6 +10,9 @@ object NavLinkUtils {
     private const val TAG = "PHANTOM_GO"
     private const val RESOLVE_MAX_ATTEMPTS = 3
     private const val RESOLVE_RETRY_DELAY_MS = 200L
+    // Google Maps URLs API uses `two-wheeler` (hyphen), not `two_wheeler`.
+    private const val TRAVEL_MODE_DRIVING = "driving"
+    private const val TRAVEL_MODE_MOTORCYCLE = "two-wheeler"
 
     private val resolverClient = OkHttpClient.Builder()
         .followRedirects(true)
@@ -192,8 +195,8 @@ object NavLinkUtils {
     fun toDirectionsPreviewUrl(url: String, navMode: String?): String {
         val destination = extractDestination(url) ?: return url
         val travelMode = when (navMode) {
-            PrefsManager.DISPLAY_NAV_MODE_MOTORCYCLE -> "two_wheeler"
-            else -> "driving"
+            PrefsManager.DISPLAY_NAV_MODE_MOTORCYCLE -> TRAVEL_MODE_MOTORCYCLE
+            else -> TRAVEL_MODE_DRIVING
         }
         return "https://www.google.com/maps/dir/?api=1&destination=${Uri.encode(destination)}&travelmode=$travelMode"
     }
@@ -204,7 +207,7 @@ object NavLinkUtils {
             if (!destination.isNullOrBlank()) {
                 if (navMode == PrefsManager.DISPLAY_NAV_MODE_MOTORCYCLE) {
                     // google.navigation doesn't support motorcycle; using "b" maps to bicycle.
-                    // Use directions URL with two_wheeler and dir_action=navigate instead.
+                    // Use directions URL with travelmode=two-wheeler and dir_action=navigate instead.
                     val previewUrl = toDirectionsPreviewUrl(url, navMode)
                     return appendQueryParam(previewUrl, "dir_action", "navigate")
                 }
