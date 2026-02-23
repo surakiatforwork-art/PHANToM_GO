@@ -41,9 +41,9 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🎯 Overlay Widget"
+                    android:text="2) เครื่องจอ (Display) - Overlay Widget"
                     android:textColor="@color/aurora_cyan"
-                    android:textSize="20sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="16dp" />
 
@@ -111,9 +111,9 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🗺️ Map Link Hub"
+                    android:text="1) เครื่องหลัก (Main) - Link Hub &amp; Sending"
                     android:textColor="@color/aurora_cyan"
-                    android:textSize="20sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
 
@@ -404,6 +404,30 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="16dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/aurora_gray"
+                    android:alpha="0.6"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="2) เครื่องจอ (Display) - Google Maps บนจอ"
+                    android:textColor="@color/aurora_cyan"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="ตั้งค่าส่วนนี้เฉพาะเครื่องจอ: โหมดเส้นทางและพฤติกรรมการเปิด Google Maps"
+                    android:textColor="@color/aurora_silver"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="12dp" />
 
                 <TextView
                     android:layout_width="match_parent"

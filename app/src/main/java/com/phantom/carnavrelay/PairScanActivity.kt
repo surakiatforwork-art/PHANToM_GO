@@ -3,6 +3,7 @@ package com.phantom.carnavrelay
 import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
@@ -64,6 +65,7 @@ class PairScanActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "▶️ PairScanActivity.onCreate()")
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         
         prefsManager = PrefsManager(this)
 
@@ -92,7 +94,8 @@ class PairScanActivity : AppCompatActivity() {
             setCameraId(0)
             setBeepEnabled(true)
             setBarcodeImageEnabled(false)
-            setOrientationLocked(false)
+            setCaptureActivity(PortraitCaptureActivity::class.java)
+            setOrientationLocked(true)
         }
         barcodeLauncher.launch(options)
     }

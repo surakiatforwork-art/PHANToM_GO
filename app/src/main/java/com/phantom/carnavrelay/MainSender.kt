@@ -49,6 +49,13 @@ class MainSender(
         private const val DISCOVERY_COOLDOWN_FAST_MS = 3000L
         private const val DISCOVERY_TIMEOUT_MS = 300L
         private const val DISCOVERY_MAX_HOSTS = 254
+        private val COMMON_HOTSPOT_QUICK_IPS = listOf(
+            "192.168.43.1", "192.168.43.2", "192.168.43.3",
+            "192.168.137.1", "192.168.137.2", "192.168.137.3",
+            "192.168.232.1", "192.168.232.2", "192.168.232.3",
+            "172.20.10.1", "172.20.10.2", "172.20.10.3",
+            "192.168.42.1", "192.168.42.2", "192.168.42.3"
+        )
         
         // Connection states
         const val STATE_UNPAIRED = "UNPAIRED"
@@ -679,64 +686,192 @@ class MainSender(
         val knownCandidates = mutableListOf<String>()
         prefsManager.getPairedIp()?.let { if (it.isNotBlank()) knownCandidates += it }
         knownCandidates += prefsManager.getKnownDisplayIps()
-        knownCandidates.distinct().forEach { candidateIp ->
-            val foundPort = probeDisplayStatus(
+        probeCandidateIps(
+            ips = knownCandidates.distinct(),
+            client = discoveryClient,
+            port = port,
+            localTokenHint = tokenHint,
+            localMainId = localMainId
+        )?.let { found ->
+            applyDiscoveredDisplay(found.first, found.second, token, reason, "known-ip")
+            return
+        }
+
+        val gatewayCandidates = resolveGatewayCandidates()
+        if (gatewayCandidates.isNotEmpty()) {
+            Log.d(TAG, "🔎 Auto-reconnect probing gateway candidates: $gatewayCandidates")
+            probeCandidateIps(
+                ips = gatewayCandidates,
                 client = discoveryClient,
-                targetIp = candidateIp,
                 port = port,
                 localTokenHint = tokenHint,
                 localMainId = localMainId
-            )
-            if (foundPort != null) {
-                applyDiscoveredDisplay(candidateIp, foundPort, token, reason, "known-ip")
+            )?.let { found ->
+                applyDiscoveredDisplay(found.first, found.second, token, reason, "gateway")
                 return
             }
         }
 
+        val scannedSubnets = mutableSetOf<String>()
         val subnet = resolveCurrentIpv4Subnet()
         val ipInt = subnet?.first ?: 0u
         val maskInt = subnet?.second ?: 0u
-        if (ipInt == 0u || maskInt == 0u) {
-            Log.w(TAG, "⚠️ Auto-reconnect skipped: no Wi-Fi IP")
+        if (ipInt != 0u && maskInt != 0u) {
+            if (scanSubnetForDisplay(
+                subnetIp = ipInt,
+                subnetMask = maskInt,
+                discoveryClient = discoveryClient,
+                port = port,
+                token = token,
+                tokenHint = tokenHint,
+                localMainId = localMainId,
+                reason = reason,
+                source = "subnet-scan"
+            )) return
+            scannedSubnets += subnetKey(ipInt, maskInt)
+        } else {
+            Log.w(TAG, "⚠️ Auto-reconnect: no active Wi‑Fi subnet, trying hotspot fallback paths")
+        }
+
+        val derivedSubnets = deriveSubnetCandidatesFromKnownIps()
+        for ((candidateIp, candidateMask) in derivedSubnets) {
+            val key = subnetKey(candidateIp, candidateMask)
+            if (!scannedSubnets.add(key)) continue
+            if (scanSubnetForDisplay(
+                subnetIp = candidateIp,
+                subnetMask = candidateMask,
+                discoveryClient = discoveryClient,
+                port = port,
+                token = token,
+                tokenHint = tokenHint,
+                localMainId = localMainId,
+                reason = reason,
+                source = "known-subnet"
+            )) return
+        }
+
+        probeCandidateIps(
+            ips = COMMON_HOTSPOT_QUICK_IPS,
+            client = discoveryClient,
+            port = port,
+            localTokenHint = tokenHint,
+            localMainId = localMainId
+        )?.let { found ->
+            applyDiscoveredDisplay(found.first, found.second, token, reason, "hotspot-quick")
             return
         }
 
-        val ip = ipInt
-        val mask = maskInt
-        val network = ip and mask
-        val broadcast = network or mask.inv()
+        Log.d(TAG, "ℹ️ Auto-reconnect: display not found ($reason), lastReason=$lastDiscoveryReason")
+    }
+
+    private fun resolveCurrentIpv4Subnet(): Pair<UInt, UInt>? {
+        resolveIpv4SubnetFromActiveNetwork()?.let { return it }
+        return resolveIpv4SubnetFromWifiManager()
+    }
+
+    private fun resolveGatewayCandidates(): List<String> {
+        val result = linkedSetOf<String>()
+        try {
+            val cm = ContextCompat.getSystemService(context, ConnectivityManager::class.java)
+            val network = cm?.activeNetwork
+            val linkProperties = if (network != null) cm.getLinkProperties(network) else null
+            linkProperties?.routes.orEmpty().forEach { route ->
+                val gateway = route.gateway
+                if (gateway is Inet4Address && !gateway.isAnyLocalAddress && !gateway.isLoopbackAddress) {
+                    result += gateway.hostAddress ?: return@forEach
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Could not resolve gateway from active network: ${e.message}")
+        }
+
+        try {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            val gatewayInt = wifiManager?.dhcpInfo?.gateway ?: 0
+            if (gatewayInt != 0) {
+                result += uintToIp(gatewayInt.toUInt())
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Could not resolve gateway from WifiManager: ${e.message}")
+        }
+        return result.toList()
+    }
+
+    private fun deriveSubnetCandidatesFromKnownIps(): List<Pair<UInt, UInt>> {
+        val mask = 0xFFFFFF00u // /24 in little-endian format
+        val candidates = linkedSetOf<Pair<UInt, UInt>>()
+        val ips = mutableListOf<String>()
+        prefsManager.getPairedIp()?.let { if (it.isNotBlank()) ips += it }
+        ips += prefsManager.getKnownDisplayIps()
+        ips.forEach { ipString ->
+            val ip = ipToUInt(ipString) ?: return@forEach
+            candidates += (ip to mask)
+        }
+        return candidates.toList()
+    }
+
+    private fun probeCandidateIps(
+        ips: List<String>,
+        client: OkHttpClient,
+        port: Int,
+        localTokenHint: String,
+        localMainId: String
+    ): Pair<String, Int>? {
+        ips.distinct().forEach { candidateIp ->
+            val foundPort = probeDisplayStatus(
+                client = client,
+                targetIp = candidateIp,
+                port = port,
+                localTokenHint = localTokenHint,
+                localMainId = localMainId
+            )
+            if (foundPort != null) {
+                return candidateIp to foundPort
+            }
+        }
+        return null
+    }
+
+    private fun scanSubnetForDisplay(
+        subnetIp: UInt,
+        subnetMask: UInt,
+        discoveryClient: OkHttpClient,
+        port: Int,
+        token: String,
+        tokenHint: String,
+        localMainId: String,
+        reason: String,
+        source: String
+    ): Boolean {
+        val network = subnetIp and subnetMask
+        val broadcast = network or subnetMask.inv()
         var start = network + 1u
         var end = if (broadcast > 0u) broadcast - 1u else 0u
         var hostCount = if (end >= start) (end - start + 1u) else 0u
 
         if (hostCount == 0u) {
-            Log.w(TAG, "⚠️ Auto-reconnect skipped: invalid subnet range")
-            return
+            Log.w(TAG, "⚠️ Auto-reconnect skipped invalid subnet range ($source)")
+            return false
         }
 
         if (hostCount > DISCOVERY_MAX_HOSTS.toUInt()) {
-            val subnetBase = ip and 0xFFFFFF00u
+            val subnetBase = subnetIp and 0xFFFFFF00u
             start = subnetBase + 1u
             end = subnetBase + 254u
             hostCount = 254u
         }
 
-        val localIpString = uintToIp(ip)
-        val localTokenHint = tokenHint
-
+        val localIpString = uintToIp(subnetIp)
         val found = AtomicBoolean(false)
         val foundIp = AtomicReference<String?>(null)
         val foundPort = AtomicInteger(port)
-
         val executor = Executors.newFixedThreadPool(12)
 
         var host = start
         while (host <= end) {
             val targetIp = uintToIp(host)
             host++
-            if (targetIp == localIpString) {
-                continue
-            }
+            if (targetIp == localIpString) continue
             executor.execute {
                 if (found.get()) return@execute
                 try {
@@ -744,15 +879,14 @@ class MainSender(
                         client = discoveryClient,
                         targetIp = targetIp,
                         port = port,
-                        localTokenHint = localTokenHint,
+                        localTokenHint = tokenHint,
                         localMainId = localMainId
                     )
                     if (probedPort != null && found.compareAndSet(false, true)) {
                         foundIp.set(targetIp)
                         foundPort.set(probedPort)
                     }
-                } catch (e: Exception) {
-                    // Ignore individual host failures
+                } catch (_: Exception) {
                 }
             }
         }
@@ -762,21 +896,14 @@ class MainSender(
         while (!executor.isTerminated && System.currentTimeMillis() < deadline && !found.get()) {
             executor.awaitTermination(200, TimeUnit.MILLISECONDS)
         }
-        if (found.get()) {
-            executor.shutdownNow()
-        }
+        if (found.get()) executor.shutdownNow()
 
         val ipFound = foundIp.get()
         if (!ipFound.isNullOrEmpty()) {
-            applyDiscoveredDisplay(ipFound, foundPort.get(), token, reason, "subnet-scan")
-        } else {
-            Log.d(TAG, "ℹ️ Auto-reconnect: display not found ($reason), lastReason=$lastDiscoveryReason")
+            applyDiscoveredDisplay(ipFound, foundPort.get(), token, reason, source)
+            return true
         }
-    }
-
-    private fun resolveCurrentIpv4Subnet(): Pair<UInt, UInt>? {
-        resolveIpv4SubnetFromActiveNetwork()?.let { return it }
-        return resolveIpv4SubnetFromWifiManager()
+        return false
     }
 
     private fun resolveIpv4SubnetFromActiveNetwork(): Pair<UInt, UInt>? {
@@ -824,6 +951,28 @@ class MainSender(
             or ((bytes[1].toInt() and 0xFF) shl 8)
             or ((bytes[2].toInt() and 0xFF) shl 16)
             or ((bytes[3].toInt() and 0xFF) shl 24)).toUInt()
+    }
+
+    private fun ipToUInt(ip: String): UInt? {
+        val parts = ip.trim().split('.')
+        if (parts.size != 4) return null
+        return try {
+            val b1 = parts[0].toInt()
+            val b2 = parts[1].toInt()
+            val b3 = parts[2].toInt()
+            val b4 = parts[3].toInt()
+            if (listOf(b1, b2, b3, b4).any { it !in 0..255 }) return null
+            (b1.toUInt()
+                or (b2.toUInt() shl 8)
+                or (b3.toUInt() shl 16)
+                or (b4.toUInt() shl 24))
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun subnetKey(ip: UInt, mask: UInt): String {
+        return "${uintToIp(ip and mask)}/${mask.toString(16)}"
     }
 
     private fun prefixToLittleEndianMask(prefixLength: Int): UInt {
