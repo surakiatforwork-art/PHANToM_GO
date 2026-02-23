@@ -88,6 +88,7 @@ class MainSender(
     private var currentState = STATE_UNPAIRED
     @Volatile private var discoveryInProgress = false
     @Volatile private var lastDiscoveryAt = 0L
+    @Volatile private var lastBtStatusCheckAt = 0L
 
     fun isPaired(): Boolean {
         return prefsManager.isPaired()
@@ -457,7 +458,108 @@ class MainSender(
     }
 
     fun triggerAutoReconnect(reason: String = "manual") {
-        maybeDiscoverDisplay(reason)
+        when (prefsManager.getConnectionTransport()) {
+            PrefsManager.TRANSPORT_BLUETOOTH -> {
+                checkBluetoothStatus(reason = "auto-$reason", callback = null)
+            }
+            PrefsManager.TRANSPORT_AUTO -> {
+                // Prefer keeping Wi‑Fi pairing healthy, but also refresh BT reachability when configured.
+                maybeDiscoverDisplay(reason)
+                if (prefsManager.hasBluetoothTarget()) {
+                    checkBluetoothStatus(reason = "auto-$reason", callback = null)
+                }
+            }
+            else -> {
+                maybeDiscoverDisplay(reason)
+            }
+        }
+    }
+
+    fun checkBluetoothStatus(
+        reason: String = "manual",
+        callback: ((Boolean, String?) -> Unit)? = null
+    ) {
+        if (!isPaired()) {
+            setState(STATE_UNPAIRED)
+            callback?.invoke(false, "Not paired")
+            return
+        }
+
+        val address = prefsManager.getBluetoothTargetAddress()
+        if (address.isNullOrBlank()) {
+            callback?.invoke(false, "No Bluetooth target selected")
+            return
+        }
+        val token = prefsManager.getPairedToken()
+        if (token.isNullOrBlank()) {
+            setState(STATE_AUTH_FAILED)
+            callback?.invoke(false, "Missing pairing token")
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        if ((now - lastBtStatusCheckAt) < 8000L && currentState == STATE_CONNECTED) {
+            callback?.invoke(true, null)
+            return
+        }
+        lastBtStatusCheckAt = now
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val hasConnect = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!hasConnect) {
+                setState(STATE_OFFLINE)
+                callback?.invoke(false, "BLUETOOTH_CONNECT permission required")
+                return
+            }
+        }
+
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        if (adapter == null) {
+            setState(STATE_OFFLINE)
+            callback?.invoke(false, "Bluetooth not supported")
+            return
+        }
+        if (!adapter.isEnabled) {
+            setState(STATE_OFFLINE)
+            callback?.invoke(false, "Bluetooth disabled")
+            return
+        }
+
+        Thread {
+            var socket: android.bluetooth.BluetoothSocket? = null
+            try {
+                val device = adapter.getRemoteDevice(address)
+                @Suppress("MissingPermission")
+                socket = device.createRfcommSocketToServiceRecord(BtConst.APP_UUID)
+                adapter.cancelDiscovery()
+                socket.connect()
+
+                val writer = PrintWriter(socket.outputStream, true)
+                val hello = JSONObject().apply {
+                    put("type", "HELLO")
+                    put("code", token)
+                }.toString()
+                writer.println(hello)
+                writer.flush()
+
+                prefsManager.setLastBtClientAt(System.currentTimeMillis())
+                setState(STATE_CONNECTED)
+                Log.d(TAG, "✅ Bluetooth status check connected ($reason) -> $address")
+                mainHandler.post { callback?.invoke(true, null) }
+            } catch (e: Exception) {
+                Log.w(TAG, "⚠️ Bluetooth status check failed ($reason): ${e.message}")
+                setState(STATE_OFFLINE)
+                mainHandler.post { callback?.invoke(false, e.message ?: "Bluetooth error") }
+            } finally {
+                try {
+                    socket?.close()
+                } catch (_: Exception) {
+                }
+            }
+        }.start()
     }
 
     fun retryPending(callback: SendCallback? = null) {

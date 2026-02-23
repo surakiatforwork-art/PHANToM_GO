@@ -21,6 +21,7 @@ class MainPairActivity : AppCompatActivity() {
     private lateinit var codeInput: TextInputEditText
     private lateinit var codeLayout: TextInputLayout
     private lateinit var connectButton: MaterialButton
+    private lateinit var prefsManager: PrefsManager
     private var deviceAddress: String = ""
     private var deviceName: String = ""
 
@@ -28,6 +29,7 @@ class MainPairActivity : AppCompatActivity() {
         Log.d(TAG, "▶️ MainPairActivity.onCreate() called")
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_pair)
+        prefsManager = PrefsManager(this)
 
         deviceAddress = intent.getStringExtra("address") ?: ""
         deviceName = intent.getStringExtra("device_name") ?: "Unknown Device"
@@ -112,6 +114,8 @@ class MainPairActivity : AppCompatActivity() {
 
     private fun startMainClientService(code: String) {
         Log.d(TAG, "🚀 MainPairActivity.startMainClientService() - Starting service for $deviceAddress")
+        prefsManager.saveBluetoothTarget(deviceAddress, deviceName)
+        Log.d(TAG, "💾 Saved BT target for reconnect: $deviceName ($deviceAddress)")
         val intent = Intent(this, MainClientService::class.java).apply {
             putExtra("address", deviceAddress)
             putExtra("code", code)

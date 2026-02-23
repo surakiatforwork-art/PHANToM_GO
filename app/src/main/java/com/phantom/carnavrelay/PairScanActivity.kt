@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -47,6 +48,7 @@ class PairScanActivity : AppCompatActivity() {
         .build()
     private val mainHandler = Handler(Looper.getMainLooper())
     private var progressDialog: AlertDialog? = null
+    @Volatile private var isUiActive = false
 
     private val barcodeLauncher = registerForActivityResult(ScanContract()) { result ->
         if (result.contents != null) {
@@ -71,6 +73,16 @@ class PairScanActivity : AppCompatActivity() {
         } else {
             startScan()
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        isUiActive = true
+    }
+
+    override fun onStop() {
+        isUiActive = false
+        super.onStop()
     }
 
     private fun startScan() {
@@ -105,24 +117,35 @@ class PairScanActivity : AppCompatActivity() {
     }
     
     private fun showInvalidQRDialog(raw: String) {
-        AlertDialog.Builder(this)
-            .setTitle("Invalid QR Format")
-            .setMessage("The QR code could not be parsed. Format not recognized.\n\nRaw content:\n${raw.take(200)}${if (raw.length > 200) "..." else ""}")
-            .setPositiveButton("Copy RAW") { _, _ ->
-                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                val clip = ClipData.newPlainText("QR Raw", raw)
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(this, "Raw content copied to clipboard", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Retry") { _, _ ->
-                startScan()
-            }
-            .setNeutralButton("Cancel") { _, _ ->
-                setResult(RESULT_CANCELED)
-                finish()
-            }
-            .setCancelable(false)
-            .show()
+        if (!canShowDialogs()) {
+            Log.w(TAG, "⚠️ Skipping invalid QR dialog: activity not active")
+            Toast.makeText(this, "Invalid QR format", Toast.LENGTH_SHORT).show()
+            setResult(RESULT_CANCELED)
+            finish()
+            return
+        }
+        try {
+            AlertDialog.Builder(this)
+                .setTitle("Invalid QR Format")
+                .setMessage("The QR code could not be parsed. Format not recognized.\n\nRaw content:\n${raw.take(200)}${if (raw.length > 200) "..." else ""}")
+                .setPositiveButton("Copy RAW") { _, _ ->
+                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("QR Raw", raw)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(this, "Raw content copied to clipboard", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Retry") { _, _ ->
+                    startScan()
+                }
+                .setNeutralButton("Cancel") { _, _ ->
+                    setResult(RESULT_CANCELED)
+                    finish()
+                }
+                .setCancelable(false)
+                .show()
+        } catch (e: WindowManager.BadTokenException) {
+            Log.w(TAG, "⚠️ Invalid QR dialog skipped (bad token): ${e.message}")
+        }
     }
     
     private fun callPairEndpoint(pairInfo: PairInfo) {
@@ -162,6 +185,10 @@ class PairScanActivity : AppCompatActivity() {
                 }
                 
                 mainHandler.post {
+                    if (!canShowDialogs()) {
+                        Log.w(TAG, "⚠️ Pair failure arrived after activity stopped; ignoring dialog")
+                        return@post
+                    }
                     showErrorDialog(errorMsg)
                 }
             }
@@ -206,12 +233,21 @@ class PairScanActivity : AppCompatActivity() {
     
     private fun showProgressDialog(message: String) {
         mainHandler.post {
+            if (!canShowDialogs()) {
+                Log.d(TAG, "ℹ️ Skipping progress dialog: activity not active")
+                return@post
+            }
             progressDialog = AlertDialog.Builder(this)
                 .setTitle("Pairing")
                 .setMessage(message)
                 .setCancelable(false)
                 .create()
-            progressDialog?.show()
+            try {
+                progressDialog?.show()
+            } catch (e: WindowManager.BadTokenException) {
+                Log.w(TAG, "⚠️ Progress dialog show failed (bad token): ${e.message}")
+                progressDialog = null
+            }
         }
     }
     
@@ -248,22 +284,38 @@ class PairScanActivity : AppCompatActivity() {
     }
     
     private fun showErrorDialog(message: String) {
-        AlertDialog.Builder(this)
-            .setTitle("Pairing Failed")
-            .setMessage(message)
-            .setPositiveButton("Scan Again") { _, _ ->
-                startScan()
-            }
-            .setNegativeButton("Cancel") { _, _ ->
-                setResult(RESULT_CANCELED)
-                finish()
-            }
-            .setCancelable(false)
-            .show()
+        if (!canShowDialogs()) {
+            Log.w(TAG, "⚠️ Skipping error dialog: activity not active")
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            return
+        }
+
+        try {
+            AlertDialog.Builder(this)
+                .setTitle("Pairing Failed")
+                .setMessage(message)
+                .setPositiveButton("Scan Again") { _, _ ->
+                    startScan()
+                }
+                .setNegativeButton("Cancel") { _, _ ->
+                    setResult(RESULT_CANCELED)
+                    finish()
+                }
+                .setCancelable(false)
+                .show()
+        } catch (e: WindowManager.BadTokenException) {
+            Log.w(TAG, "⚠️ Error dialog show failed (bad token): ${e.message}")
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun canShowDialogs(): Boolean {
+        return isUiActive && !isFinishing && !isDestroyed
     }
 
     override fun onDestroy() {
         Log.d(TAG, "💀 PairScanActivity.onDestroy()")
+        isUiActive = false
         // Remove all pending callbacks to prevent crashes after activity is destroyed
         mainHandler.removeCallbacksAndMessages(null)
         // Safely dismiss any showing dialog

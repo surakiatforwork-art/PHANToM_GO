@@ -69,7 +69,11 @@ class MainActivity : AppCompatActivity() {
         override fun run() {
             if (mainSender.isPaired()) {
                 val transport = prefsManager.getConnectionTransport()
-                if (transport != PrefsManager.TRANSPORT_BLUETOOTH) {
+                if (transport == PrefsManager.TRANSPORT_BLUETOOTH) {
+                    mainSender.checkBluetoothStatus(reason = "main-status") { _, _ ->
+                        runOnUiThread { updateUI() }
+                    }
+                } else {
                     checkServerStatus()
                 }
             }
@@ -402,6 +406,11 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "▶️ MainActivity.onResume()")
         setMapLinkHandlerEnabled(!isDisplayServiceRunning(), "MainActivity.onResume")
         MainSender.triggerAutoReconnect(this, "main-resume")
+        if (prefsManager.getConnectionTransport() == PrefsManager.TRANSPORT_BLUETOOTH && mainSender.isPaired()) {
+            mainSender.checkBluetoothStatus(reason = "main-resume") { _, _ ->
+                runOnUiThread { updateUI() }
+            }
+        }
         updateUI()
         handler.post(statusCheckRunnable)
     }
