@@ -2,9 +2,12 @@ package com.phantom.carnavrelay
 
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
 import android.util.Log
 import fi.iki.elonen.NanoHTTPD
 import java.io.IOException
+import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.NetworkInterface
 import java.util.Collections
 
@@ -15,6 +18,13 @@ class HttpServer(private val context: Context, private val prefsManager: PrefsMa
         const val DEFAULT_PORT = 8765
         const val ACTION_PAIRING_CHANGED = "com.phantom.carnavrelay.PAIRING_CHANGED"
     }
+
+    private data class LocalIpCandidate(
+        val address: String,
+        val interfaceName: String,
+        val isPrivate: Boolean,
+        val isActiveNetwork: Boolean
+    )
     
     private var isRunning = false
     
@@ -218,9 +228,8 @@ class HttpServer(private val context: Context, private val prefsManager: PrefsMa
     }
     
     private fun handleRefreshToken(session: IHTTPSession): Response {
-        // Only allow refresh from localhost
         val remoteIp = session.remoteIpAddress
-        if (remoteIp != "127.0.0.1" && remoteIp != "localhost" && !remoteIp.startsWith("192.168.")) {
+        if (!isLocalNetworkAddress(remoteIp)) {
             Log.w(TAG, "❌ Refresh token attempted from external IP: $remoteIp")
             return newFixedLengthResponse(
                 Response.Status.FORBIDDEN,
@@ -258,14 +267,35 @@ class HttpServer(private val context: Context, private val prefsManager: PrefsMa
     
     fun getLocalIpAddress(): String? {
         try {
+            val activeNetworkIps = resolveActiveNetworkIpv4s()
+            val candidates = mutableListOf<LocalIpCandidate>()
             val interfaces = Collections.list(NetworkInterface.getNetworkInterfaces())
             for (intf in interfaces) {
+                try {
+                    if (!intf.isUp || intf.isLoopback || intf.isVirtual) continue
+                } catch (_: Exception) {
+                }
                 val addrs = Collections.list(intf.inetAddresses)
                 for (addr in addrs) {
-                    if (!addr.isLoopbackAddress && addr.hostAddress.indexOf(':') < 0) {
-                        return addr.hostAddress
-                    }
+                    val inet4 = addr as? Inet4Address ?: continue
+                    val hostAddress = inet4.hostAddress ?: continue
+                    if (inet4.isLoopbackAddress || inet4.isLinkLocalAddress) continue
+                    candidates += LocalIpCandidate(
+                        address = hostAddress,
+                        interfaceName = intf.name ?: "",
+                        isPrivate = inet4.isSiteLocalAddress,
+                        isActiveNetwork = activeNetworkIps.contains(hostAddress)
+                    )
                 }
+            }
+            val best = candidates.maxByOrNull { scoreLocalIpCandidate(it) }
+            if (best != null) {
+                Log.d(
+                    TAG,
+                    "🌐 Selected local IP ${best.address} on ${best.interfaceName} " +
+                        "(private=${best.isPrivate}, active=${best.isActiveNetwork})"
+                )
+                return best.address
             }
         } catch (e: Exception) {
             Log.e(TAG, "💥 Error getting IP address", e)
@@ -278,5 +308,57 @@ class HttpServer(private val context: Context, private val prefsManager: PrefsMa
         val port = listeningPort
         val token = prefsManager.getServerToken()
         return JsonUtils.createPairingPayload(ip, port, token)
+    }
+
+    private fun resolveActiveNetworkIpv4s(): Set<String> {
+        return try {
+            val cm = context.getSystemService(ConnectivityManager::class.java) ?: return emptySet()
+            val network = cm.activeNetwork ?: return emptySet()
+            val linkProperties = cm.getLinkProperties(network) ?: return emptySet()
+            linkProperties.linkAddresses.mapNotNull { linkAddress ->
+                val inet = linkAddress.address as? Inet4Address ?: return@mapNotNull null
+                if (inet.isLoopbackAddress || inet.isLinkLocalAddress) return@mapNotNull null
+                inet.hostAddress
+            }.toSet()
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Could not resolve active network IPs: ${e.message}")
+            emptySet()
+        }
+    }
+
+    private fun scoreLocalIpCandidate(candidate: LocalIpCandidate): Int {
+        var score = 0
+        if (candidate.isPrivate) score += 100
+        if (candidate.isActiveNetwork) score += 60
+
+        val interfaceName = candidate.interfaceName.lowercase()
+        if (isLikelyWifiInterface(interfaceName)) score += 30
+        if (interfaceName.contains("tun") || interfaceName.contains("rmnet") || interfaceName.contains("ccmni")) {
+            score -= 40
+        }
+
+        if (candidate.address.startsWith("192.168.")) score += 8
+        if (candidate.address.startsWith("172.20.")) score += 8
+        if (candidate.address.startsWith("192.168.43.") || candidate.address.startsWith("192.168.137.")) score += 12
+
+        return score
+    }
+
+    private fun isLikelyWifiInterface(interfaceName: String): Boolean {
+        return interfaceName.contains("wlan") ||
+            interfaceName.contains("wifi") ||
+            interfaceName.contains("softap") ||
+            interfaceName.contains("ap")
+    }
+
+    private fun isLocalNetworkAddress(ip: String?): Boolean {
+        if (ip.isNullOrBlank()) return false
+        if (ip == "127.0.0.1" || ip == "::1" || ip.equals("localhost", ignoreCase = true)) return true
+        return try {
+            val address = InetAddress.getByName(ip)
+            address.isSiteLocalAddress || address.isLoopbackAddress || address.isLinkLocalAddress
+        } catch (_: Exception) {
+            false
+        }
     }
 }

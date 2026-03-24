@@ -35,7 +35,11 @@ class OpenMapsReceiver : BroadcastReceiver() {
             )
             val mapsIntent = Intent(Intent.ACTION_VIEW, Uri.parse(previewUrl)).apply {
                 setPackage("com.google.android.apps.maps")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                )
             }
             
             context.startActivity(mapsIntent)

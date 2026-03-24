@@ -126,10 +126,20 @@ class MainSender(
         val port = prefsManager.getPairedPort()
         val tokenHint = prefsManager.getPairedToken()?.let { prefsManager.getTokenHint(it) } ?: "****"
         val verified = if (prefsManager.isPairedVerified()) "✅" else "⏳"
-        return "$verified $ip:$port (Token: $tokenHint)"
+        val displayName = prefsManager.getPairedDisplayName()
+        return if (prefsManager.isCloudPaired() && !displayName.isNullOrBlank()) {
+            "$verified $displayName via Cloud ($ip:$port, Token: $tokenHint)"
+        } else {
+            "$verified $ip:$port (Token: $tokenHint)"
+        }
     }
 
     fun sendOpenUrl(url: String, callback: SendCallback? = null) {
+        if (prefsManager.isCloudPaired() && !prefsManager.getPairedDisplayDeviceId().isNullOrBlank()) {
+            Log.d(TAG, "📡 Transport=CLOUD")
+            sendOpenUrlCloud(url, callback)
+            return
+        }
         val transport = prefsManager.getConnectionTransport()
         if (transport != PrefsManager.TRANSPORT_WIFI) {
             Log.w(TAG, "⚠️ Legacy transport '$transport' requested; forcing Wi‑Fi")
@@ -208,6 +218,48 @@ class MainSender(
             retryCount = 0,
             queueOnFailureForCall = queueOnFailureForCall,
             toastEnabledForCall = toastEnabledForCall
+        )
+    }
+
+    private fun sendOpenUrlCloud(url: String, callback: SendCallback? = null) {
+        Log.d(TAG, "☁️ sendOpenUrlCloud() called - state: $currentState")
+
+        if (!isPaired()) {
+            Log.w(TAG, "❌ Cannot send cloud command - not paired")
+            setState(STATE_UNPAIRED)
+            showToast("Please pair with a Display device first")
+            callback?.onFailure("Not paired with any display device", false)
+            return
+        }
+
+        val hasWifiFallback = !prefsManager.getPairedIp().isNullOrBlank() && !prefsManager.getPairedToken().isNullOrBlank()
+        setState(STATE_CONNECTING)
+
+        FirebaseManager.sendCloudOpenUrl(
+            context = context,
+            url = url,
+            onSuccess = {
+                Log.d(TAG, "✅ Cloud URL sent successfully")
+                setState(STATE_CONNECTED)
+                prefsManager.setPairedVerified(true)
+                showToast("Sent to display via cloud")
+                callback?.onSuccess()
+            },
+            onFailure = { error ->
+                Log.e(TAG, "💥 Cloud send failed: $error")
+                if (hasWifiFallback) {
+                    Log.w(TAG, "↪️ Falling back to Wi‑Fi send: $error")
+                    sendOpenUrlWifi(url, callback)
+                    return@sendCloudOpenUrl
+                }
+
+                setState(STATE_OFFLINE)
+                if (queueOnFailure) {
+                    prefsManager.addToPendingQueue(url)
+                    showToast("Cloud send failed. Queued for retry.")
+                }
+                callback?.onFailure(error, queueOnFailure)
+            }
         )
     }
 
@@ -550,6 +602,22 @@ class MainSender(
     fun checkServerStatus(callback: ((Boolean, String?) -> Unit)? = null) {
         if (!isPaired()) {
             callback?.invoke(false, "Not paired")
+            return
+        }
+
+        if (prefsManager.isCloudPaired() && !prefsManager.getPairedDisplayDeviceId().isNullOrBlank()) {
+            Log.d(TAG, "🔍 Checking cloud display status")
+            FirebaseManager.checkCloudDisplayStatus(context) { success, error ->
+                if (success) {
+                    setState(STATE_CONNECTED)
+                    prefsManager.setPairedVerified(true)
+                } else {
+                    setState(STATE_OFFLINE)
+                }
+                mainHandler.post {
+                    callback?.invoke(success, error)
+                }
+            }
             return
         }
         
@@ -1026,7 +1094,15 @@ class MainSender(
         reason: String,
         source: String
     ) {
-        prefsManager.savePairing(ip, port, token, verified = true)
+        prefsManager.savePairing(
+            ip = ip,
+            port = port,
+            token = token,
+            verified = true,
+            displayDeviceId = prefsManager.getPairedDisplayDeviceId(),
+            displayName = prefsManager.getPairedDisplayName(),
+            viaCloud = prefsManager.isCloudPaired()
+        )
         prefsManager.rememberDisplayIp(ip)
         setState(STATE_CONNECTED)
         val message = "🔁 Auto-reconnect: Display found at $ip:$port ($reason/$source)"

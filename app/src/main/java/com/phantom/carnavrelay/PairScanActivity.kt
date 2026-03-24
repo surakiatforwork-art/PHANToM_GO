@@ -113,10 +113,16 @@ class PairScanActivity : AppCompatActivity() {
             return
         }
 
-        Log.d(TAG, "✅ Parsed QR: ip=${pairInfo.ip}, port=${pairInfo.port}, token=${pairInfo.token.take(10)}...")
-        
-        // Continue with pairing process
-        callPairEndpoint(pairInfo)
+        if (pairInfo.isCloudPairing) {
+            Log.d(
+                TAG,
+                "✅ Parsed cloud QR: displayDeviceId=${pairInfo.displayDeviceId}, pairCode=${pairInfo.pairCode}, local=${pairInfo.ip}:${pairInfo.port}"
+            )
+            callCloudPairing(pairInfo)
+        } else {
+            Log.d(TAG, "✅ Parsed local QR: ip=${pairInfo.ip}, port=${pairInfo.port}, token=${pairInfo.token?.take(10)}...")
+            callPairEndpoint(pairInfo)
+        }
     }
     
     private fun showInvalidQRDialog(raw: String) {
@@ -152,17 +158,25 @@ class PairScanActivity : AppCompatActivity() {
     }
     
     private fun callPairEndpoint(pairInfo: PairInfo) {
-        val endpoint = "http://${pairInfo.ip}:${pairInfo.port}/pair"
+        val ip = pairInfo.ip
+        val port = pairInfo.port
+        val token = pairInfo.token
+        if (ip.isNullOrBlank() || port == null || token.isNullOrBlank()) {
+            showErrorDialog("QR code is missing local network pairing data.")
+            return
+        }
+
+        val endpoint = "http://$ip:$port/pair"
         val mainId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "unknown"
         val mainName = android.os.Build.MODEL
         
         val jsonBody = JSONObject().apply {
-            put("token", pairInfo.token)
+            put("token", token)
             put("mainId", mainId)
             put("mainName", mainName)
         }.toString()
         
-        Log.d(TAG, "✅ Parsed pairing data - IP: ${pairInfo.ip}, Port: ${pairInfo.port}, Token: ${prefsManager.getTokenHint(pairInfo.token)}")
+        Log.d(TAG, "✅ Parsed pairing data - IP: $ip, Port: $port, Token: ${prefsManager.getTokenHint(token)}")
         
         // Show progress dialog
         showProgressDialog("Verifying pairing...")
@@ -206,8 +220,8 @@ class PairScanActivity : AppCompatActivity() {
                         200 -> {
                             // Success - save pairing as verified
                             Log.d(TAG, "✅ /pair success - saving verified pairing")
-                            prefsManager.savePairing(pairInfo.ip, pairInfo.port, pairInfo.token, verified = true)
-                            Toast.makeText(this@PairScanActivity, "Paired with ${pairInfo.ip}:${pairInfo.port}!", Toast.LENGTH_LONG).show()
+                            prefsManager.savePairing(ip, port, token, verified = true)
+                            Toast.makeText(this@PairScanActivity, "Paired with $ip:$port!", Toast.LENGTH_LONG).show()
                             setResult(RESULT_OK)
                             finish()
                         }
@@ -231,7 +245,49 @@ class PairScanActivity : AppCompatActivity() {
                 }
                 response.close()
             }
-        })
+            })
+    }
+
+    private fun callCloudPairing(pairInfo: PairInfo) {
+        showProgressDialog("Claiming pairing from Firebase...")
+        FirebaseManager.claimPairingCode(
+            context = this,
+            pairInfo = pairInfo,
+            onSuccess = { result ->
+                hideProgressDialog()
+                val localIp = result.localIp
+                val localPort = result.localPort
+                val localToken = result.localToken
+                if (!localIp.isNullOrBlank() && localPort != null && !localToken.isNullOrBlank()) {
+                    prefsManager.savePairing(
+                        ip = localIp,
+                        port = localPort,
+                        token = localToken,
+                        verified = false,
+                        displayDeviceId = result.displayDeviceId,
+                        displayName = result.displayName,
+                        viaCloud = true
+                    )
+                }
+
+                mainHandler.post {
+                    val displayLabel = result.displayName ?: result.displayDeviceId
+                    Toast.makeText(
+                        this@PairScanActivity,
+                        "Cloud paired with $displayLabel",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    setResult(RESULT_OK)
+                    finish()
+                }
+            },
+            onFailure = { error ->
+                hideProgressDialog()
+                mainHandler.post {
+                    showErrorDialog("Cloud pairing failed: $error")
+                }
+            }
+        )
     }
     
     private fun showProgressDialog(message: String) {

@@ -4,7 +4,19 @@ import android.net.Uri
 import android.util.Log
 import org.json.JSONObject
 
-data class PairInfo(val ip: String, val port: Int, val token: String)
+data class PairInfo(
+    val ip: String? = null,
+    val port: Int? = null,
+    val token: String? = null,
+    val displayDeviceId: String? = null,
+    val pairCode: String? = null
+) {
+    val isCloudPairing: Boolean
+        get() = !displayDeviceId.isNullOrBlank() && !pairCode.isNullOrBlank()
+
+    val hasLocalTransport: Boolean
+        get() = !ip.isNullOrBlank() && port != null && port > 0 && !token.isNullOrBlank()
+}
 
 fun parsePairInfo(rawInput: String): PairInfo? {
     val raw = rawInput.trim()
@@ -20,9 +32,23 @@ fun parsePairInfo(rawInput: String): PairInfo? {
             return null
         }
 
+        val deviceId = u.getQueryParameter("deviceId")?.trim().orEmpty()
+        val pairCode = u.getQueryParameter("pairCode")?.trim().orEmpty()
         val ip = u.getQueryParameter("ip")?.trim().orEmpty()
         val portStr = u.getQueryParameter("port")?.trim().orEmpty()
         val token = u.getQueryParameter("token")?.trim().orEmpty()
+
+        if (deviceId.isNotBlank() && pairCode.isNotBlank()) {
+            val port = portStr.toIntOrNull()
+            Log.d("PHANTOM_GO", "✅ Parsed cloud phantomgo://: deviceId=$deviceId, pairCode=$pairCode")
+            return PairInfo(
+                ip = ip.ifBlank { null },
+                port = port,
+                token = token.ifBlank { null },
+                displayDeviceId = deviceId,
+                pairCode = pairCode
+            )
+        }
 
         val port = portStr.toIntOrNull()
         if (ip.isBlank() || port == null || token.isBlank()) {
@@ -39,11 +65,22 @@ fun parsePairInfo(rawInput: String): PairInfo? {
         Log.d("PHANTOM_GO", "📋 Detected JSON format")
         return try {
             val obj = JSONObject(raw)
+            val deviceId = obj.optString("deviceId", "").trim()
+            val pairCode = obj.optString("pairCode", "").trim()
             val ip = obj.optString("ip", "").trim()
             val port = obj.optInt("port", -1)
             val token = obj.optString("token", "").trim()
-            
-            if (ip.isBlank() || port <= 0 || token.isBlank()) {
+
+            if (deviceId.isNotBlank() && pairCode.isNotBlank()) {
+                Log.d("PHANTOM_GO", "✅ Parsed cloud JSON: deviceId=$deviceId, pairCode=$pairCode")
+                PairInfo(
+                    ip = ip.ifBlank { null },
+                    port = port.takeIf { it > 0 },
+                    token = token.ifBlank { null },
+                    displayDeviceId = deviceId,
+                    pairCode = pairCode
+                )
+            } else if (ip.isBlank() || port <= 0 || token.isBlank()) {
                 Log.w("PHANTOM_GO", "❌ Invalid JSON: ip=$ip, port=$port, token=${token.take(10)}...")
                 null
             } else {
@@ -88,6 +125,26 @@ fun buildPairPayload(ip: String, port: Int, token: String): String {
     return Uri.Builder()
         .scheme("phantomgo")
         .authority("pair")
+        .appendQueryParameter("ip", ip)
+        .appendQueryParameter("port", port.toString())
+        .appendQueryParameter("token", token)
+        .build()
+        .toString()
+}
+
+fun buildCloudPairPayload(
+    displayDeviceId: String,
+    pairCode: String,
+    ip: String,
+    port: Int,
+    token: String
+): String {
+    return Uri.Builder()
+        .scheme("phantomgo")
+        .authority("pair")
+        .appendQueryParameter("mode", "cloud")
+        .appendQueryParameter("deviceId", displayDeviceId)
+        .appendQueryParameter("pairCode", pairCode)
         .appendQueryParameter("ip", ip)
         .appendQueryParameter("port", port.toString())
         .appendQueryParameter("token", token)

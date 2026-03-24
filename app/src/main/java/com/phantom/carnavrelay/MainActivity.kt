@@ -302,6 +302,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun clearPairing() {
+        FirebaseManager.clearMainPairing(this, "main-clear-pairing")
         prefsManager.clearPairing()
         mainSender.clearPending()
         Toast.makeText(this, "✅ Pairing cleared", Toast.LENGTH_SHORT).show()

@@ -90,6 +90,15 @@ class PrefsManager(context: Context) {
 
         // Main-side cache for auto-reconnect (recent working IPs)
         private const val KEY_KNOWN_DISPLAY_IPS = "known_display_ips"
+
+        // Stable local device identity for Firebase-backed pairing
+        private const val KEY_LOCAL_DEVICE_ID = "local_device_id"
+
+        // Firebase cloud pairing
+        private const val KEY_CLOUD_PAIR_CODE = "cloud_pair_code"
+        private const val KEY_PAIRED_DISPLAY_DEVICE_ID = "paired_display_device_id"
+        private const val KEY_PAIRED_DISPLAY_NAME = "paired_display_name"
+        private const val KEY_PAIRED_VIA_CLOUD = "paired_via_cloud"
     }
     
     // Display device: Server token
@@ -188,17 +197,28 @@ class PrefsManager(context: Context) {
         prefs.edit().putBoolean(KEY_PAIRED_VERIFIED, verified).apply()
     }
     
-    fun savePairing(ip: String, port: Int, token: String, verified: Boolean = false) {
+    fun savePairing(
+        ip: String,
+        port: Int,
+        token: String,
+        verified: Boolean = false,
+        displayDeviceId: String? = null,
+        displayName: String? = null,
+        viaCloud: Boolean = false
+    ) {
         prefs.edit().apply {
             putString(KEY_PAIRED_IP, ip)
             putInt(KEY_PAIRED_PORT, port)
             putString(KEY_PAIRED_TOKEN, token)
             putBoolean(KEY_IS_PAIRED, true)
             putBoolean(KEY_PAIRED_VERIFIED, verified)
+            putString(KEY_PAIRED_DISPLAY_DEVICE_ID, displayDeviceId)
+            putString(KEY_PAIRED_DISPLAY_NAME, displayName)
+            putBoolean(KEY_PAIRED_VIA_CLOUD, viaCloud)
             apply()
         }
     }
-    
+
     fun clearPairing() {
         prefs.edit().apply {
             remove(KEY_PAIRED_IP)
@@ -206,8 +226,23 @@ class PrefsManager(context: Context) {
             remove(KEY_PAIRED_TOKEN)
             putBoolean(KEY_IS_PAIRED, false)
             putBoolean(KEY_PAIRED_VERIFIED, false)
+            remove(KEY_PAIRED_DISPLAY_DEVICE_ID)
+            remove(KEY_PAIRED_DISPLAY_NAME)
+            putBoolean(KEY_PAIRED_VIA_CLOUD, false)
             apply()
         }
+    }
+
+    fun getPairedDisplayDeviceId(): String? {
+        return prefs.getString(KEY_PAIRED_DISPLAY_DEVICE_ID, null)
+    }
+
+    fun getPairedDisplayName(): String? {
+        return prefs.getString(KEY_PAIRED_DISPLAY_NAME, null)
+    }
+
+    fun isCloudPaired(): Boolean {
+        return prefs.getBoolean(KEY_PAIRED_VIA_CLOUD, false)
     }
     
     // Pending queue for failed sends
@@ -398,6 +433,36 @@ class PrefsManager(context: Context) {
 
     fun clearKnownDisplayIps() {
         prefs.edit().remove(KEY_KNOWN_DISPLAY_IPS).apply()
+    }
+
+    fun getLocalDeviceId(): String {
+        val existing = prefs.getString(KEY_LOCAL_DEVICE_ID, null)
+        if (!existing.isNullOrBlank()) return existing
+        val newId = "device_${generateTokenHex(8)}"
+        prefs.edit().putString(KEY_LOCAL_DEVICE_ID, newId).apply()
+        return newId
+    }
+
+    fun getCloudPairCode(): String {
+        val existing = prefs.getString(KEY_CLOUD_PAIR_CODE, null)
+        if (!existing.isNullOrBlank()) return existing
+        val newCode = generateTokenHex(5)
+        prefs.edit().putString(KEY_CLOUD_PAIR_CODE, newCode).apply()
+        return newCode
+    }
+
+    fun peekCloudPairCode(): String? {
+        return prefs.getString(KEY_CLOUD_PAIR_CODE, null)
+    }
+
+    fun refreshCloudPairCode(): String {
+        val newCode = generateTokenHex(5)
+        prefs.edit().putString(KEY_CLOUD_PAIR_CODE, newCode).apply()
+        return newCode
+    }
+
+    fun clearCloudPairCode() {
+        prefs.edit().remove(KEY_CLOUD_PAIR_CODE).apply()
     }
 
     fun getResolvedUrlFor(shortUrl: String): String? {

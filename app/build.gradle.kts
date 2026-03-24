@@ -1,6 +1,7 @@
 plugins {
   id("com.android.application")
   id("org.jetbrains.kotlin.android")
+  id("com.google.gms.google-services")
 }
 
 android {
@@ -11,8 +12,8 @@ android {
     applicationId = "com.phantom.carnavrelay"
     minSdk = 23
     targetSdk = 34
-    versionCode = 10
-    versionName = "1.0.9"
+    versionCode = 11
+    versionName = "1.0.10"
   }
 
   buildTypes {
@@ -31,6 +32,11 @@ android {
 }
 
 dependencies {
+  implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
+  implementation("com.google.firebase:firebase-auth")
+  implementation("com.google.firebase:firebase-database")
+  implementation("com.google.firebase:firebase-messaging")
+
   implementation("androidx.core:core-ktx:1.13.1")
   implementation("androidx.appcompat:appcompat:1.7.0")
   implementation("com.google.android.material:material:1.12.0")

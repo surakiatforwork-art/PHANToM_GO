@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "441826518386",
+    "project_id": "phantom-go",
+    "storage_bucket": "phantom-go.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:441826518386:android:c210b8c0c176b5f0ad29eb",
+        "android_client_info": {
+          "package_name": "com.phantom.carnavrelay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCN-W64Y6cUOEnWI2maxZaer3btE03DWKc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

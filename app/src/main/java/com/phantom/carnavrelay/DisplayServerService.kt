@@ -27,6 +27,7 @@ class DisplayServerService : Service() {
         private const val CHANNEL_ID = "phantom_go_display"
         private const val ACTION_OPEN_MAPS = "com.phantom.carnavrelay.OPEN_MAPS"
         private const val ACTION_STOP_SERVER = "com.phantom.carnavrelay.STOP_SERVER"
+        const val ACTION_NAVIGATION_RECEIVED = "com.phantom.carnavrelay.NAVIGATION_RECEIVED"
         const val ACTION_APP_FOREGROUND = "com.phantom.carnavrelay.APP_FOREGROUND"
         private const val ROUTE_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000L
         
@@ -57,6 +58,8 @@ class DisplayServerService : Service() {
         Log.d(TAG, "▶️ DisplayServerService.onCreate()")
         prefsManager = PrefsManager(this)
         prefsManager.setDeviceMode(PrefsManager.MODE_DISPLAY)
+        FirebaseManager.ensureSignedInAndSync(this, "display-service-create")
+        FirebaseManager.startDisplayCommandListener(this, "display-service-create")
         overlayController = OverlayController(this)
         createNotificationChannel()
         acquireWakeLock()
@@ -75,21 +78,14 @@ class DisplayServerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "▶️ DisplayServerService.onStartCommand()")
+        val navigationUrl = if (intent?.action == ACTION_NAVIGATION_RECEIVED) intent.getStringExtra("url") else null
+        val navigationCommandId = if (intent?.action == ACTION_NAVIGATION_RECEIVED) intent.getStringExtra("commandId") else null
 
         // Handle stop action
         if (intent?.action == ACTION_STOP_SERVER) {
             Log.d(TAG, "🛑 Stop server action received")
             stopSelf()
             return START_NOT_STICKY
-        }
-        
-        // Handle navigation received
-        if (intent?.action == "com.phantom.carnavrelay.NAVIGATION_RECEIVED") {
-            val url = intent.getStringExtra("url")
-            if (!url.isNullOrEmpty()) {
-                onNavigationReceived(url)
-            }
-            return START_STICKY
         }
 
         try {
@@ -119,12 +115,17 @@ class DisplayServerService : Service() {
                 Log.d(TAG, "✅ HTTP Server started successfully")
             } else {
                 Log.d(TAG, "ℹ️ HTTP Server already running")
+                updateNotification()
             }
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to start HTTP Server", e)
             CrashReporter.recordException(this, "DisplayServerService:startHttpServer", e)
             stopSelf()
             return START_NOT_STICKY
+        }
+
+        if (!navigationUrl.isNullOrEmpty()) {
+            onNavigationReceived(navigationUrl, navigationCommandId)
         }
 
         return START_STICKY
@@ -137,6 +138,8 @@ class DisplayServerService : Service() {
     override fun onDestroy() {
         Log.d(TAG, "💀 DisplayServerService.onDestroy()")
         prefsManager.setDeviceMode(PrefsManager.MODE_MAIN)
+        FirebaseManager.syncDeviceRecord(this, "display-service-destroy")
+        FirebaseManager.stopDisplayCommandListener()
         
         // Cleanup overlay
         overlayController?.cleanup()
@@ -260,14 +263,14 @@ class DisplayServerService : Service() {
         }
     }
 
-    fun onNavigationReceived(url: String) {
+    fun onNavigationReceived(url: String, commandId: String? = null) {
         Log.d(TAG, "📡 Navigation received: $url")
-        resolveForDisplayAsync(url)
+        resolveForDisplayAsync(url, commandId)
     }
 
-    private fun resolveForDisplayAsync(rawUrl: String) {
+    private fun resolveForDisplayAsync(rawUrl: String, commandId: String? = null) {
         if (!NavLinkUtils.isShortMapsLink(rawUrl)) {
-            handleNavigationReady(rawUrl, rawUrl)
+            handleNavigationReady(rawUrl, rawUrl, commandId)
             return
         }
 
@@ -280,12 +283,12 @@ class DisplayServerService : Service() {
                     Log.d(TAG, "⏭️ Skipping stale resolve result")
                     return@post
                 }
-                handleNavigationReady(rawUrl, resolvedUrl)
+                handleNavigationReady(rawUrl, resolvedUrl, commandId)
             }
         }.start()
     }
 
-    private fun handleNavigationReady(rawUrl: String, resolvedUrl: String) {
+    private fun handleNavigationReady(rawUrl: String, resolvedUrl: String, commandId: String? = null) {
         val finalUrl = if (resolvedUrl.isBlank()) rawUrl else resolvedUrl
         val previousUrl = lastUrl
         val previousCmdAt = lastCmdAt
@@ -298,6 +301,9 @@ class DisplayServerService : Service() {
 
         lastUrl = finalUrl
         lastCmdAt = now
+        if (!commandId.isNullOrBlank()) {
+            FirebaseManager.markCloudCommandOpened(this, commandId, finalUrl)
+        }
 
         // Save to prefs for diagnostics
         val prefs = getSharedPreferences("phantom_go_prefs", Context.MODE_PRIVATE)
@@ -362,7 +368,11 @@ class DisplayServerService : Service() {
             )
             val mapsIntent = Intent(Intent.ACTION_VIEW, Uri.parse(openUrl)).apply {
                 setPackage("com.google.android.apps.maps")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                )
             }
 
             startActivity(mapsIntent)

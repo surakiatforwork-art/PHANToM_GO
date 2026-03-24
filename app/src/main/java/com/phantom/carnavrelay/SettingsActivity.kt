@@ -336,28 +336,44 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun updateMapLinkHubStatus() {
         val enabled = prefsManager.isMapLinkHubEnabled()
+        val displayModeActive = isDisplayModeActive()
+        val effectiveEnabled = enabled && !displayModeActive
 
         updatingMapHubUi = true
         mapLinkHubSwitch.isChecked = enabled
         updatingMapHubUi = false
 
-        setMapLinkHandlerEnabled(enabled)
+        setMapLinkHandlerEnabled(effectiveEnabled)
 
-        mapLinkHubStatusText.text = if (enabled) "On" else "Off"
+        mapLinkHubStatusText.text = when {
+            enabled && displayModeActive -> "Paused in Display Mode"
+            enabled -> "On"
+            else -> "Off"
+        }
         mapLinkHubStatusText.setTextColor(
             ContextCompat.getColor(
                 this,
-                if (enabled) R.color.aurora_success else R.color.aurora_warning
+                when {
+                    enabled && displayModeActive -> R.color.aurora_warning
+                    enabled -> R.color.aurora_success
+                    else -> R.color.aurora_warning
+                }
             )
         )
 
         val deviceMode = prefsManager.getDeviceMode()
         deviceModeStatusText.text = "Device mode: $deviceMode"
 
-        mapLinkHubInstructionText.text = if (enabled) {
+        mapLinkHubInstructionText.text = when {
+            enabled && displayModeActive -> {
+                "Map Link Hub ถูกพักไว้ชั่วคราวระหว่างที่เครื่องนี้ทำงานเป็น Display mode"
+            }
+            enabled -> {
             "ไปที่ Settings ของระบบ > Apps > Open by default > เลือก PHANToM GO แล้วกด Always"
-        } else {
-            "ปิดอยู่: ลิงก์แผนที่จะเปิด Google Maps ตามปกติ"
+            }
+            else -> {
+                "ปิดอยู่: ลิงก์แผนที่จะเปิด Google Maps ตามปกติ"
+            }
         }
 
         mapLinkHubDefaultStatusText.text = "System default: โปรดตั้งค่าในระบบ"
@@ -560,6 +576,18 @@ class SettingsActivity : AppCompatActivity() {
         )
         Log.d(TAG, "🔧 MapLinkHandlerAlias ${if (enabled) "ENABLED" else "DISABLED"}")
         PhantomLog.i("MapLinkHandlerAlias ${if (enabled) "ENABLED" else "DISABLED"}")
+    }
+
+    private fun isDisplayModeActive(): Boolean {
+        if (prefsManager.getDeviceMode() == PrefsManager.MODE_DISPLAY) return true
+        return try {
+            val activityManager = getSystemService(android.app.ActivityManager::class.java)
+            val services = activityManager.getRunningServices(Integer.MAX_VALUE)
+            services.any { it.service.className == DisplayServerService::class.java.name }
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Could not check DisplayServerService state", e)
+            false
+        }
     }
 
     private fun openDefaultHandlerSettings() {

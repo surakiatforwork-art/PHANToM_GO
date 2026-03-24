@@ -202,26 +202,6 @@ object NavLinkUtils {
     }
 
     fun toDisplayOpenUrl(url: String, navMode: String?, openBehavior: String?): String {
-        if (openBehavior == PrefsManager.DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION) {
-            val destination = extractDestination(url)
-            if (!destination.isNullOrBlank()) {
-                if (navMode == PrefsManager.DISPLAY_NAV_MODE_MOTORCYCLE) {
-                    // google.navigation doesn't support motorcycle; using "b" maps to bicycle.
-                    // Use directions URL with travelmode=two-wheeler and dir_action=navigate instead.
-                    val previewUrl = toDirectionsPreviewUrl(url, navMode)
-                    return appendQueryParam(previewUrl, "dir_action", "navigate")
-                }
-
-                val builder = Uri.Builder()
-                    .scheme("google.navigation")
-                    .appendQueryParameter("q", destination)
-                if (navMode == PrefsManager.DISPLAY_NAV_MODE_DRIVING) {
-                    builder.appendQueryParameter("mode", "d")
-                }
-                return builder.build().toString()
-            }
-        }
-
         val baseUrl = toDirectionsPreviewUrl(url, navMode)
         return if (openBehavior == PrefsManager.DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION) {
             appendQueryParam(baseUrl, "dir_action", "navigate")

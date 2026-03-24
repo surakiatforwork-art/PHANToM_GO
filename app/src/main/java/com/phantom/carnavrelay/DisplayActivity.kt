@@ -35,7 +35,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.common.BitMatrix
-import com.phantom.carnavrelay.util.buildPairPayload
+import com.phantom.carnavrelay.util.buildCloudPairPayload
 import com.phantom.carnavrelay.util.generateTokenHex
 import java.util.EnumMap
 
@@ -49,6 +49,8 @@ class DisplayActivity : AppCompatActivity() {
     }
 
     private lateinit var prefsManager: PrefsManager
+    private lateinit var appIcon: ImageView
+    private lateinit var titleText: TextView
     private lateinit var tvIpPort: TextView
     private lateinit var tvTokenHint: TextView
     private lateinit var ivQrCode: ImageView
@@ -59,9 +61,13 @@ class DisplayActivity : AppCompatActivity() {
     private lateinit var btnRefreshToken: Button
     private lateinit var btnCopyToken: Button
     private lateinit var btnResetPairing: Button
+    private lateinit var buttonLayout: LinearLayout
     private lateinit var layoutQR: LinearLayout
     private lateinit var layoutConnected: LinearLayout
     private lateinit var layoutConnectedActions: LinearLayout
+    private lateinit var tvConnectedHeadline: TextView
+    private lateinit var tvConnectedSubtext: TextView
+    private lateinit var tvConnectedInstruction: TextView
     private lateinit var btnOpenLastNav: Button
     private lateinit var switchDisplayMode: MaterialSwitch
     private lateinit var tvDisplayModeStatus: TextView
@@ -71,6 +77,7 @@ class DisplayActivity : AppCompatActivity() {
     private lateinit var tvQrPayload: TextView
     private lateinit var btnCopyPayload: Button
     private var statusBlinkAnimator: ObjectAnimator? = null
+    private var pairingReceiverRegistered = false
     private val mainPingHandler = Handler(Looper.getMainLooper())
     private val mainPingRunnable = object : Runnable {
         override fun run() {
@@ -108,6 +115,8 @@ class DisplayActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
+        appIcon = findViewById(R.id.appIcon)
+        titleText = findViewById(R.id.titleText)
         tvIpPort = findViewById(R.id.tvIpPort)
         tvTokenHint = findViewById(R.id.tvTokenHint)
         ivQrCode = findViewById(R.id.ivQrCode)
@@ -118,9 +127,13 @@ class DisplayActivity : AppCompatActivity() {
         btnRefreshToken = findViewById(R.id.btnRefreshToken)
         btnCopyToken = findViewById(R.id.btnCopyToken)
         btnResetPairing = findViewById(R.id.btnResetPairing)
+        buttonLayout = findViewById(R.id.buttonLayout)
         layoutQR = findViewById(R.id.layoutQR)
         layoutConnected = findViewById(R.id.layoutConnected)
         layoutConnectedActions = findViewById(R.id.layoutConnectedActions)
+        tvConnectedHeadline = findViewById(R.id.tvConnectedHeadline)
+        tvConnectedSubtext = findViewById(R.id.tvConnectedSubtext)
+        tvConnectedInstruction = findViewById(R.id.tvConnectedInstruction)
         btnOpenLastNav = findViewById(R.id.btnOpenLastNav)
         switchDisplayMode = findViewById(R.id.switchDisplayMode)
         tvDisplayModeStatus = findViewById(R.id.tvDisplayModeStatus)
@@ -199,6 +212,16 @@ class DisplayActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        registerPairingReceiverIfNeeded()
+    }
+
+    override fun onStop() {
+        unregisterPairingReceiverIfNeeded()
+        super.onStop()
+    }
+
     private fun startHttpServer() {
         Log.d(TAG, "🚀 Starting DisplayServerService")
         try {
@@ -221,6 +244,7 @@ class DisplayActivity : AppCompatActivity() {
         val token = prefsManager.getServerToken()
         val tokenHint = prefsManager.getTokenHint(token)
         val isPaired = prefsManager.isDisplayPaired()
+        val isMainActive = isMainRecentlyConnected()
 
         tvIpPort.text = "$ip:$port"
         tvTokenHint.text = tokenHint
@@ -249,25 +273,51 @@ class DisplayActivity : AppCompatActivity() {
                 val minutes = (System.currentTimeMillis() - pairedAt) / 60000
                 if (minutes < 60) "${minutes}m ago" else "${minutes/60}h ago"
             } else "Unknown"
-            
-            tvPairedInfo.text = "Paired with $pairedName ($timeAgo)"
+
+            appIcon.visibility = View.GONE
+            titleText.text = "Display Connected"
+            tvIpPort.visibility = View.GONE
+            tvTokenHint.visibility = View.GONE
+            buttonLayout.visibility = View.GONE
+            tvPairedInfo.text = "Main device: $pairedName  •  Paired $timeAgo"
+            tvConnectedHeadline.text = if (isMainActive) "Connected" else "Paired"
+            tvConnectedSubtext.text = if (isMainActive) {
+                "Ready to receive the latest route from $pairedName"
+            } else {
+                "Still paired with $pairedName"
+            }
+            tvConnectedInstruction.text = "Tap disconnect below if you want to pair a different Main device."
+            btnResetPairing.text = "Disconnect Main Device"
             layoutQR.visibility = View.GONE
             layoutConnected.visibility = View.VISIBLE
             layoutConnectedActions.visibility = View.VISIBLE
         } else {
-            tvPairedInfo.text = "Waiting for pairing..."
+            appIcon.visibility = View.VISIBLE
+            titleText.text = getString(R.string.app_name_display)
+            tvIpPort.visibility = View.VISIBLE
+            tvTokenHint.visibility = View.VISIBLE
+            buttonLayout.visibility = View.VISIBLE
+            tvPairedInfo.text = "Scan this QR code with Main device"
+            tvConnectedHeadline.text = "Waiting for Pairing"
+            tvConnectedSubtext.text = "Show this screen on the car display, then scan from the Main device."
+            tvConnectedInstruction.text = "Once paired, this screen will switch to connected mode automatically."
+            btnResetPairing.text = "Disconnect / Reset"
             layoutQR.visibility = View.VISIBLE
             layoutConnected.visibility = View.GONE
             layoutConnectedActions.visibility = View.GONE
         }
 
-        updateConnectionIndicator(isPaired, isMainRecentlyConnected())
+        updateConnectionIndicator(isPaired, isMainActive)
 
         val lastUrl = prefsManager.getPrefs().getString("last_url", null)
         btnOpenLastNav.isEnabled = !lastUrl.isNullOrEmpty()
 
-        // Generate QR code with phantomgo:// scheme
-        val qrPayload = buildPairPayload(ip, port, token)
+        val displayDeviceId = prefsManager.getLocalDeviceId()
+        val cloudPairCode = prefsManager.getCloudPairCode()
+
+        // Publish the current display pairing ticket to Firebase.
+        FirebaseManager.publishPairingCode(this, ip, port, token, "display-update-ui")
+        val qrPayload = buildCloudPairPayload(displayDeviceId, cloudPairCode, ip, port, token)
         Log.d(TAG, "📋 QR Payload: $qrPayload")
         
         // Update payload display
@@ -458,7 +508,11 @@ class DisplayActivity : AppCompatActivity() {
     
     private fun refreshToken() {
         Log.d(TAG, "🔄 Refreshing token...")
+        val previousPairCode = prefsManager.peekCloudPairCode()
         prefsManager.refreshServerToken()
+        prefsManager.refreshCloudPairCode()
+        FirebaseManager.resetDisplayPairingSession(this, previousPairCode, "display-refresh-token")
+        startHttpServer()
         updateUI()
         Toast.makeText(this, "Token refreshed", Toast.LENGTH_SHORT).show()
     }
@@ -478,9 +532,13 @@ class DisplayActivity : AppCompatActivity() {
             .setMessage("This will remove the current pairing and generate a new token. The Main device will need to scan QR again.")
             .setPositiveButton("Reset") { _, _ ->
                 Log.d(TAG, "�️ Resetting pairing")
-                prefsManager.clearDisplayPairing()
+                val previousPairCode = prefsManager.peekCloudPairCode()
+                prefsManager.refreshServerToken()
+                prefsManager.refreshCloudPairCode()
+                FirebaseManager.resetDisplayPairingSession(this, previousPairCode, "display-reset-pairing")
+                startHttpServer()
                 updateUI()
-                Toast.makeText(this, "Pairing reset", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Pairing reset and token refreshed", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -518,6 +576,8 @@ class DisplayActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        FirebaseManager.startDisplayCommandListener(this, "display-activity-resume")
+        updateUI()
         mainPingHandler.post(mainPingRunnable)
     }
 
@@ -543,7 +603,30 @@ class DisplayActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        unregisterPairingReceiverIfNeeded()
         statusBlinkAnimator?.cancel()
         super.onDestroy()
+    }
+
+    private fun registerPairingReceiverIfNeeded() {
+        if (pairingReceiverRegistered) return
+        val filter = IntentFilter(HttpServer.ACTION_PAIRING_CHANGED)
+        ContextCompat.registerReceiver(
+            this,
+            pairingReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        pairingReceiverRegistered = true
+    }
+
+    private fun unregisterPairingReceiverIfNeeded() {
+        if (!pairingReceiverRegistered) return
+        try {
+            unregisterReceiver(pairingReceiver)
+        } catch (_: Exception) {
+            // Ignore stale unregister attempts from activity teardown.
+        }
+        pairingReceiverRegistered = false
     }
 }
