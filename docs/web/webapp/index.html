@@ -106,6 +106,7 @@
     }
 
     .stack { display: grid; gap: 18px; }
+    .compact-grid { display: grid; gap: 16px; }
 
     .panel {
       position: relative;
@@ -134,6 +135,17 @@
         linear-gradient(135deg, rgba(18, 164, 208, 0.3), rgba(126, 87, 255, 0.22)),
         linear-gradient(180deg, rgba(26, 35, 50, 0.98), rgba(14, 20, 31, 0.97));
       border-color: rgba(127, 222, 255, 0.26);
+    }
+    .panel.share-panel {
+      padding: 26px 22px;
+      border-color: rgba(127, 222, 255, 0.22);
+      background:
+        linear-gradient(135deg, rgba(18, 164, 208, 0.18), rgba(126, 87, 255, 0.14)),
+        linear-gradient(180deg, rgba(26, 35, 50, 0.98), rgba(14, 20, 31, 0.97));
+    }
+    .panel.compact-panel {
+      padding: 18px;
+      border-radius: 24px;
     }
 
     .eyebrow {
@@ -234,6 +246,7 @@
       box-shadow: 0 0 0 3px rgba(127, 222, 255, 0.12);
     }
     .textarea { min-height: 138px; }
+    .panel.share-panel .textarea { min-height: 170px; }
 
     .action-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
     .button {
@@ -596,6 +609,13 @@
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 144px);
       }
 
+      .compact-grid {
+        grid-template-columns: 1.04fr 0.96fr;
+      }
+      .compact-grid.single {
+        grid-template-columns: 1fr;
+      }
+
       .toast-layer {
         inset: auto max(24px, calc((100vw - 620px) / 2)) 28px auto;
         width: 360px;
@@ -654,7 +674,7 @@
       <div>
         <div class="route-modal-kicker">New Route Received</div>
         <h3 class="route-modal-title">มีเส้นทางใหม่ส่งเข้ามา</h3>
-        <p class="route-modal-copy">แตะปุ่มด้านล่างเพื่อปิด popup นี้และเปิด Google Maps ตามค่าที่ตั้งไว้ของ browser display เครื่องนี้</p>
+        <p class="route-modal-copy">แตะปุ่มด้านล่างเพื่อปิด popup นี้แล้วเปิด Google Maps ตามค่าที่ตั้งไว้ของ browser display เครื่องนี้</p>
         <div class="route-preview-box" id="routeModalSummary">กำลังรอข้อมูลเส้นทาง...</div>
         <div class="route-modal-meta" id="routeModalMeta"></div>
       </div>
@@ -701,6 +721,8 @@
       displayMode: "phantomgo_web_display_mode",
       navMode: "phantomgo_web_nav_mode",
       openBehavior: "phantomgo_web_open_behavior",
+      launchTarget: "phantomgo_web_launch_target",
+      activeScreen: "phantomgo_web_active_screen",
       lastCommand: "phantomgo_web_last_command",
       pairedPeerInfo: "phantomgo_web_paired_peer_info"
     };
@@ -718,6 +740,8 @@
     const DISPLAY_NAV_MODE_MOTORCYCLE = "MOTORCYCLE";
     const DISPLAY_OPEN_BEHAVIOR_PREVIEW_ROUTE = "PREVIEW_ROUTE";
     const DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION = "START_NAVIGATION";
+    const DISPLAY_LAUNCH_TARGET_NEW_TAB = "NEW_TAB";
+    const DISPLAY_LAUNCH_TARGET_MAPS_APP = "MAPS_APP";
 
     const screenTemplates = {
       home: `
@@ -729,9 +753,36 @@
             <div class="stat-chip-row" id="homeQuickChips"></div>
           </div>
 
-          <div class="panel">
+          <div class="panel share-panel">
+            <div class="eyebrow"><span class="eyebrow-dot"></span><span>Route Relay</span></div>
+            <h2 class="title">แชร์เส้นทางไปยัง Display</h2>
+            <p class="subtitle">วางลิงก์ Google Maps, พิกัด, หรือคำค้นหา เว็บแอปจะ normalize แบบเดียวกับฝั่ง APK แล้วเขียนคำสั่งไปที่ <span class="inline-code">commands/{displayDeviceId}</span></p>
+            <div class="value-list">
+              <div class="value-row">
+                <div>
+                  <strong>Target Display</strong>
+                  <span id="homeTargetDisplay">ยังไม่ได้เชื่อมต่อ</span>
+                </div>
+                <div class="chip bad" id="homeTargetPresenceChip">Offline</div>
+              </div>
+            </div>
+            <div class="form-grid">
+              <div>
+                <label class="field-label" for="linkInput">Google Maps Link / Location</label>
+                <textarea class="textarea" id="linkInput" placeholder="เช่น https://maps.app.goo.gl/8mqH34fCETAnpjzW9 หรือชื่อสถานที่ / พิกัด"></textarea>
+              </div>
+            </div>
+            <div class="action-row">
+              <button class="button primary full" id="sendLinkButton">ส่งไปยัง Display</button>
+            </div>
+            <div class="notice hidden" id="displayModeHomeNotice">เครื่องนี้กำลังทำหน้าที่เป็น Display อยู่ จึงไม่ควรใช้เป็น Main พร้อมกัน ให้ปิด Display Mode ก่อนแล้วค่อยส่งลิงก์จากหน้า Home</div>
+            <p class="mini-note" id="sendHint">เมื่อ pair แล้ว browser นี้จะเขียน command ไปยัง Firebase path เดียวกับ APK</p>
+          </div>
+
+          <div class="compact-grid" id="homeCompactGrid">
+          <div class="panel compact-panel">
             <h2 class="panel-title">สถานะการเชื่อมต่อ</h2>
-            <p class="panel-subtitle">ถ้ายังไม่ pair ให้สแกน QR หรือวาง payload จากหน้าจอ Display ด้านล่างนี้</p>
+            <p class="panel-subtitle">ดูสถานะของ Main browser เครื่องนี้ และจัดการ pairing ปัจจุบันได้จากการ์ดนี้</p>
             <div class="value-list">
               <div class="value-row">
                 <div>
@@ -751,10 +802,10 @@
             <div class="action-row">
               <button class="button danger" id="clearMainPairingButton">ยกเลิกการเชื่อมต่อ</button>
             </div>
-            <p class="mini-note">การเชื่อมต่อจะเขียนไปที่ <span class="inline-code">pairings/byMain</span> และ <span class="inline-code">pairings/byDisplay</span> ชุดเดียวกับ APK</p>
+            <p class="mini-note" id="homeConnectionHint">การเชื่อมต่อจะเขียนไปที่ <span class="inline-code">pairings/byMain</span> และ <span class="inline-code">pairings/byDisplay</span> ชุดเดียวกับ APK</p>
           </div>
 
-          <div class="panel">
+          <div class="panel compact-panel" id="homePairingPanel">
             <h2 class="panel-title">สแกนหรือวาง QR Payload</h2>
             <p class="panel-subtitle">รองรับ payload รูปแบบเดียวกับแอป APK เช่น <span class="inline-code">phantomgo://pair?deviceId=...&amp;pairCode=...</span></p>
             <div class="action-row">
@@ -769,23 +820,8 @@
             <div class="action-row">
               <button class="button primary full" id="claimPairingButton">เชื่อมต่อกับ Display</button>
             </div>
-            <p class="mini-note">ถ้า iOS หรือ browser ของคุณเปิดกล้องสแกนไม่สะดวก ให้เปิดหน้า Display อีกเครื่อง แล้วคัดลอก payload จากใต้ QR มาวางได้</p>
+            <p class="mini-note" id="homePairingHint">ถ้า iOS หรือ browser ของคุณเปิดกล้องสแกนไม่สะดวก ให้เปิดหน้า Display อีกเครื่อง แล้วคัดลอก payload จากใต้ QR มาวางได้</p>
           </div>
-
-          <div class="panel">
-            <h2 class="panel-title">แชร์เส้นทางไปยัง Display</h2>
-            <p class="panel-subtitle">วางลิงก์ Google Maps, พิกัด, หรือคำค้นหา เว็บแอปจะ normalize แบบเดียวกับฝั่ง APK แล้วเขียนคำสั่งไปที่ <span class="inline-code">commands/{displayDeviceId}</span></p>
-            <div class="form-grid">
-              <div>
-                <label class="field-label" for="linkInput">Google Maps Link / Location</label>
-                <textarea class="textarea" id="linkInput" placeholder="เช่น https://maps.app.goo.gl/8mqH34fCETAnpjzW9 หรือชื่อสถานที่ / พิกัด"></textarea>
-              </div>
-            </div>
-            <div class="action-row">
-              <button class="button primary full" id="sendLinkButton">ส่งไปยัง Display</button>
-            </div>
-            <div class="notice hidden" id="displayModeHomeNotice">เครื่องนี้กำลังทำหน้าที่เป็น Display อยู่ จึงไม่ควรใช้เป็น Main พร้อมกัน ให้ปิด Display Mode ก่อนแล้วค่อยส่งลิงก์จากหน้า Home</div>
-            <p class="mini-note" id="sendHint">เมื่อ pair แล้ว browser นี้จะเขียน command ไปยัง Firebase path เดียวกับ APK</p>
           </div>
         </div>
       `,
@@ -848,7 +884,7 @@
 
           <div class="panel">
             <h2 class="panel-title">เส้นทางล่าสุด</h2>
-            <p class="panel-subtitle">เมื่อมี command ใหม่เข้ามาจาก APK หรือ browser main ปุ่มด้านล่างจะเปลี่ยนเป็นลิงก์เปิด Google Maps</p>
+            <p class="panel-subtitle">เมื่อมี command ใหม่เข้ามาจาก APK หรือ browser main ปุ่มด้านล่างจะเปลี่ยนเป็นลิงก์เปิด Google Maps ตามโหมดที่ตั้งไว้</p>
             <div class="value-list">
               <div class="value-row">
                 <div>
@@ -916,6 +952,27 @@
           </div>
 
           <div class="panel">
+            <h2 class="panel-title">ปลายทางการเปิดแผนที่</h2>
+            <p class="panel-subtitle">เลือกว่าจะเปิด Google Maps เป็นแท็บใหม่แล้วคงหน้า Display ไว้ หรือพยายามเด้งเข้าแอป Google Maps โดยตรง</p>
+            <div class="radio-grid">
+              <label class="option-card">
+                <input type="radio" name="launchTarget" value="NEW_TAB">
+                <span>
+                  <span class="option-title">Open in new tab</span>
+                  <span class="option-text">แนะนำสำหรับ browser display เพราะคงหน้า Display เดิมไว้ และกลับมารับ route ใหม่ได้สะดวก</span>
+                </span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="launchTarget" value="MAPS_APP">
+                <span>
+                  <span class="option-title">Open Google Maps app</span>
+                  <span class="option-text">พยายามเปิดแอป Google Maps โดยตรง ถ้า browser หรือระบบรองรับ แต่การกลับมาหน้า Display จะขึ้นกับ iOS และ browser</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
             <h2 class="panel-title">ข้อมูลระบบ</h2>
             <div class="value-list">
               <div class="value-row">
@@ -956,7 +1013,8 @@
       displayModeEnabled: readBoolean(STORAGE_KEYS.displayMode, false),
       displayNavMode: localStorage.getItem(STORAGE_KEYS.navMode) || DISPLAY_NAV_MODE_DRIVING,
       displayOpenBehavior: localStorage.getItem(STORAGE_KEYS.openBehavior) || DISPLAY_OPEN_BEHAVIOR_PREVIEW_ROUTE,
-      activeScreen: "home",
+      displayLaunchTarget: localStorage.getItem(STORAGE_KEYS.launchTarget) || DISPLAY_LAUNCH_TARGET_NEW_TAB,
+      activeScreen: resolveInitialScreen(),
       mainPairing: null,
       displayPairing: null,
       pairedPeerInfo: readJson(STORAGE_KEYS.pairedPeerInfo, null),
@@ -1001,6 +1059,12 @@
         homeRoleChip: document.getElementById("homeRoleChip"),
         homePairingStatus: document.getElementById("homePairingStatus"),
         homePresenceChip: document.getElementById("homePresenceChip"),
+        homeTargetDisplay: document.getElementById("homeTargetDisplay"),
+        homeTargetPresenceChip: document.getElementById("homeTargetPresenceChip"),
+        homeConnectionHint: document.getElementById("homeConnectionHint"),
+        homeCompactGrid: document.getElementById("homeCompactGrid"),
+        homePairingPanel: document.getElementById("homePairingPanel"),
+        homePairingHint: document.getElementById("homePairingHint"),
         clearMainPairingButton: document.getElementById("clearMainPairingButton"),
         pairPayloadInput: document.getElementById("pairPayloadInput"),
         claimPairingButton: document.getElementById("claimPairingButton"),
@@ -1033,13 +1097,22 @@
         copyDeviceIdButton: document.getElementById("copyDeviceIdButton"),
         resetBrowserStateButton: document.getElementById("resetBrowserStateButton"),
         navModeOptions: [...document.querySelectorAll('input[name="navMode"]')],
-        openBehaviorOptions: [...document.querySelectorAll('input[name="openBehavior"]')]
+        openBehaviorOptions: [...document.querySelectorAll('input[name="openBehavior"]')],
+        launchTargetOptions: [...document.querySelectorAll('input[name="launchTarget"]')]
       };
     }
 
     function bindUi() {
       shellRefs.navButtons.forEach((button) => {
         button.addEventListener("click", () => switchScreen(button.dataset.screen));
+      });
+
+      window.addEventListener("focus", () => handleWindowResume("focus"));
+      window.addEventListener("pageshow", () => handleWindowResume("pageshow"));
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          handleWindowResume("visible");
+        }
       });
 
       shellRefs.closeScannerButton.addEventListener("click", closeScanner);
@@ -1070,6 +1143,15 @@
         input.addEventListener("change", () => {
           state.displayOpenBehavior = input.value;
           localStorage.setItem(STORAGE_KEYS.openBehavior, state.displayOpenBehavior);
+          renderSettings();
+          renderDisplay();
+        });
+      });
+
+      dom.launchTargetOptions.forEach((input) => {
+        input.addEventListener("change", () => {
+          state.displayLaunchTarget = input.value;
+          localStorage.setItem(STORAGE_KEYS.launchTarget, state.displayLaunchTarget);
           renderSettings();
           renderDisplay();
         });
@@ -1191,6 +1273,13 @@
 
     async function handleDisplayModeState(reason = "manual") {
       localStorage.setItem(STORAGE_KEYS.displayMode, String(state.displayModeEnabled));
+      if (state.displayModeEnabled) {
+        state.activeScreen = "display";
+        persistActiveScreen();
+      } else if (state.activeScreen === "display") {
+        state.activeScreen = "home";
+        persistActiveScreen();
+      }
       await syncDeviceRecord(reason);
       await update(ref(db, `${PATHS.presence}/${state.deviceId}`), {
         role: state.displayModeEnabled ? "display" : "main",
@@ -1279,9 +1368,12 @@
         status: "received"
       };
       persistLatestCommand();
+      state.activeScreen = "display";
+      persistActiveScreen();
 
       document.title = "PHANToM GO • New Route";
       renderDisplay();
+      applyScreenState();
       openRouteModal();
       showToast("มีเส้นทางใหม่เข้ามาแล้ว", "success");
     }
@@ -1522,15 +1614,55 @@
       await update(ref(db), updates);
     }
 
-    function switchScreen(screen) {
-      if (screen === state.activeScreen) return;
-      state.activeScreen = screen;
+    function resolveInitialScreen() {
+      const saved = localStorage.getItem(STORAGE_KEYS.activeScreen);
+      if (readBoolean(STORAGE_KEYS.displayMode, false)) return "display";
+      return ["home", "display", "settings"].includes(saved) ? saved : "home";
+    }
+
+    function persistActiveScreen() {
+      localStorage.setItem(STORAGE_KEYS.activeScreen, state.activeScreen);
+    }
+
+    function applyScreenState() {
+      const screen = state.activeScreen || "home";
       shellRefs.screens.forEach((node) => node.classList.toggle("active", node.id === `screen-${screen}`));
       shellRefs.navButtons.forEach((button) => {
         const active = button.dataset.screen === screen;
         button.classList.toggle("active", active);
         button.disabled = active;
       });
+    }
+
+    function switchScreen(screen) {
+      if (!screen) return;
+      state.activeScreen = screen;
+      persistActiveScreen();
+      applyScreenState();
+    }
+
+    async function handleWindowResume(reason = "resume") {
+      if (state.displayModeEnabled) {
+        state.activeScreen = "display";
+        persistActiveScreen();
+      } else {
+        state.activeScreen = state.activeScreen || "home";
+      }
+      applyScreenState();
+
+      if (!state.firebaseReady) return;
+
+      try {
+        await syncDeviceRecord(`resume-${reason}`);
+        if (state.displayModeEnabled) {
+          await update(ref(db, `${PATHS.presence}/${state.deviceId}`), {
+            role: "display",
+            updatedAt: serverTimestamp()
+          });
+        }
+      } catch (error) {
+        console.warn("Resume sync failed", error);
+      }
     }
 
     async function openScanner() {
@@ -1586,10 +1718,15 @@
         showToast("ยังไม่มีเส้นทางใหม่ให้เปิด", "warn");
         return;
       }
+      state.activeScreen = "display";
+      persistActiveScreen();
       const launchPlan = await buildDisplayOpenUrl(state.latestCommand.rawUrl);
       dom.openLatestRouteButton.href = launchPlan.fallbackUrl;
       closeRouteModal();
-      await markLatestCommandOpened(launchPlan.launchUrl);
+      const openedUrl = state.displayLaunchTarget === DISPLAY_LAUNCH_TARGET_NEW_TAB
+        ? (launchPlan.fallbackUrl || launchPlan.universalUrl || launchPlan.launchUrl)
+        : launchPlan.launchUrl;
+      await markLatestCommandOpened(openedUrl);
       openRouteLaunchPlan(launchPlan);
     }
 
@@ -1617,6 +1754,9 @@
       });
       dom.openBehaviorOptions.forEach((input) => {
         input.checked = input.value === state.displayOpenBehavior;
+      });
+      dom.launchTargetOptions.forEach((input) => {
+        input.checked = input.value === state.displayLaunchTarget;
       });
     }
 
@@ -1664,10 +1804,23 @@
       const displayOnline = state.displayPresence?.connected === true;
       dom.homePresenceChip.textContent = displayOnline ? "Connected" : "Offline";
       dom.homePresenceChip.className = `chip ${displayOnline ? "good" : "bad"}`;
+      dom.homeTargetDisplay.textContent = state.mainPairing?.displayDeviceId
+        ? `${state.mainPairing.displayName || "Display"} • ${state.mainPairing.displayDeviceId}`
+        : "ยังไม่ได้เชื่อมต่อ";
+      dom.homeTargetPresenceChip.textContent = displayOnline ? "Connected" : "Offline";
+      dom.homeTargetPresenceChip.className = `chip ${displayOnline ? "good" : "bad"}`;
 
       dom.clearMainPairingButton.disabled = !state.mainPairing?.displayDeviceId;
       dom.sendLinkButton.disabled = !state.mainPairing?.displayDeviceId || state.displayModeEnabled;
       dom.displayModeHomeNotice.classList.toggle("hidden", !state.displayModeEnabled);
+      dom.homePairingPanel.classList.toggle("hidden", Boolean(state.mainPairing?.displayDeviceId));
+      dom.homeCompactGrid.classList.toggle("single", Boolean(state.mainPairing?.displayDeviceId));
+      dom.homeConnectionHint.textContent = state.mainPairing?.displayDeviceId
+        ? "เชื่อมต่อแล้ว ถ้าต้องการเปลี่ยน Display เครื่องใหม่ ให้กดยกเลิกการเชื่อมต่อก่อน"
+        : "การเชื่อมต่อจะเขียนไปที่ pairings/byMain และ pairings/byDisplay ชุดเดียวกับ APK";
+      dom.homePairingHint.textContent = state.mainPairing?.displayDeviceId
+        ? "ตอนนี้ browser นี้ pair อยู่แล้ว จึงซ่อนการ์ดสแกน/วาง payload ไว้ก่อน"
+        : "ถ้า iOS หรือ browser ของคุณเปิดกล้องสแกนไม่สะดวก ให้เปิดหน้า Display อีกเครื่อง แล้วคัดลอก payload จากใต้ QR มาวางได้";
       dom.sendHint.textContent = state.mainPairing?.displayDeviceId
         ? "ถ้า Display ฝั่งปลายเป็น APK มันจะ resolve short maps link ต่อได้เอง แต่ถ้าเป็น browser มันจะโชว์ปุ่มให้กดเปิด Maps"
         : "เมื่อ pair แล้ว browser นี้จะเขียน command ไปยัง Firebase path เดียวกับ APK";
@@ -1713,9 +1866,13 @@
         dom.latestCommandBadge.classList.toggle("hidden", latest.status !== "received");
         dom.openLatestRouteButton.classList.remove("hidden");
         dom.openLatestRouteButton.href = buildDisplayPreviewHref(latest.rawUrl);
-        dom.openLatestRouteButton.textContent = latest.status === "opened"
-          ? "เปิดเส้นทางล่าสุดอีกครั้ง"
+        const reopenLabel = state.displayLaunchTarget === DISPLAY_LAUNCH_TARGET_NEW_TAB
+          ? "เปิดแท็บแผนที่อีกครั้ง"
+          : "เปิด Google Maps อีกครั้ง";
+        const openLabel = state.displayLaunchTarget === DISPLAY_LAUNCH_TARGET_NEW_TAB
+          ? "เปิดเส้นทางล่าสุดในแท็บใหม่"
           : "เปิดเส้นทางล่าสุดใน Google Maps";
+        dom.openLatestRouteButton.textContent = latest.status === "opened" ? reopenLabel : openLabel;
       } else {
         dom.latestCommandSummary.textContent = "ยังไม่มีคำสั่งใหม่";
         dom.latestCommandBadge.classList.add("hidden");
@@ -1741,6 +1898,7 @@
       shellRefs.routeModalMeta.innerHTML = "";
       shellRefs.routeModalMeta.appendChild(makeChip(state.displayNavMode === DISPLAY_NAV_MODE_MOTORCYCLE ? "Motorcycle Mode" : "Driving Mode"));
       shellRefs.routeModalMeta.appendChild(makeChip(state.displayOpenBehavior === DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION ? "Start Navigation" : "Route Preview", state.displayOpenBehavior === DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION ? "good" : ""));
+      shellRefs.routeModalMeta.appendChild(makeChip(state.displayLaunchTarget === DISPLAY_LAUNCH_TARGET_NEW_TAB ? "Open In New Tab" : "Open Maps App"));
       if (latest.receivedAt) {
         shellRefs.routeModalMeta.appendChild(makeChip(`Received ${new Date(latest.receivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`));
       }
@@ -1918,6 +2076,18 @@
     }
 
     function openRouteLaunchPlan(plan) {
+      if (state.displayLaunchTarget === DISPLAY_LAUNCH_TARGET_NEW_TAB) {
+        const targetUrl = plan?.fallbackUrl || plan?.universalUrl || plan?.launchUrl;
+        if (!targetUrl) return;
+
+        const popup = window.open(targetUrl, "_blank", "noopener,noreferrer");
+        if (!popup) {
+          showToast("Browser บล็อกการเปิดแท็บใหม่ ลองอนุญาต pop-up สำหรับเว็บนี้", "warn");
+          window.location.assign(targetUrl);
+        }
+        return;
+      }
+
       if (!plan?.launchUrl) return;
       if (plan.launchUrl === plan.fallbackUrl) {
         window.location.assign(plan.launchUrl);
