@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="th"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="PHANToM GO ช่วยส่งเส้นทางจากมือถือเครื่องหลัก ไปยังมือถือหรือแท็บเล็ต Android อีกเครื่องที่ใช้เป็นจอติดรถ จับคู่ด้วย QR code ไม่ต้องสมัครสมาชิก" name="description"/>
+<title>PHANToM GO | เปลี่ยนมือถือเก่าให้เป็นจอติดรถ</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-highest": "#1f2633",
+                        "secondary-dim": "#0f6df3",
+                        "secondary": "#6e9bff",
+                        "surface": "#090e17",
+                        "secondary-fixed-dim": "#acc3ff",
+                        "secondary-container": "#0058ca",
+                        "primary-dim": "#00d4ec",
+                        "secondary-fixed": "#c0d1ff",
+                        "primary-container": "#00e3fd",
+                        "error-dim": "#d7383b",
+                        "outline-variant": "#434853",
+                        "tertiary-fixed": "#b8a3ff",
+                        "on-secondary-container": "#f7f7ff",
+                        "on-primary-container": "#004d57",
+                        "tertiary": "#a68cff",
+                        "on-primary-fixed-variant": "#005762",
+                        "on-tertiary-fixed": "#1c0055",
+                        "on-secondary-fixed-variant": "#004baf",
+                        "surface-container": "#141a25",
+                        "surface-dim": "#090e17",
+                        "on-background": "#e1e5f3",
+                        "on-primary-fixed": "#003840",
+                        "error-container": "#9f0519",
+                        "inverse-primary": "#006976",
+                        "surface-bright": "#252c3b",
+                        "on-tertiary-container": "#ffffff",
+                        "on-surface": "#e1e5f3",
+                        "tertiary-container": "#7c4dff",
+                        "on-secondary": "#001d4e",
+                        "surface-container-lowest": "#000000",
+                        "on-secondary-fixed": "#003076",
+                        "outline": "#717581",
+                        "on-surface-variant": "#a6abb7",
+                        "primary-fixed": "#00e3fd",
+                        "error": "#ff716c",
+                        "surface-tint": "#81ecff",
+                        "on-error": "#490006",
+                        "on-tertiary-fixed-variant": "#4000ad",
+                        "on-tertiary": "#25006b",
+                        "background": "#090e17",
+                        "tertiary-dim": "#7e51ff",
+                        "surface-container-high": "#19202c",
+                        "surface-container-low": "#0e131d",
+                        "on-primary": "#005762",
+                        "inverse-on-surface": "#505560",
+                        "surface-variant": "#1f2633",
+                        "inverse-surface": "#f9f9ff",
+                        "primary-fixed-dim": "#00d4ec",
+                        "tertiary-fixed-dim": "#ab93ff",
+                        "primary": "#81ecff",
+                        "on-error-container": "#ffa8a3"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Space Grotesk"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(31, 38, 51, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #81ecff 0%, #00d4ec 100%);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden">
+<!-- TopNavBar (Shared Component) -->
+<nav class="fixed top-0 w-full z-50 bg-[#090e17]/80 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(0,229,255,0.08)]">
+<div class="flex justify-between items-center max-w-7xl mx-auto px-6 h-20">
+<div class="text-2xl font-bold tracking-tighter text-cyan-400 font-headline">PHANToM GO</div>
+<div class="hidden md:flex space-x-8">
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-sm text-cyan-400 border-b-2 border-cyan-400 pb-1" href="#features">Features</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-sm text-slate-400 hover:text-white transition-colors" href="#how-it-works">How it Works</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-sm text-slate-400 hover:text-white transition-colors" href="#screenshots">Screenshots</a>
+<a class="font-['Space_Grotesk'] uppercase tracking-widest text-sm text-slate-400 hover:text-white transition-colors" href="#install">Install</a>
+</div>
+<a class="bg-primary-container text-on-primary-container px-6 py-2 rounded-xl font-bold font-headline uppercase tracking-wider text-sm active:scale-95 transform transition-transform hover:bg-primary-dim" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/latest/download/app-debug.apk">
+                Download APK
+            </a>
+</div>
+<div class="h-[1px] w-full bg-gradient-to-r from-transparent via-outline-variant to-transparent opacity-20"></div>
+</nav>
+<!-- Hero Section -->
+<section class="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 overflow-hidden">
+<div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-tertiary/10 blur-[120px] rounded-full"></div>
+</div>
+<div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+<div class="space-y-8">
+<div class="inline-flex items-center space-x-2 bg-surface-container-high px-4 py-1.5 rounded-full border border-outline-variant/20">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label text-xs uppercase tracking-[0.2em] text-on-surface-variant">Latest Release v1.0.11</span>
+</div>
+<h1 class="text-4xl md:text-6xl font-headline font-bold leading-tight tracking-tight text-white">
+                    เปลี่ยนมือถือ Android เครื่องเก่า <span class="text-primary">ให้เป็นจอติดรถ</span> แล้วส่งเส้นทางจากมือถือหลักได้ทันที
+</h1>
+<p class="text-lg md:text-xl text-on-surface-variant max-w-xl leading-relaxed">
+                    PHANToM GO ช่วยส่งปลายทางจากมือถือเครื่องหลัก ไปยังมือถือหรือแท็บเล็ต Android อีกเครื่องที่ใช้เป็นจอแสดงแผนที่บนรถ จับคู่ด้วย QR code ไม่ต้องสมัครสมาชิก และเหมาะมากสำหรับไรเดอร์หรือคนที่มี 2 อุปกรณ์
+                </p>
+<div class="flex flex-wrap gap-4 pt-4">
+<a class="kinetic-gradient text-on-primary-container px-8 py-4 rounded-xl font-bold font-headline text-lg flex items-center gap-3 shadow-[0_0_30px_rgba(129,236,255,0.3)] hover:scale-105 transition-transform" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/latest/download/app-debug.apk">
+<span class="material-symbols-outlined">download</span>
+                        Download APK
+                    </a>
+<a class="bg-surface-container-highest text-white px-8 py-4 rounded-xl font-bold font-headline text-lg border border-outline-variant/30 hover:bg-surface-bright transition-colors" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/latest">
+                        Latest Version
+                    </a>
+</div>
+</div>
+<div class="relative group">
+<!-- Phone Mockup Container -->
+<div class="relative flex justify-center items-center gap-4 md:gap-8">
+<!-- Main Device -->
+<div class="w-1/2 aspect-[9/19] bg-surface-container-highest rounded-[2.5rem] p-2 ring-4 ring-outline-variant/20 shadow-2xl relative z-10 -rotate-6 group-hover:-rotate-3 transition-transform duration-700">
+<div class="w-full h-full rounded-[2rem] overflow-hidden bg-black">
+<img class="w-full h-full object-cover opacity-90" data-alt="PHANToM GO main device home screen" src="./assets/main-home.png"/>
+</div>
+</div>
+<!-- Display Device -->
+<div class="w-1/2 aspect-[9/19] bg-surface-container-highest rounded-[2.5rem] p-2 ring-4 ring-outline-variant/20 shadow-2xl relative z-20 rotate-6 group-hover:rotate-3 transition-transform duration-700">
+<div class="w-full h-full rounded-[2rem] overflow-hidden bg-black flex flex-col items-center justify-center">
+<img class="w-full h-full object-cover opacity-90" data-alt="PHANToM GO display device maps screen" src="./assets/display-maps.png"/>
+</div>
+</div>
+</div>
+<!-- Ambient Glow Behind Phones -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/5 blur-[100px] -z-10"></div>
+</div>
+</div>
+</section>
+<!-- Problem/Solution Section (Bento Style) -->
+<section class="py-24 bg-surface-container-low" id="features">
+<div class="max-w-7xl mx-auto px-6">
+<div class="text-center mb-16">
+<h2 class="font-label text-sm uppercase tracking-[0.3em] text-primary mb-4">Tactical Advantage</h2>
+<h3 class="text-3xl md:text-5xl font-headline font-bold text-white">Engineered for the Road</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Problems -->
+<div class="md:col-span-1 glass-card p-8 rounded-[2rem] border border-outline-variant/10 space-y-6">
+<span class="material-symbols-outlined text-error text-4xl" style="font-variation-settings: 'FILL' 0;">warning</span>
+<h4 class="text-xl font-headline font-bold text-white">ปัญหาที่คนใช้ 2 เครื่องเจอประจำ</h4>
+<ul class="space-y-4">
+<li class="flex items-start gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-error-dim mt-0.5 text-sm">close</span>
+                            มือถือเครื่องหลักร้อนง่ายเมื่อเอาไปติดหน้ารถ
+                        </li>
+<li class="flex items-start gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-error-dim mt-0.5 text-sm">close</span>
+                            สลับระหว่างแอปงานกับ Google Maps จนงงเส้นทาง
+                        </li>
+<li class="flex items-start gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-error-dim mt-0.5 text-sm">close</span>
+                            ต้องพิมพ์ปลายทางซ้ำบนเครื่องจออีกครั้ง
+                        </li>
+</ul>
+</div>
+<!-- Solution Card 1 -->
+<div class="md:col-span-2 relative overflow-hidden group rounded-[2rem] bg-surface-container-highest border border-outline-variant/10 p-8">
+<div class="relative z-10 flex flex-col h-full justify-between">
+<div class="space-y-4">
+<div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+<h4 class="text-2xl font-headline font-bold text-white">Protect Your Main Phone</h4>
+<p class="text-on-surface-variant max-w-md">เก็บมือถือหลักไว้กับตัว แล้วใช้มือถือหรือแท็บเล็ต Android เครื่องเก่าเป็นจอแสดงแผนที่แทน ช่วยลดความเสี่ยงจากแดด ความร้อน และฝน</p>
+</div>
+<div class="mt-8 flex items-center gap-4">
+<div class="px-4 py-2 rounded-lg bg-surface-container text-xs font-label uppercase tracking-widest text-primary border border-primary/20">Old Device Reuse</div>
+<div class="px-4 py-2 rounded-lg bg-surface-container text-xs font-label uppercase tracking-widest text-secondary border border-secondary/20">Main Phone Protection</div>
+</div>
+</div>
+<div class="absolute right-0 bottom-0 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[15rem]" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+</div>
+<!-- Solution Card 2 -->
+<div class="md:col-span-2 glass-card p-8 rounded-[2rem] border border-outline-variant/10 flex flex-col md:flex-row gap-8 items-center">
+<div class="space-y-4 flex-1">
+<div class="w-12 h-12 rounded-xl bg-tertiary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">sync</span>
+</div>
+<h4 class="text-2xl font-headline font-bold text-white">Instant Cloud Route Relay</h4>
+<p class="text-on-surface-variant">เมื่อคุณกด Share จากเครื่องหลัก ปลายทางจะถูกส่งไปยังเครื่องจอทันทีผ่าน cloud pairing และ route relay โดยไม่ต้องให้ผู้ใช้สมัครสมาชิก</p>
+</div>
+<div class="w-full md:w-64 h-40 bg-surface-container-lowest rounded-xl border border-outline-variant/20 flex items-center justify-center overflow-hidden">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary animate-ping"></div>
+<div class="h-[1px] w-20 bg-primary"></div>
+<span class="material-symbols-outlined text-primary">smartphone</span>
+</div>
+</div>
+</div>
+<!-- Solution Card 3 -->
+<div class="md:col-span-1 bg-gradient-to-br from-primary/10 to-secondary/10 p-8 rounded-[2rem] border border-primary/20 flex flex-col justify-center items-center text-center space-y-4">
+<span class="material-symbols-outlined text-5xl text-primary" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<h4 class="text-xl font-headline font-bold text-white">Built for Riders</h4>
+<p class="text-sm text-on-surface-variant">เหมาะกับไรเดอร์และงานหลายออเดอร์ เพราะแยกเครื่องกดงานออกจากเครื่องดูแผนที่ได้อย่างชัดเจน</p>
+</div>
+</div>
+</div>
+</section>
+<!-- How It Works Section -->
+<section class="py-24 relative" id="how-it-works">
+<div class="max-w-7xl mx-auto px-6">
+<div class="text-center mb-20">
+<h2 class="font-label text-sm uppercase tracking-[0.3em] text-tertiary mb-4">Operational Protocol</h2>
+<h3 class="text-3xl md:text-5xl font-headline font-bold text-white">Three Steps to Deployment</h3>
+</div>
+<div class="grid md:grid-cols-3 gap-12 relative">
+<!-- Connector Line (Desktop) -->
+<div class="hidden md:block absolute top-1/4 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent -z-10"></div>
+<!-- Step 1 -->
+<div class="flex flex-col items-center text-center space-y-6 group">
+<div class="w-20 h-20 rounded-full bg-surface-container-highest border-4 border-surface ring-2 ring-primary/30 flex items-center justify-center text-2xl font-headline font-bold text-primary group-hover:scale-110 transition-transform">01</div>
+<h4 class="text-xl font-headline font-bold text-white">เปิด Display Mode</h4>
+<p class="text-on-surface-variant">เปิด PHANToM GO บนเครื่องที่ใช้เป็นจอติดรถ แล้วเข้า Display Mode เพื่อให้ระบบสร้าง QR code สำหรับจับคู่</p>
+</div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center text-center space-y-6 group">
+<div class="w-20 h-20 rounded-full bg-surface-container-highest border-4 border-surface ring-2 ring-primary/30 flex items-center justify-center text-2xl font-headline font-bold text-primary group-hover:scale-110 transition-transform">02</div>
+<h4 class="text-xl font-headline font-bold text-white">สแกน QR และ Pair</h4>
+<p class="text-on-surface-variant">ใช้กล้องของเครื่องหลักสแกน QR code จากเครื่องจอ ระบบจะเชื่อมต่อให้ทันทีโดยไม่ต้องล็อกอิน</p>
+</div>
+<!-- Step 3 -->
+<div class="flex flex-col items-center text-center space-y-6 group">
+<div class="w-20 h-20 rounded-full bg-surface-container-highest border-4 border-surface ring-2 ring-primary/30 flex items-center justify-center text-2xl font-headline font-bold text-primary group-hover:scale-110 transition-transform">03</div>
+<h4 class="text-xl font-headline font-bold text-white">แชร์เส้นทางไปยังจอ</h4>
+<p class="text-on-surface-variant">ค้นหาปลายทางบน Google Maps หรือแอปอื่น แล้วกด Share ไปที่ PHANToM GO จากนั้นเครื่องจอจะเปิดเส้นทางให้ทันที</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Key Benefits (Asymmetric Grid) -->
+<section class="py-24 bg-surface-container-lowest">
+<div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-4 mt-8">
+<div class="h-48 bg-surface-container-high rounded-2xl p-6 flex flex-col justify-end border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary mb-2">qr_code_2</span>
+<span class="text-white font-bold">Fast QR Pairing</span>
+</div>
+<div class="h-64 bg-surface-container-highest rounded-2xl p-6 flex flex-col justify-end border border-outline-variant/10">
+<span class="material-symbols-outlined text-tertiary mb-2">no_accounts</span>
+<span class="text-white font-bold">No Registration Needed</span>
+</div>
+</div>
+<div class="space-y-4">
+<div class="h-64 bg-surface-container-highest rounded-2xl p-6 flex flex-col justify-end border border-outline-variant/10">
+<span class="material-symbols-outlined text-secondary mb-2">directions_car</span>
+<span class="text-white font-bold">Old Android Recovery</span>
+</div>
+<div class="h-48 bg-surface-container-high rounded-2xl p-6 flex flex-col justify-end border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary mb-2">delivery_dining</span>
+<span class="text-white font-bold">Multi-Order Optimized</span>
+</div>
+</div>
+</div>
+<div class="space-y-8">
+<h2 class="font-label text-sm uppercase tracking-[0.3em] text-primary">Strategic Advantage</h2>
+<h3 class="text-4xl md:text-5xl font-headline font-bold text-white leading-tight">More Than Simple Mirroring</h3>
+<p class="text-on-surface-variant text-lg leading-relaxed">
+                    PHANToM GO ไม่ใช่แค่การ mirror หน้าจอ แต่มันคือ workflow ที่ออกแบบใหม่ให้ Main Device ใช้จัดการงานและข้อมูล ส่วน Display Device ใช้แสดงแผนที่อย่างเดียว ช่วยให้ทั้งการนำทางและการทำงานลื่นขึ้นพร้อมกัน
+                </p>
+<div class="pt-4">
+<div class="flex items-center gap-4 text-white font-bold">
+<span class="w-12 h-[1px] bg-primary"></span>
+                        Precision Engineered for Riders
+                     </div>
+</div>
+</div>
+</div>
+</section>
+<!-- Screenshots Gallery -->
+<section class="py-24 bg-surface" id="screenshots">
+<div class="max-w-7xl mx-auto px-6">
+<div class="text-center mb-16">
+<h3 class="text-3xl font-headline font-bold text-white mb-4">Command Center Interface</h3>
+<p class="text-on-surface-variant">หน้าจอจริงของ PHANToM GO ตั้งแต่ Pairing ไปจนถึงการเปิดแผนที่บนเครื่องจอ</p>
+</div>
+<div class="flex overflow-x-auto pb-12 gap-6 no-scrollbar snap-x">
+<div class="flex-none w-64 md:w-80 snap-center">
+<div class="aspect-[9/16] rounded-3xl overflow-hidden border border-outline-variant/20 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="PHANToM GO main device home screen" src="./assets/main-home.png"/>
+</div>
+<p class="mt-4 text-center font-label text-xs uppercase tracking-widest text-on-surface-variant">System Overview</p>
+</div>
+<div class="flex-none w-64 md:w-80 snap-center">
+<div class="aspect-[9/16] rounded-3xl overflow-hidden border border-outline-variant/20 bg-surface-container">
+<img class="w-full h-full object-cover grayscale brightness-110" data-alt="PHANToM GO scan qr screen" src="./assets/scan-qr.png"/>
+</div>
+<p class="mt-4 text-center font-label text-xs uppercase tracking-widest text-on-surface-variant">Pairing Protocol</p>
+</div>
+<div class="flex-none w-64 md:w-80 snap-center">
+<div class="aspect-[9/16] rounded-3xl overflow-hidden border border-outline-variant/20 bg-surface-container">
+<img class="w-full h-full object-cover saturate-150" data-alt="PHANToM GO share sheet" src="./assets/share-sheet.png"/>
+</div>
+<p class="mt-4 text-center font-label text-xs uppercase tracking-widest text-on-surface-variant">Share To PHANToM GO</p>
+</div>
+<div class="flex-none w-64 md:w-80 snap-center">
+<div class="aspect-[9/16] rounded-3xl overflow-hidden border border-outline-variant/20 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="PHANToM GO display qr screen" src="./assets/display-qr.png"/>
+</div>
+<p class="mt-4 text-center font-label text-xs uppercase tracking-widest text-on-surface-variant">Display QR</p>
+</div>
+<div class="flex-none w-64 md:w-80 snap-center">
+<div class="aspect-[9/16] rounded-3xl overflow-hidden border border-outline-variant/20 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="PHANToM GO display connected screen" src="./assets/display-connected.png"/>
+</div>
+<p class="mt-4 text-center font-label text-xs uppercase tracking-widest text-on-surface-variant">Connected State</p>
+</div>
+<div class="flex-none w-64 md:w-80 snap-center">
+<div class="aspect-[9/16] rounded-3xl overflow-hidden border border-outline-variant/20 bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="PHANToM GO display maps screen" src="./assets/display-maps.png"/>
+</div>
+<p class="mt-4 text-center font-label text-xs uppercase tracking-widest text-on-surface-variant">Maps On Display</p>
+</div>
+</div>
+</div>
+</section>
+<section class="py-24 bg-surface-container-low" id="install">
+<div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-10">
+<div class="glass-card p-8 rounded-[2rem] border border-outline-variant/10">
+<h3 class="text-3xl font-headline font-bold text-white">ติดตั้งยังไง</h3>
+<div class="mt-8 space-y-6">
+<div class="flex gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest text-primary font-headline font-bold flex items-center justify-center flex-none">1</div>
+<div>
+<div class="text-white font-headline text-xl font-bold">ดาวน์โหลด APK</div>
+<p class="mt-2 text-on-surface-variant leading-relaxed">กดปุ่ม Download APK จากหน้านี้ แล้วอนุญาตการติดตั้งจากแหล่งภายนอกถ้าระบบถาม</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest text-primary font-headline font-bold flex items-center justify-center flex-none">2</div>
+<div>
+<div class="text-white font-headline text-xl font-bold">ติดตั้งทั้งสองเครื่อง</div>
+<p class="mt-2 text-on-surface-variant leading-relaxed">เครื่องแรกเป็น Main Device สำหรับค้นหาและแชร์เส้นทาง อีกเครื่องเป็น Display Device สำหรับแสดง Google Maps บนรถ</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest text-primary font-headline font-bold flex items-center justify-center flex-none">3</div>
+<div>
+<div class="text-white font-headline text-xl font-bold">เปิด permission ที่จำเป็น</div>
+<p class="mt-2 text-on-surface-variant leading-relaxed">ครั้งแรกที่เปิดแอป ระบบจะพา setup สิทธิ์ที่จำเป็น เช่น กล้อง, การแจ้งเตือน, Overlay และการประหยัดพลังงาน</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest text-primary font-headline font-bold flex items-center justify-center flex-none">4</div>
+<div>
+<div class="text-white font-headline text-xl font-bold">จับคู่ด้วย QR แล้วเริ่มใช้งาน</div>
+<p class="mt-2 text-on-surface-variant leading-relaxed">บนเครื่องจอให้เข้า Display Mode แล้วใช้เครื่องหลักสแกน QR code จากนั้นแชร์ลิงก์แผนที่ไปที่ PHANToM GO ได้ทันที</p>
+</div>
+</div>
+</div>
+</div>
+<div class="space-y-6">
+<div class="bg-surface-container-highest rounded-[2rem] p-8 border border-outline-variant/10">
+<h4 class="text-2xl font-headline font-bold text-white">Permission ที่แอปขอ</h4>
+<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="bg-surface-container rounded-2xl p-5">
+<div class="text-white font-headline text-lg font-bold">Camera</div>
+<p class="mt-2 text-sm text-on-surface-variant leading-relaxed">ใช้สแกน QR code ตอนจับคู่ Main และ Display</p>
+</div>
+<div class="bg-surface-container rounded-2xl p-5">
+<div class="text-white font-headline text-lg font-bold">Notifications</div>
+<p class="mt-2 text-sm text-on-surface-variant leading-relaxed">ช่วยให้ foreground service และการเชื่อมต่อทำงานเสถียร</p>
+</div>
+<div class="bg-surface-container rounded-2xl p-5">
+<div class="text-white font-headline text-lg font-bold">Overlay</div>
+<p class="mt-2 text-sm text-on-surface-variant leading-relaxed">ใช้สำหรับ widget ลอยบนเครื่องจอในบางกรณี</p>
+</div>
+<div class="bg-surface-container rounded-2xl p-5">
+<div class="text-white font-headline text-lg font-bold">Battery Optimization</div>
+<p class="mt-2 text-sm text-on-surface-variant leading-relaxed">ช่วยลดโอกาสที่ Android จะปิดระบบทำงานเบื้องหลังของเครื่องจอ</p>
+</div>
+</div>
+</div>
+<div class="bg-gradient-to-br from-primary/10 to-tertiary/10 rounded-[2rem] p-8 border border-outline-variant/10">
+<div class="text-white font-headline text-2xl font-bold">Download Links</div>
+<div class="mt-6 flex flex-col sm:flex-row gap-4">
+<a class="kinetic-gradient text-on-primary-container px-8 py-4 rounded-xl font-bold font-headline text-lg flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(129,236,255,0.3)] hover:scale-105 transition-transform" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/latest/download/app-debug.apk">
+<span class="material-symbols-outlined">download</span>
+                        Download APK
+                    </a>
+<a class="bg-surface-container-highest text-white px-8 py-4 rounded-xl font-bold font-headline text-lg border border-outline-variant/30 hover:bg-surface-bright transition-colors flex items-center justify-center gap-3" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/latest">
+<span class="material-symbols-outlined">open_in_new</span>
+                        Latest Release
+                    </a>
+</div>
+<p class="mt-5 text-on-surface-variant text-sm leading-relaxed">รองรับ Android 6.0 ขึ้นไป และเหมาะที่สุดเมื่อมี Android 2 เครื่องเพื่อแยก Main Device กับ Display Device ออกจากกัน</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Download Section -->
+<section class="py-24 bg-surface-container-low overflow-hidden relative">
+<div class="absolute inset-0 opacity-10">
+<div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent"></div>
+</div>
+<div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+<h2 class="text-4xl md:text-6xl font-headline font-bold text-white mb-8">Ready to Upgrade Your Ride?</h2>
+<p class="text-xl text-on-surface-variant mb-12 leading-relaxed">
+                ดาวน์โหลด PHANToM GO แล้วเปลี่ยนมือถือ Android เครื่องเก่าให้กลายเป็นจอติดรถที่ใช้งานได้จริง ทั้งสำหรับคนทั่วไปและไรเดอร์ที่ต้องวิ่งงานหลายจุดในแต่ละวัน
+            </p>
+<div class="flex flex-col md:flex-row justify-center items-center gap-6">
+<a class="w-full md:w-auto kinetic-gradient text-on-primary-container px-12 py-5 rounded-2xl font-bold font-headline text-xl shadow-[0_20px_50px_rgba(0,229,255,0.2)] flex items-center justify-center gap-3 hover:scale-105 transition-transform" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/latest/download/app-debug.apk">
+<span class="material-symbols-outlined">download</span>
+                    Download APK
+                </a>
+<a class="w-full md:w-auto bg-white text-surface px-12 py-5 rounded-2xl font-bold font-headline text-xl flex items-center justify-center gap-3 hover:bg-slate-100 transition-colors" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/latest">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">new_releases</span>
+                    Latest Release
+                </a>
+</div>
+<p class="mt-8 text-on-surface-variant/60 font-label text-xs uppercase tracking-[0.2em]">Current Stable: v1.0.11 • Android 6.0+</p>
+</div>
+</section>
+<!-- Footer (Shared Component) -->
+<footer class="bg-[#090e17] w-full border-t border-[#1f2633]">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-7xl mx-auto px-8 py-12">
+<div>
+<div class="text-lg font-black text-slate-200 font-headline mb-4 uppercase">PHANToM GO</div>
+<p class="text-slate-500 font-['Manrope'] text-xs tracking-tight max-w-xs leading-relaxed">
+                    Android route relay สำหรับเปลี่ยนมือถือเก่าให้เป็นจอติดรถ และส่งปลายทางจากเครื่องหลักไปยังเครื่องจอได้ทันที
+                </p>
+<p class="mt-6 text-slate-500 font-['Manrope'] text-xs tracking-tight">
+                    © 2026 PHANToM GO.
+                </p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-3">
+<h5 class="text-cyan-500 font-label text-xs uppercase tracking-widest mb-2">Download</h5>
+<a class="block text-slate-500 hover:text-white transition-colors text-xs font-['Manrope'] hover:translate-x-1 transition-transform" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/latest/download/app-debug.apk">Direct APK</a>
+<a class="block text-slate-500 hover:text-white transition-colors text-xs font-['Manrope'] hover:translate-x-1 transition-transform" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/latest">Latest Release</a>
+</div>
+<div class="space-y-3">
+<h5 class="text-cyan-500 font-label text-xs uppercase tracking-widest mb-2">Project</h5>
+<a class="block text-slate-500 hover:text-white transition-colors text-xs font-['Manrope'] hover:translate-x-1 transition-transform" href="https://github.com/Phantomguy7845/PHANToM_GO">GitHub Repository</a>
+<a class="block text-slate-500 hover:text-white transition-colors text-xs font-['Manrope'] hover:translate-x-1 transition-transform" href="#install">Installation Guide</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>
