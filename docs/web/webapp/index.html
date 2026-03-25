@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090e17">
+  <title>PHANToM GO Web Relay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090e17;
+      --bg-soft: #0f1420;
+      --panel: rgba(25, 33, 49, 0.88);
+      --panel-strong: rgba(18, 25, 40, 0.97);
+      --panel-alt: rgba(31, 38, 51, 0.72);
+      --text: #eef4ff;
+      --muted: #99a4bd;
+      --line: rgba(127, 222, 255, 0.18);
+      --line-strong: rgba(127, 222, 255, 0.42);
+      --cyan: #7fe0ff;
+      --cyan-strong: #16d6ff;
+      --purple: #8b5cf6;
+      --green: #57e389;
+      --amber: #f5c451;
+      --red: #ff7a82;
+      --shadow: 0 22px 80px rgba(0, 0, 0, 0.35);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(22, 214, 255, 0.16), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.18), transparent 34%),
+        linear-gradient(180deg, #0b101b 0%, #090e17 38%, #070b12 100%);
+      color: var(--text);
+      font-family: "Manrope", sans-serif;
+    }
+
+    body { overflow-x: hidden; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; border: 0; }
+    a { color: inherit; }
+
+    .app-shell {
+      max-width: 560px;
+      min-height: 100vh;
+      margin: 0 auto;
+      position: relative;
+      padding: calc(env(safe-area-inset-top, 0px) + 18px) 18px calc(env(safe-area-inset-bottom, 0px) + 132px);
+    }
+
+    .topbar {
+      position: sticky;
+      top: calc(env(safe-area-inset-top, 0px) + 8px);
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 22px;
+      background: rgba(9, 14, 23, 0.74);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(127, 222, 255, 0.12);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    }
+
+    .brand { display: flex; flex-direction: column; min-width: 0; }
+    .brand-title {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: var(--cyan);
+    }
+    .brand-subtitle { color: var(--muted); font-size: 0.84rem; }
+
+    .status-pill {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(20, 28, 43, 0.96);
+      border: 1px solid rgba(127, 222, 255, 0.2);
+      color: var(--cyan);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .screen-stack { position: relative; margin-top: 20px; }
+    .screen { display: none; animation: screenIn 240ms ease; }
+    .screen.active { display: block; }
+
+    @keyframes screenIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stack { display: grid; gap: 18px; }
+
+    .panel {
+      position: relative;
+      padding: 22px 20px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(28, 36, 53, 0.96), rgba(16, 22, 35, 0.94));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: auto -25% -60% auto;
+      width: 210px;
+      height: 210px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(22, 214, 255, 0.14), transparent 70%);
+      pointer-events: none;
+    }
+
+    .panel.hero {
+      padding: 24px;
+      background:
+        linear-gradient(135deg, rgba(18, 164, 208, 0.3), rgba(126, 87, 255, 0.22)),
+        linear-gradient(180deg, rgba(26, 35, 50, 0.98), rgba(14, 20, 31, 0.97));
+      border-color: rgba(127, 222, 255, 0.26);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(7, 11, 18, 0.28);
+      border: 1px solid rgba(127, 222, 255, 0.14);
+      color: var(--cyan);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--cyan);
+      box-shadow: 0 0 12px rgba(127, 224, 255, 0.8);
+    }
+
+    .title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle { margin: 10px 0 0; color: var(--muted); line-height: 1.65; }
+    .panel-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 1.12rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .panel-subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .stat-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(10, 14, 22, 0.34);
+      border: 1px solid rgba(127, 222, 255, 0.13);
+      color: #d6ebff;
+      font-size: 0.87rem;
+      font-weight: 700;
+    }
+    .chip.good { color: var(--green); border-color: rgba(87, 227, 137, 0.24); }
+    .chip.warn { color: var(--amber); border-color: rgba(245, 196, 81, 0.22); }
+    .chip.bad { color: var(--red); border-color: rgba(255, 122, 130, 0.24); }
+
+    .form-grid { display: grid; gap: 14px; margin-top: 18px; }
+    .field-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+
+    .input, .textarea, .select {
+      width: 100%;
+      border: 1px solid rgba(127, 222, 255, 0.16);
+      border-radius: 18px;
+      background: rgba(5, 9, 16, 0.48);
+      color: var(--text);
+      padding: 16px;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      resize: vertical;
+    }
+
+    .input:focus, .textarea:focus, .select:focus {
+      border-color: rgba(127, 222, 255, 0.46);
+      box-shadow: 0 0 0 3px rgba(127, 222, 255, 0.12);
+    }
+    .textarea { min-height: 138px; }
+
+    .action-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 52px;
+      padding: 0 18px;
+      border-radius: 18px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      transition: transform 160ms ease, filter 160ms ease, opacity 160ms ease, border-color 160ms ease;
+    }
+    .button:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+    .button:not(:disabled):active { transform: translateY(1px) scale(0.985); }
+    .button.primary {
+      background: linear-gradient(135deg, #19d4ff, #63a4ff 56%, #9b5bff);
+      color: #04111b;
+      box-shadow: 0 14px 32px rgba(25, 212, 255, 0.18);
+    }
+    .button.secondary {
+      background: rgba(10, 15, 23, 0.36);
+      color: var(--text);
+      border: 1px solid rgba(127, 222, 255, 0.16);
+    }
+    .button.ghost {
+      background: rgba(14, 18, 28, 0.16);
+      color: var(--muted);
+      border: 1px dashed rgba(127, 222, 255, 0.14);
+    }
+    .button.danger {
+      background: rgba(255, 122, 130, 0.1);
+      color: var(--red);
+      border: 1px solid rgba(255, 122, 130, 0.22);
+    }
+    .button.linkish { text-decoration: none; }
+    .button.full { width: 100%; }
+
+    .mini-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    .inline-code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.84rem;
+      padding: 0.1em 0.35em;
+      border-radius: 8px;
+      background: rgba(127, 222, 255, 0.08);
+      color: #c8f4ff;
+    }
+
+    .qr-shell {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 26px;
+      background: rgba(8, 12, 18, 0.8);
+      border: 1px solid rgba(127, 222, 255, 0.16);
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+    }
+
+    .qr-box {
+      width: min(100%, 260px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 24px;
+      background: #fff;
+      padding: 16px;
+    }
+
+    .payload-box {
+      width: 100%;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(4, 8, 13, 0.56);
+      border: 1px solid rgba(127, 222, 255, 0.12);
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.55;
+      word-break: break-all;
+    }
+
+    .pair-state {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(13, 25, 34, 0.92), rgba(9, 14, 23, 0.92));
+      border: 1px solid rgba(87, 227, 137, 0.18);
+    }
+    .pair-state h4 {
+      margin: 0;
+      font-size: 1.06rem;
+      font-family: "Space Grotesk", sans-serif;
+    }
+    .pair-state p { margin: 8px 0 0; color: var(--muted); line-height: 1.6; }
+
+    .radio-grid { display: grid; gap: 12px; margin-top: 16px; }
+    .option-card {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(10, 14, 22, 0.38);
+      border: 1px solid rgba(127, 222, 255, 0.1);
+      cursor: pointer;
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+    .option-card:has(input:checked) {
+      border-color: rgba(127, 222, 255, 0.46);
+      background: rgba(18, 30, 46, 0.72);
+      transform: translateY(-1px);
+    }
+    .option-card input { margin-top: 4px; accent-color: var(--cyan-strong); }
+    .option-title { display: block; font-weight: 800; color: #f4f9ff; }
+    .option-text { display: block; margin-top: 4px; font-size: 0.9rem; color: var(--muted); line-height: 1.55; }
+
+    .notice {
+      padding: 16px 18px;
+      border-radius: 18px;
+      margin-top: 16px;
+      background: rgba(245, 196, 81, 0.08);
+      border: 1px solid rgba(245, 196, 81, 0.22);
+      color: #f0d89e;
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+    .notice.danger {
+      background: rgba(255, 122, 130, 0.08);
+      border-color: rgba(255, 122, 130, 0.22);
+      color: #ffb5b9;
+    }
+
+    .bottom-nav-shell {
+      position: fixed;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+      transform: translateX(-50%);
+      width: min(520px, calc(100vw - 28px));
+      z-index: 35;
+      pointer-events: none;
+    }
+
+    .bottom-dock {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px;
+      border-radius: 30px;
+      background: rgba(11, 17, 27, 0.96);
+      border: 1px solid rgba(127, 222, 255, 0.28);
+      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.36);
+      backdrop-filter: blur(22px);
+      pointer-events: auto;
+    }
+
+    .nav-button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 76px;
+      padding: 14px 10px;
+      border-radius: 22px;
+      background: transparent;
+      color: var(--muted);
+      transition: background 180ms ease, color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+    }
+    .nav-button.active {
+      background: linear-gradient(180deg, rgba(45, 73, 111, 0.92), rgba(25, 40, 61, 0.92));
+      color: var(--cyan);
+      box-shadow: inset 0 1px 0 rgba(127, 222, 255, 0.12);
+    }
+    .nav-button:disabled { opacity: 1; cursor: default; }
+    .nav-icon { font-size: 1.15rem; }
+    .nav-label { font-size: 0.92rem; font-weight: 800; letter-spacing: -0.01em; }
+
+    .toast-layer {
+      position: fixed;
+      inset: auto 16px calc(env(safe-area-inset-bottom, 0px) + 118px) 16px;
+      display: grid;
+      gap: 10px;
+      z-index: 60;
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(8, 12, 19, 0.94);
+      border: 1px solid rgba(127, 222, 255, 0.22);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+      color: var(--text);
+      transform: translateY(12px);
+      opacity: 0;
+      animation: toastIn 240ms ease forwards;
+    }
+
+    @keyframes toastIn {
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .scanner-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(3, 6, 10, 0.76);
+      backdrop-filter: blur(14px);
+    }
+    .scanner-modal.show { display: flex; }
+
+    .scanner-card {
+      width: min(100%, 460px);
+      padding: 18px;
+      border-radius: 28px;
+      background: rgba(10, 15, 24, 0.98);
+      border: 1px solid rgba(127, 222, 255, 0.18);
+      box-shadow: var(--shadow);
+    }
+
+    #qr-reader {
+      min-height: 280px;
+      border-radius: 22px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.62);
+    }
+
+    .scanner-actions { display: flex; gap: 12px; margin-top: 16px; }
+    .hidden { display: none !important; }
+
+    .value-list { display: grid; gap: 12px; margin-top: 16px; }
+    .value-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(10, 15, 23, 0.36);
+      border: 1px solid rgba(127, 222, 255, 0.1);
+    }
+    .value-row strong {
+      display: block;
+      color: #d6f7ff;
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .value-row span { display: block; color: var(--muted); margin-top: 3px; line-height: 1.55; }
+
+    .pending-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(245, 196, 81, 0.12);
+      color: var(--amber);
+      border: 1px solid rgba(245, 196, 81, 0.22);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    @media (min-width: 861px) {
+      .app-shell {
+        max-width: 620px;
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 144px);
+      }
+
+      .toast-layer {
+        inset: auto max(24px, calc((100vw - 620px) / 2)) 28px auto;
+        width: 360px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-title">PHANToM GO</div>
+        <div class="brand-subtitle">Web Relay สำหรับ browser และ iOS</div>
+      </div>
+      <div class="status-pill" id="headerStatus">Starting...</div>
+    </header>
+
+    <main class="screen-stack">
+      <section class="screen active" id="screen-home"></section>
+      <section class="screen" id="screen-display"></section>
+      <section class="screen" id="screen-settings"></section>
+    </main>
+
+    <aside class="bottom-nav-shell">
+      <div class="bottom-dock">
+        <button class="nav-button active" data-screen="home" id="navHome" disabled>
+          <span class="nav-icon">⌂</span>
+          <span class="nav-label">Home</span>
+        </button>
+        <button class="nav-button" data-screen="display" id="navDisplay">
+          <span class="nav-icon">🚗</span>
+          <span class="nav-label">Display</span>
+        </button>
+        <button class="nav-button" data-screen="settings" id="navSettings">
+          <span class="nav-icon">⚙</span>
+          <span class="nav-label">Settings</span>
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="scanner-modal" id="scannerModal">
+    <div class="scanner-card">
+      <h3 class="panel-title">สแกน QR Pairing</h3>
+      <p class="panel-subtitle">ถ้า browser รองรับกล้อง ระบบจะพยายามอ่าน QR ให้แล้วนำ payload ไปวางในช่อง pair อัตโนมัติ</p>
+      <div id="qr-reader"></div>
+      <div class="scanner-actions">
+        <button class="button secondary full" id="closeScannerButton">ปิดกล้องสแกน</button>
+      </div>
+      <p class="mini-note">ถ้าเปิดกล้องไม่ได้บน iOS หรือ browser บางตัว ให้ใช้วิธีคัดลอก payload จากหน้าจอ Display แทน</p>
+    </div>
+  </div>
+
+  <div class="toast-layer" id="toastLayer"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import {
+      getDatabase,
+      ref,
+      update,
+      set,
+      get,
+      onValue,
+      onChildAdded,
+      onChildChanged,
+      off,
+      push,
+      serverTimestamp,
+      onDisconnect
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC-ObLK2ac_Lh87-K_99pqX2dKCwGCKJ7U",
+      authDomain: "phantom-go.firebaseapp.com",
+      databaseURL: "https://phantom-go-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "phantom-go",
+      storageBucket: "phantom-go.firebasestorage.app",
+      messagingSenderId: "441826518386",
+      appId: "1:441826518386:web:1e79de308f8ffd30ad29eb",
+      measurementId: "G-S1B4EKG0V6"
+    };
+
+    const STORAGE_KEYS = {
+      deviceId: "phantomgo_web_device_id",
+      pairCode: "phantomgo_web_pair_code",
+      displayMode: "phantomgo_web_display_mode",
+      navMode: "phantomgo_web_nav_mode",
+      openBehavior: "phantomgo_web_open_behavior"
+    };
+
+    const PATHS = {
+      devices: "devices",
+      presence: "presence",
+      pairingCodes: "pairingCodes",
+      pairingsByDisplay: "pairings/byDisplay",
+      pairingsByMain: "pairings/byMain",
+      commands: "commands"
+    };
+
+    const DISPLAY_NAV_MODE_DRIVING = "DRIVING";
+    const DISPLAY_NAV_MODE_MOTORCYCLE = "MOTORCYCLE";
+    const DISPLAY_OPEN_BEHAVIOR_PREVIEW_ROUTE = "PREVIEW_ROUTE";
+    const DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION = "START_NAVIGATION";
+
+    const screenTemplates = {
+      home: `
+        <div class="stack">
+          <div class="panel hero">
+            <div class="eyebrow"><span class="eyebrow-dot"></span><span>Main Device</span></div>
+            <h1 class="title">ส่งลิงก์ Google Maps ไปยังจอติดรถ ผ่าน browser ได้ในหน้าเดียว</h1>
+            <p class="subtitle">ใช้ pairing ชุดเดียวกับแอป APK ดังนั้น browser นี้สามารถจับคู่กับ APK หรือ browser อีกเครื่องได้ และยังคงจำกัดไว้ที่ 1 คู่ต่อครั้งเหมือนแอปหลัก</p>
+            <div class="stat-chip-row" id="homeQuickChips"></div>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel-title">สถานะการเชื่อมต่อ</h2>
+            <p class="panel-subtitle">ถ้ายังไม่ pair ให้สแกน QR หรือวาง payload จากหน้าจอ Display ด้านล่างนี้</p>
+            <div class="value-list">
+              <div class="value-row">
+                <div>
+                  <strong>Main Device ID</strong>
+                  <span id="homeDeviceId">-</span>
+                </div>
+                <div class="chip" id="homeRoleChip">MAIN</div>
+              </div>
+              <div class="value-row">
+                <div>
+                  <strong>Paired Display</strong>
+                  <span id="homePairingStatus">ยังไม่ได้เชื่อมต่อ</span>
+                </div>
+                <div class="chip bad" id="homePresenceChip">Offline</div>
+              </div>
+            </div>
+            <div class="action-row">
+              <button class="button danger" id="clearMainPairingButton">ยกเลิกการเชื่อมต่อ</button>
+            </div>
+            <p class="mini-note">การเชื่อมต่อจะเขียนไปที่ <span class="inline-code">pairings/byMain</span> และ <span class="inline-code">pairings/byDisplay</span> ชุดเดียวกับ APK</p>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel-title">สแกนหรือวาง QR Payload</h2>
+            <p class="panel-subtitle">รองรับ payload รูปแบบเดียวกับแอป APK เช่น <span class="inline-code">phantomgo://pair?deviceId=...&amp;pairCode=...</span></p>
+            <div class="action-row">
+              <button class="button secondary" id="openScannerButton">เปิดกล้องสแกน QR</button>
+            </div>
+            <div class="form-grid">
+              <div>
+                <label class="field-label" for="pairPayloadInput">QR Payload / Pair Payload</label>
+                <textarea class="textarea" id="pairPayloadInput" placeholder="วางข้อความจาก QR หรือ payload ที่ได้จาก Display ที่นี่"></textarea>
+              </div>
+            </div>
+            <div class="action-row">
+              <button class="button primary full" id="claimPairingButton">เชื่อมต่อกับ Display</button>
+            </div>
+            <p class="mini-note">ถ้า iOS หรือ browser ของคุณเปิดกล้องสแกนไม่สะดวก ให้เปิดหน้า Display อีกเครื่อง แล้วคัดลอก payload จากใต้ QR มาวางได้</p>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel-title">แชร์เส้นทางไปยัง Display</h2>
+            <p class="panel-subtitle">วางลิงก์ Google Maps, พิกัด, หรือคำค้นหา เว็บแอปจะ normalize แบบเดียวกับฝั่ง APK แล้วเขียนคำสั่งไปที่ <span class="inline-code">commands/{displayDeviceId}</span></p>
+            <div class="form-grid">
+              <div>
+                <label class="field-label" for="linkInput">Google Maps Link / Location</label>
+                <textarea class="textarea" id="linkInput" placeholder="เช่น https://maps.app.goo.gl/8mqH34fCETAnpjzW9 หรือชื่อสถานที่ / พิกัด"></textarea>
+              </div>
+            </div>
+            <div class="action-row">
+              <button class="button primary full" id="sendLinkButton">ส่งไปยัง Display</button>
+            </div>
+            <div class="notice hidden" id="displayModeHomeNotice">เครื่องนี้กำลังทำหน้าที่เป็น Display อยู่ จึงไม่ควรใช้เป็น Main พร้อมกัน ให้ปิด Display Mode ก่อนแล้วค่อยส่งลิงก์จากหน้า Home</div>
+            <p class="mini-note" id="sendHint">เมื่อ pair แล้ว browser นี้จะเขียน command ไปยัง Firebase path เดียวกับ APK</p>
+          </div>
+        </div>
+      `,
+      display: `
+        <div class="stack">
+          <div class="panel hero">
+            <div class="eyebrow"><span class="eyebrow-dot"></span><span>Display Device</span></div>
+            <h2 class="title">รับเส้นทางจากเครื่องหลัก แล้วกดเปิด Google Maps เองบน browser</h2>
+            <p class="subtitle">ฝั่ง browser display ไม่มี notification foreground service และไม่สามารถเปิดแอป Maps ให้อัตโนมัติแบบ APK ได้ จึงใช้วิธีแสดงปุ่ม “เปิดเส้นทางล่าสุด” แทน</p>
+            <div class="action-row">
+              <button class="button primary" id="toggleDisplayModeButton">เปิด Display Mode</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel-title">สถานะ Display</h2>
+            <p class="panel-subtitle">เมื่อเปิด Display Mode เว็บจะ publish <span class="inline-code">pairingCodes</span>, sync <span class="inline-code">devices</span> และฟัง <span class="inline-code">commands/{deviceId}</span> ทันที</p>
+            <div class="value-list">
+              <div class="value-row">
+                <div>
+                  <strong>Display Device ID</strong>
+                  <span id="displayDeviceId">-</span>
+                </div>
+                <div class="chip" id="displayModeChip">Mode Off</div>
+              </div>
+              <div class="value-row">
+                <div>
+                  <strong>Pairing State</strong>
+                  <span id="displayPairingStatus">ยังไม่เชื่อมต่อ</span>
+                </div>
+                <div class="chip warn" id="displayPresenceChip">Waiting</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" id="displayQrPanel">
+            <h2 class="panel-title">QR Pairing</h2>
+            <p class="panel-subtitle">สแกนด้วย PHANToM GO APK หรือเว็บฝั่ง Home อีกเครื่อง</p>
+            <div class="qr-shell">
+              <div class="qr-box" id="displayQrCode"></div>
+              <div class="payload-box" id="displayPayloadText">กำลังเตรียม QR...</div>
+            </div>
+            <div class="action-row">
+              <button class="button secondary" id="refreshPairCodeButton">รีเฟรช Pair Code</button>
+              <button class="button secondary" id="copyPayloadButton">คัดลอก Payload</button>
+            </div>
+          </div>
+
+          <div class="panel hidden" id="displayConnectedPanel">
+            <h2 class="panel-title">เชื่อมต่อแล้ว</h2>
+            <p class="panel-subtitle">เมื่อ pair สำเร็จ QR จะถูกซ่อน และเครื่องนี้จะพร้อมรับเส้นทางจาก Main ทันที</p>
+            <div class="pair-state">
+              <h4 id="displayConnectedTitle">Connected</h4>
+              <p id="displayConnectedText">กำลังรอข้อมูลจาก Main...</p>
+            </div>
+            <div class="action-row">
+              <button class="button danger" id="disconnectDisplayButton">ตัดการเชื่อมต่อ</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel-title">เส้นทางล่าสุด</h2>
+            <p class="panel-subtitle">เมื่อมี command ใหม่เข้ามาจาก APK หรือ browser main ปุ่มด้านล่างจะเปลี่ยนเป็นลิงก์เปิด Google Maps</p>
+            <div class="value-list">
+              <div class="value-row">
+                <div>
+                  <strong>Latest Command</strong>
+                  <span id="latestCommandSummary">ยังไม่มีคำสั่งใหม่</span>
+                </div>
+                <div class="pending-badge hidden" id="latestCommandBadge">New Route</div>
+              </div>
+            </div>
+            <div class="action-row">
+              <a class="button primary full linkish hidden" id="openLatestRouteButton" href="#" target="_blank" rel="noopener">เปิดเส้นทางล่าสุดใน Google Maps</a>
+            </div>
+            <div class="notice">ถ้าลิงก์ที่แชร์มาเป็น <span class="inline-code">maps.app.goo.gl</span> แบบ short link บน browser อาจยังบังคับรถยนต์หรือมอเตอร์ไซต์ไม่ได้ครบเท่า APK เพราะ browser อ่านปลายทางจริงจากลิงก์ย่อไม่ได้เสมอ แต่ถ้าฝั่ง Display เป็น APK จะยังแปลงต่อได้ตามปกติ</div>
+          </div>
+        </div>
+      `,
+      settings: `
+        <div class="stack">
+          <div class="panel hero">
+            <div class="eyebrow"><span class="eyebrow-dot"></span><span>Settings</span></div>
+            <h2 class="title">ตั้งค่าพฤติกรรมฝั่ง Browser Display ให้ใกล้กับ APK</h2>
+            <p class="subtitle">ค่าที่ตั้งในหน้านี้จะถูกใช้ตอน browser display รับ command ใหม่และสร้างลิงก์เปิด Google Maps</p>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel-title">ประเภทยานพาหนะ</h2>
+            <p class="panel-subtitle">ทำงานเหมือนค่าฝั่ง APK โดยใช้ <span class="inline-code">driving</span> หรือ <span class="inline-code">two-wheeler</span> ใน Google Maps directions URL</p>
+            <div class="radio-grid">
+              <label class="option-card">
+                <input type="radio" name="navMode" value="DRIVING">
+                <span>
+                  <span class="option-title">รถยนต์</span>
+                  <span class="option-text">เหมาะกับรถยนต์หรือการเดินทางทั่วไป</span>
+                </span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="navMode" value="MOTORCYCLE">
+                <span>
+                  <span class="option-title">มอเตอร์ไซต์</span>
+                  <span class="option-text">ใช้ travel mode แบบเดียวกับแอป APK สำหรับไรเดอร์และงานส่งของ</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel-title">วิธีเปิดแผนที่บน browser display</h2>
+            <p class="panel-subtitle">เลือกว่าจะเปิดเป็น route preview ก่อน หรือแนบ <span class="inline-code">dir_action=navigate</span> เพื่อพยายามเริ่ม navigation ทันที</p>
+            <div class="radio-grid">
+              <label class="option-card">
+                <input type="radio" name="openBehavior" value="PREVIEW_ROUTE">
+                <span>
+                  <span class="option-title">Show route preview</span>
+                  <span class="option-text">แสดงเส้นทางก่อน เหมาะกับ browser ที่ไม่ต้องการเปิดโหมดนำทางทันที</span>
+                </span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="openBehavior" value="START_NAVIGATION">
+                <span>
+                  <span class="option-title">Start navigation</span>
+                  <span class="option-text">เพิ่มคำสั่งนำทางในลิงก์ ถ้า browser หรือ Google Maps รองรับจะพยายามเข้า navigation ทันที</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel-title">ข้อมูลระบบ</h2>
+            <div class="value-list">
+              <div class="value-row">
+                <div>
+                  <strong>Firebase Project</strong>
+                  <span>phantom-go</span>
+                </div>
+                <div class="chip" id="firebaseAuthChip">Auth...</div>
+              </div>
+              <div class="value-row">
+                <div>
+                  <strong>Role In Database</strong>
+                  <span id="settingsRoleSummary">main</span>
+                </div>
+                <div class="chip" id="settingsModeChip">MAIN</div>
+              </div>
+            </div>
+            <div class="notice danger hidden" id="authDomainNotice">ถ้า sign in แบบ anonymous ไม่ผ่านบนเว็บ ให้เพิ่มโดเมนที่ deploy เว็บนี้ลงใน Firebase Authentication → Authorized domains ก่อน</div>
+            <div class="action-row">
+              <button class="button secondary" id="copyDeviceIdButton">คัดลอก Device ID</button>
+              <button class="button danger" id="resetBrowserStateButton">ล้าง state local ของ browser</button>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const state = {
+      authUid: null,
+      firebaseReady: false,
+      authError: null,
+      deviceId: getOrCreate(STORAGE_KEYS.deviceId, () => `web_${randomHex(8)}`),
+      pairCode: getOrCreate(STORAGE_KEYS.pairCode, () => randomHex(5)),
+      displayModeEnabled: readBoolean(STORAGE_KEYS.displayMode, false),
+      displayNavMode: localStorage.getItem(STORAGE_KEYS.navMode) || DISPLAY_NAV_MODE_DRIVING,
+      displayOpenBehavior: localStorage.getItem(STORAGE_KEYS.openBehavior) || DISPLAY_OPEN_BEHAVIOR_PREVIEW_ROUTE,
+      activeScreen: "home",
+      mainPairing: null,
+      displayPairing: null,
+      displayPresence: null,
+      latestCommand: null,
+      qrInstance: null,
+      qrScanner: null,
+      displayCommandUnsubs: [],
+      mainPresenceRef: null,
+      mainPresenceHandler: null
+    };
+
+    const shellRefs = {
+      headerStatus: document.getElementById("headerStatus"),
+      scannerModal: document.getElementById("scannerModal"),
+      closeScannerButton: document.getElementById("closeScannerButton"),
+      toastLayer: document.getElementById("toastLayer"),
+      screens: [...document.querySelectorAll(".screen")],
+      navButtons: [...document.querySelectorAll(".nav-button")]
+    };
+
+    renderStaticTemplates();
+    const dom = collectDomRefs();
+    bindUi();
+    renderAll();
+    signIn();
+
+    function renderStaticTemplates() {
+      document.getElementById("screen-home").innerHTML = screenTemplates.home;
+      document.getElementById("screen-display").innerHTML = screenTemplates.display;
+      document.getElementById("screen-settings").innerHTML = screenTemplates.settings;
+    }
+
+    function collectDomRefs() {
+      return {
+        homeQuickChips: document.getElementById("homeQuickChips"),
+        homeDeviceId: document.getElementById("homeDeviceId"),
+        homeRoleChip: document.getElementById("homeRoleChip"),
+        homePairingStatus: document.getElementById("homePairingStatus"),
+        homePresenceChip: document.getElementById("homePresenceChip"),
+        clearMainPairingButton: document.getElementById("clearMainPairingButton"),
+        pairPayloadInput: document.getElementById("pairPayloadInput"),
+        claimPairingButton: document.getElementById("claimPairingButton"),
+        openScannerButton: document.getElementById("openScannerButton"),
+        linkInput: document.getElementById("linkInput"),
+        sendLinkButton: document.getElementById("sendLinkButton"),
+        sendHint: document.getElementById("sendHint"),
+        displayModeHomeNotice: document.getElementById("displayModeHomeNotice"),
+        toggleDisplayModeButton: document.getElementById("toggleDisplayModeButton"),
+        displayDeviceId: document.getElementById("displayDeviceId"),
+        displayModeChip: document.getElementById("displayModeChip"),
+        displayPairingStatus: document.getElementById("displayPairingStatus"),
+        displayPresenceChip: document.getElementById("displayPresenceChip"),
+        displayQrPanel: document.getElementById("displayQrPanel"),
+        displayQrCode: document.getElementById("displayQrCode"),
+        displayPayloadText: document.getElementById("displayPayloadText"),
+        refreshPairCodeButton: document.getElementById("refreshPairCodeButton"),
+        copyPayloadButton: document.getElementById("copyPayloadButton"),
+        displayConnectedPanel: document.getElementById("displayConnectedPanel"),
+        displayConnectedTitle: document.getElementById("displayConnectedTitle"),
+        displayConnectedText: document.getElementById("displayConnectedText"),
+        disconnectDisplayButton: document.getElementById("disconnectDisplayButton"),
+        latestCommandSummary: document.getElementById("latestCommandSummary"),
+        latestCommandBadge: document.getElementById("latestCommandBadge"),
+        openLatestRouteButton: document.getElementById("openLatestRouteButton"),
+        firebaseAuthChip: document.getElementById("firebaseAuthChip"),
+        settingsRoleSummary: document.getElementById("settingsRoleSummary"),
+        settingsModeChip: document.getElementById("settingsModeChip"),
+        authDomainNotice: document.getElementById("authDomainNotice"),
+        copyDeviceIdButton: document.getElementById("copyDeviceIdButton"),
+        resetBrowserStateButton: document.getElementById("resetBrowserStateButton"),
+        navModeOptions: [...document.querySelectorAll('input[name="navMode"]')],
+        openBehaviorOptions: [...document.querySelectorAll('input[name="openBehavior"]')]
+      };
+    }
+
+    function bindUi() {
+      shellRefs.navButtons.forEach((button) => {
+        button.addEventListener("click", () => switchScreen(button.dataset.screen));
+      });
+
+      shellRefs.closeScannerButton.addEventListener("click", closeScanner);
+      dom.claimPairingButton.addEventListener("click", handleClaimPairing);
+      dom.sendLinkButton.addEventListener("click", handleSendLink);
+      dom.clearMainPairingButton.addEventListener("click", clearMainPairing);
+      dom.toggleDisplayModeButton.addEventListener("click", toggleDisplayMode);
+      dom.refreshPairCodeButton.addEventListener("click", refreshPairCode);
+      dom.copyPayloadButton.addEventListener("click", () => copyToClipboard(buildCloudPairPayload(), "คัดลอก payload แล้ว"));
+      dom.disconnectDisplayButton.addEventListener("click", disconnectDisplayPairing);
+      dom.openScannerButton.addEventListener("click", openScanner);
+      dom.copyDeviceIdButton.addEventListener("click", () => copyToClipboard(state.deviceId, "คัดลอก Device ID แล้ว"));
+      dom.resetBrowserStateButton.addEventListener("click", resetBrowserState);
+
+      dom.openLatestRouteButton.addEventListener("click", async (event) => {
+        if (!state.latestCommand?.rawUrl) {
+          event.preventDefault();
+          showToast("ยังไม่มีเส้นทางใหม่ให้เปิด", "warn");
+          return;
+        }
+        const finalUrl = buildDisplayOpenUrl(state.latestCommand.rawUrl);
+        dom.openLatestRouteButton.href = finalUrl;
+        await markLatestCommandOpened(finalUrl);
+      });
+
+      dom.navModeOptions.forEach((input) => {
+        input.addEventListener("change", () => {
+          state.displayNavMode = input.value;
+          localStorage.setItem(STORAGE_KEYS.navMode, state.displayNavMode);
+          renderSettings();
+          renderDisplay();
+        });
+      });
+
+      dom.openBehaviorOptions.forEach((input) => {
+        input.addEventListener("change", () => {
+          state.displayOpenBehavior = input.value;
+          localStorage.setItem(STORAGE_KEYS.openBehavior, state.displayOpenBehavior);
+          renderSettings();
+          renderDisplay();
+        });
+      });
+    }
+
+    function signIn() {
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          state.authUid = user.uid;
+          state.authError = null;
+          state.firebaseReady = true;
+          await syncDeviceRecord("auth-ready");
+          attachPresenceHandling();
+          attachPairingListeners();
+          await handleDisplayModeState("auth-ready");
+          renderAll();
+          return;
+        }
+
+        try {
+          await signInAnonymously(auth);
+        } catch (error) {
+          console.error("Firebase anonymous sign-in failed", error);
+          state.authError = error;
+          state.firebaseReady = false;
+          renderAll();
+          showToast("Firebase sign-in failed. ตรวจ Authorized domains ใน Firebase Auth ด้วย", "error");
+        }
+      });
+    }
+    async function syncDeviceRecord(reason = "manual") {
+      if (!state.authUid) return;
+
+      const payload = {
+        deviceId: state.deviceId,
+        authUid: state.authUid,
+        role: state.displayModeEnabled ? "display" : "main",
+        platform: "web",
+        manufacturer: "browser",
+        model: friendlyDeviceName(),
+        appVersion: "webapp",
+        updatedAt: serverTimestamp(),
+        lastSeenAt: serverTimestamp()
+      };
+
+      await update(ref(db, `${PATHS.devices}/${state.deviceId}`), payload);
+      console.debug("Device synced", reason, payload.role);
+    }
+
+    function attachPresenceHandling() {
+      const connectedInfoRef = ref(db, ".info/connected");
+      onValue(connectedInfoRef, async (snapshot) => {
+        if (!state.authUid) return;
+        const connected = snapshot.val() === true;
+        const presenceRef = ref(db, `${PATHS.presence}/${state.deviceId}`);
+
+        await update(presenceRef, {
+          deviceId: state.deviceId,
+          authUid: state.authUid,
+          role: state.displayModeEnabled ? "display" : "main",
+          connected,
+          updatedAt: serverTimestamp()
+        });
+
+        if (connected) {
+          await onDisconnect(ref(db, `${PATHS.presence}/${state.deviceId}/connected`)).set(false);
+          await onDisconnect(ref(db, `${PATHS.presence}/${state.deviceId}/updatedAt`)).set(serverTimestamp());
+          await onDisconnect(ref(db, `${PATHS.presence}/${state.deviceId}/lastOnlineAt`)).set(serverTimestamp());
+        }
+      });
+    }
+
+    function attachPairingListeners() {
+      onValue(ref(db, `${PATHS.pairingsByMain}/${state.deviceId}`), (snapshot) => {
+        state.mainPairing = snapshot.exists() ? { id: state.deviceId, ...snapshot.val() } : null;
+        attachDisplayPresenceListener();
+        renderHome();
+        renderSettings();
+      });
+
+      onValue(ref(db, `${PATHS.pairingsByDisplay}/${state.deviceId}`), async (snapshot) => {
+        state.displayPairing = snapshot.exists() ? { id: state.deviceId, ...snapshot.val() } : null;
+        renderDisplay();
+        renderSettings();
+
+        if (state.displayModeEnabled && !state.displayPairing) {
+          await publishPairingCode("display-listener-empty");
+        }
+      });
+    }
+
+    function attachDisplayPresenceListener() {
+      if (state.mainPresenceRef && state.mainPresenceHandler) {
+        off(state.mainPresenceRef, "value", state.mainPresenceHandler);
+        state.mainPresenceRef = null;
+        state.mainPresenceHandler = null;
+      }
+
+      const displayDeviceId = state.mainPairing?.displayDeviceId;
+      if (!displayDeviceId) {
+        state.displayPresence = null;
+        renderHome();
+        return;
+      }
+
+      const presenceRef = ref(db, `${PATHS.presence}/${displayDeviceId}`);
+      const handler = (snapshot) => {
+        state.displayPresence = snapshot.exists() ? snapshot.val() : null;
+        renderHome();
+      };
+
+      state.mainPresenceRef = presenceRef;
+      state.mainPresenceHandler = handler;
+      onValue(presenceRef, handler);
+    }
+
+    async function handleDisplayModeState(reason = "manual") {
+      localStorage.setItem(STORAGE_KEYS.displayMode, String(state.displayModeEnabled));
+      await syncDeviceRecord(reason);
+      await update(ref(db, `${PATHS.presence}/${state.deviceId}`), {
+        role: state.displayModeEnabled ? "display" : "main",
+        updatedAt: serverTimestamp()
+      });
+
+      if (state.displayModeEnabled) {
+        await publishPairingCode(reason);
+        attachDisplayCommandListeners();
+      } else {
+        detachDisplayCommandListeners();
+        await removePairingCodeOnly();
+      }
+
+      renderAll();
+    }
+
+    async function publishPairingCode(reason = "display-publish") {
+      if (!state.authUid || !state.displayModeEnabled) return;
+
+      const payload = {
+        pairCode: state.pairCode,
+        displayDeviceId: state.deviceId,
+        displayAuthUid: state.authUid,
+        displayName: friendlyDeviceName(),
+        localIp: "",
+        localToken: "",
+        platform: "web",
+        updatedAt: serverTimestamp()
+      };
+
+      await set(ref(db, `${PATHS.pairingCodes}/${state.pairCode}`), payload);
+      renderDisplay();
+      console.debug("Pairing code published", reason);
+    }
+
+    async function refreshPairCode() {
+      if (!state.displayModeEnabled) {
+        showToast("เปิด Display Mode ก่อนแล้วค่อยรีเฟรช Pair Code", "warn");
+        return;
+      }
+
+      const previous = state.pairCode;
+      state.pairCode = randomHex(5);
+      localStorage.setItem(STORAGE_KEYS.pairCode, state.pairCode);
+      await update(ref(db), { [`${PATHS.pairingCodes}/${previous}`]: null });
+      await publishPairingCode("manual-refresh");
+      showToast("รีเฟรช Pair Code แล้ว", "success");
+    }
+
+    function attachDisplayCommandListeners() {
+      detachDisplayCommandListeners();
+
+      const commandsRef = ref(db, `${PATHS.commands}/${state.deviceId}`);
+      const onAdd = (snapshot) => handleCommandSnapshot(snapshot);
+      const onChange = (snapshot) => handleCommandSnapshot(snapshot);
+
+      onChildAdded(commandsRef, onAdd);
+      onChildChanged(commandsRef, onChange);
+
+      state.displayCommandUnsubs = [
+        () => off(commandsRef, "child_added", onAdd),
+        () => off(commandsRef, "child_changed", onChange)
+      ];
+    }
+
+    function detachDisplayCommandListeners() {
+      state.displayCommandUnsubs.forEach((stop) => stop());
+      state.displayCommandUnsubs = [];
+    }
+
+    async function handleCommandSnapshot(snapshot) {
+      const command = snapshot.val();
+      const commandId = snapshot.key;
+      if (!commandId || !command || command.status !== "pending") return;
+
+      await update(ref(db, `${PATHS.commands}/${state.deviceId}/${commandId}`), {
+        status: "received",
+        receivedAt: serverTimestamp()
+      });
+
+      state.latestCommand = {
+        commandId,
+        rawUrl: command.url,
+        receivedAt: Date.now(),
+        status: "received"
+      };
+
+      document.title = "PHANToM GO • New Route";
+      renderDisplay();
+      showToast("มีเส้นทางใหม่เข้ามาแล้ว", "success");
+    }
+
+    async function markLatestCommandOpened(finalUrl) {
+      if (!state.latestCommand?.commandId) return;
+
+      await update(ref(db, `${PATHS.commands}/${state.deviceId}/${state.latestCommand.commandId}`), {
+        status: "opened",
+        finalUrl,
+        openedAt: serverTimestamp()
+      });
+
+      state.latestCommand = { ...state.latestCommand, status: "opened", finalUrl };
+      document.title = "PHANToM GO Web Relay";
+      renderDisplay();
+    }
+
+    async function handleClaimPairing() {
+      if (!state.firebaseReady) {
+        showToast("Firebase ยังไม่พร้อม", "warn");
+        return;
+      }
+
+      if (state.displayModeEnabled) {
+        showToast("เครื่องนี้เปิด Display Mode อยู่ ให้ปิดก่อนแล้วค่อย pair เป็น Main", "warn");
+        return;
+      }
+
+      const raw = dom.pairPayloadInput.value.trim();
+      if (!raw) {
+        showToast("วาง QR payload ก่อน", "warn");
+        return;
+      }
+
+      const pairInfo = parsePairPayload(raw);
+      if (!pairInfo?.displayDeviceId || !pairInfo?.pairCode) {
+        showToast("QR payload นี้ไม่ใช่ cloud pairing payload ที่รองรับ", "error");
+        return;
+      }
+
+      try {
+        await claimPairingCode(pairInfo);
+        dom.pairPayloadInput.value = "";
+        showToast("เชื่อมต่อกับ Display สำเร็จแล้ว", "success");
+      } catch (error) {
+        console.error(error);
+        showToast(error.message || "เชื่อมต่อไม่สำเร็จ", "error");
+      }
+    }
+
+    async function claimPairingCode(pairInfo) {
+      const displayDeviceId = pairInfo.displayDeviceId;
+      const pairCode = pairInfo.pairCode;
+
+      const codeSnapshot = await get(ref(db, `${PATHS.pairingCodes}/${pairCode}`));
+      if (!codeSnapshot.exists()) {
+        throw new Error("Pairing code not found");
+      }
+
+      const codeData = codeSnapshot.val();
+      if (codeData.displayDeviceId !== displayDeviceId) {
+        throw new Error("QR code does not match display device");
+      }
+      if (!codeData.displayAuthUid) {
+        throw new Error("Display auth session is missing");
+      }
+
+      const [displayPairSnapshot, mainPairSnapshot] = await Promise.all([
+        get(ref(db, `${PATHS.pairingsByDisplay}/${displayDeviceId}`)),
+        get(ref(db, `${PATHS.pairingsByMain}/${state.deviceId}`))
+      ]);
+
+      const previousMainId = displayPairSnapshot.child("mainDeviceId").val();
+      const previousDisplayIdForMain = mainPairSnapshot.child("displayDeviceId").val();
+
+      const pairPayload = {
+        displayDeviceId,
+        displayAuthUid: codeData.displayAuthUid,
+        displayName: codeData.displayName || friendlyDeviceName(),
+        mainDeviceId: state.deviceId,
+        mainAuthUid: state.authUid,
+        mainName: friendlyDeviceName(),
+        pairedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        transportHint: codeData.localIp && codeData.localToken ? "wifi_local" : "cloud_pending"
+      };
+
+      const updates = {
+        [`${PATHS.pairingsByDisplay}/${displayDeviceId}`]: pairPayload,
+        [`${PATHS.pairingsByMain}/${state.deviceId}`]: pairPayload,
+        [`${PATHS.pairingCodes}/${pairCode}/lastClaimedBy`]: state.deviceId,
+        [`${PATHS.pairingCodes}/${pairCode}/lastClaimedAt`]: serverTimestamp()
+      };
+
+      if (previousMainId && previousMainId !== state.deviceId) {
+        updates[`${PATHS.pairingsByMain}/${previousMainId}`] = null;
+      }
+      if (previousDisplayIdForMain && previousDisplayIdForMain !== displayDeviceId) {
+        updates[`${PATHS.pairingsByDisplay}/${previousDisplayIdForMain}`] = null;
+      }
+
+      await update(ref(db), updates);
+    }
+
+    async function clearMainPairing() {
+      if (!state.mainPairing?.displayDeviceId) {
+        showToast("ยังไม่มีการเชื่อมต่อฝั่ง Main", "warn");
+        return;
+      }
+
+      const updates = {
+        [`${PATHS.pairingsByMain}/${state.deviceId}`]: null,
+        [`${PATHS.pairingsByDisplay}/${state.mainPairing.displayDeviceId}`]: null
+      };
+      await update(ref(db), updates);
+      showToast("ยกเลิกการเชื่อมต่อแล้ว", "success");
+    }
+
+    async function disconnectDisplayPairing() {
+      if (!state.displayPairing) {
+        showToast("ฝั่ง Display ยังไม่ได้ pair", "warn");
+        return;
+      }
+
+      const oldPairCode = state.pairCode;
+      state.pairCode = randomHex(5);
+      localStorage.setItem(STORAGE_KEYS.pairCode, state.pairCode);
+
+      const updates = {
+        [`${PATHS.pairingsByDisplay}/${state.deviceId}`]: null,
+        [`${PATHS.pairingsByMain}/${state.displayPairing.mainDeviceId}`]: null,
+        [`${PATHS.pairingCodes}/${oldPairCode}`]: null
+      };
+      await update(ref(db), updates);
+      await publishPairingCode("display-disconnect");
+      state.latestCommand = null;
+      renderDisplay();
+      showToast("ตัดการเชื่อมต่อแล้ว พร้อม pair ใหม่", "success");
+    }
+
+    async function removePairingCodeOnly() {
+      if (!state.pairCode) return;
+      await update(ref(db), {
+        [`${PATHS.pairingCodes}/${state.pairCode}`]: null
+      });
+    }
+
+    async function toggleDisplayMode() {
+      if (state.displayModeEnabled) {
+        if (state.displayPairing) {
+          const confirmed = window.confirm("Display นี้กำลังเชื่อมต่ออยู่ ถ้าปิด Display Mode จะยกเลิกการเชื่อมต่อด้วย ต้องการทำต่อหรือไม่?");
+          if (!confirmed) return;
+          await disconnectDisplayPairing();
+        } else {
+          await removePairingCodeOnly();
+        }
+
+        state.displayModeEnabled = false;
+        detachDisplayCommandListeners();
+        state.latestCommand = null;
+        await handleDisplayModeState("toggle-off");
+        showToast("ปิด Display Mode แล้ว", "success");
+        return;
+      }
+
+      if (state.mainPairing) {
+        const confirmed = window.confirm("เครื่องนี้กำลัง pair เป็น Main อยู่ ถ้าเปิด Display Mode จะล้าง pairing ฝั่ง Main ก่อน ต้องการทำต่อหรือไม่?");
+        if (!confirmed) return;
+        await clearMainPairing();
+      }
+
+      state.displayModeEnabled = true;
+      await handleDisplayModeState("toggle-on");
+      showToast("เปิด Display Mode แล้ว", "success");
+    }
+
+    async function handleSendLink() {
+      if (!state.mainPairing?.displayDeviceId) {
+        showToast("ยังไม่ได้ pair กับ Display", "warn");
+        return;
+      }
+
+      if (state.displayModeEnabled) {
+        showToast("เครื่องนี้กำลังเป็น Display อยู่ ให้ปิด Display Mode ก่อน", "warn");
+        return;
+      }
+
+      const rawInput = dom.linkInput.value.trim();
+      if (!rawInput) {
+        showToast("วางลิงก์หรือปลายทางก่อน", "warn");
+        return;
+      }
+
+      const normalized = normalizeRawInput(rawInput);
+      try {
+        await sendCloudOpenUrl(normalized);
+        showToast("ส่งไปยัง Display แล้ว", "success");
+      } catch (error) {
+        console.error(error);
+        showToast(error.message || "ส่งไม่สำเร็จ", "error");
+      }
+    }
+
+    async function sendCloudOpenUrl(url) {
+      const commandRef = push(ref(db, `${PATHS.commands}/${state.mainPairing.displayDeviceId}`));
+      const commandId = commandRef.key;
+      if (!commandId) {
+        throw new Error("Failed to allocate command id");
+      }
+
+      const payload = {
+        commandId,
+        fromMainDeviceId: state.deviceId,
+        fromMainAuthUid: state.authUid,
+        url,
+        transport: "firebase_rtdb",
+        status: "pending",
+        createdAt: serverTimestamp()
+      };
+
+      const updates = {
+        [`${PATHS.commands}/${state.mainPairing.displayDeviceId}/${commandId}`]: payload,
+        [`${PATHS.pairingsByMain}/${state.deviceId}/lastActivityAt`]: serverTimestamp(),
+        [`${PATHS.pairingsByDisplay}/${state.mainPairing.displayDeviceId}/lastActivityAt`]: serverTimestamp()
+      };
+
+      await update(ref(db), updates);
+    }
+
+    function switchScreen(screen) {
+      if (screen === state.activeScreen) return;
+      state.activeScreen = screen;
+      shellRefs.screens.forEach((node) => node.classList.toggle("active", node.id === `screen-${screen}`));
+      shellRefs.navButtons.forEach((button) => {
+        const active = button.dataset.screen === screen;
+        button.classList.toggle("active", active);
+        button.disabled = active;
+      });
+    }
+
+    async function openScanner() {
+      if (typeof window.Html5Qrcode === "undefined") {
+        showToast("Browser นี้ยังเปิดตัวสแกนในเว็บไม่ได้ ลองวาง payload แทน", "warn");
+        return;
+      }
+
+      shellRefs.scannerModal.classList.add("show");
+      if (!state.qrScanner) {
+        state.qrScanner = new window.Html5Qrcode("qr-reader");
+      }
+
+      try {
+        await state.qrScanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 240, height: 240 } },
+          (decodedText) => {
+            dom.pairPayloadInput.value = decodedText;
+            showToast("อ่าน QR สำเร็จแล้ว", "success");
+            closeScanner();
+          },
+          () => {}
+        );
+      } catch (error) {
+        console.error(error);
+        showToast("เปิดกล้องสแกนไม่สำเร็จ ลองวาง payload แทน", "error");
+      }
+    }
+
+    async function closeScanner() {
+      shellRefs.scannerModal.classList.remove("show");
+      if (!state.qrScanner) return;
+
+      try {
+        if (state.qrScanner.isScanning) {
+          await state.qrScanner.stop();
+        }
+      } catch (error) {
+        console.warn("Failed to stop scanner", error);
+      }
+
+      try {
+        await state.qrScanner.clear();
+      } catch (error) {
+        console.warn("Failed to clear scanner", error);
+      }
+    }
+
+    function renderAll() {
+      syncSettingsRadios();
+      renderHeader();
+      renderHome();
+      renderDisplay();
+      renderSettings();
+      switchScreen(state.activeScreen);
+    }
+
+    function syncSettingsRadios() {
+      dom.navModeOptions.forEach((input) => {
+        input.checked = input.value === state.displayNavMode;
+      });
+      dom.openBehaviorOptions.forEach((input) => {
+        input.checked = input.value === state.displayOpenBehavior;
+      });
+    }
+
+    function renderHeader() {
+      if (state.authError) {
+        shellRefs.headerStatus.textContent = "Auth Error";
+        shellRefs.headerStatus.style.color = "var(--red)";
+        return;
+      }
+
+      if (!state.firebaseReady) {
+        shellRefs.headerStatus.textContent = "Signing In...";
+        shellRefs.headerStatus.style.color = "var(--amber)";
+        return;
+      }
+
+      shellRefs.headerStatus.style.color = "var(--cyan)";
+      if (state.displayModeEnabled) {
+        shellRefs.headerStatus.textContent = state.displayPairing ? "Display Connected" : "Display Ready";
+      } else if (state.mainPairing) {
+        shellRefs.headerStatus.textContent = "Main Connected";
+      } else {
+        shellRefs.headerStatus.textContent = "Ready";
+      }
+    }
+
+    function renderHome() {
+      dom.homeDeviceId.textContent = state.deviceId;
+      dom.homeRoleChip.textContent = state.displayModeEnabled ? "DISPLAY" : "MAIN";
+      dom.homeRoleChip.className = `chip ${state.displayModeEnabled ? "warn" : ""}`.trim();
+
+      dom.homeQuickChips.innerHTML = "";
+      dom.homeQuickChips.appendChild(makeChip(`Firebase ${state.firebaseReady ? "Ready" : "Waiting"}`, state.firebaseReady ? "good" : "warn"));
+      dom.homeQuickChips.appendChild(makeChip(state.mainPairing ? "Cloud Paired" : "Waiting Pair", state.mainPairing ? "good" : "warn"));
+      dom.homeQuickChips.appendChild(makeChip(state.displayModeEnabled ? "Display Mode On" : "Main Mode", state.displayModeEnabled ? "warn" : ""));
+
+      if (state.mainPairing?.displayDeviceId) {
+        dom.homePairingStatus.textContent = `${state.mainPairing.displayName || "Display"} • ${state.mainPairing.displayDeviceId}`;
+      } else {
+        dom.homePairingStatus.textContent = "ยังไม่ได้เชื่อมต่อ";
+      }
+
+      const displayOnline = state.displayPresence?.connected === true;
+      dom.homePresenceChip.textContent = displayOnline ? "Connected" : "Offline";
+      dom.homePresenceChip.className = `chip ${displayOnline ? "good" : "bad"}`;
+
+      dom.clearMainPairingButton.disabled = !state.mainPairing?.displayDeviceId;
+      dom.sendLinkButton.disabled = !state.mainPairing?.displayDeviceId || state.displayModeEnabled;
+      dom.displayModeHomeNotice.classList.toggle("hidden", !state.displayModeEnabled);
+      dom.sendHint.textContent = state.mainPairing?.displayDeviceId
+        ? "ถ้า Display ฝั่งปลายเป็น APK มันจะ resolve short maps link ต่อได้เอง แต่ถ้าเป็น browser มันจะโชว์ปุ่มให้กดเปิด Maps"
+        : "เมื่อ pair แล้ว browser นี้จะเขียน command ไปยัง Firebase path เดียวกับ APK";
+    }
+
+    function renderDisplay() {
+      dom.displayDeviceId.textContent = state.deviceId;
+      dom.displayModeChip.textContent = state.displayModeEnabled ? "Mode On" : "Mode Off";
+      dom.displayModeChip.className = `chip ${state.displayModeEnabled ? "good" : "warn"}`;
+      dom.displayPresenceChip.textContent = state.displayPairing ? "Connected" : (state.displayModeEnabled ? "Ready" : "Waiting");
+      dom.displayPresenceChip.className = `chip ${state.displayPairing ? "good" : "warn"}`;
+      dom.toggleDisplayModeButton.textContent = state.displayModeEnabled ? "ปิด Display Mode" : "เปิด Display Mode";
+
+      const payload = buildCloudPairPayload();
+      if (state.displayModeEnabled) {
+        renderQr(payload);
+        dom.displayPayloadText.textContent = payload;
+      } else {
+        clearQr();
+        dom.displayPayloadText.textContent = "เปิด Display Mode ก่อน แล้วระบบจะสร้าง QR สำหรับ pair ให้";
+      }
+
+      const paired = Boolean(state.displayPairing?.mainDeviceId);
+      dom.displayPairingStatus.textContent = paired
+        ? `${state.displayPairing.mainName || "Main"} • ${state.displayPairing.mainDeviceId}`
+        : "ยังไม่เชื่อมต่อ";
+
+      dom.displayQrPanel.classList.toggle("hidden", !state.displayModeEnabled || paired);
+      dom.displayConnectedPanel.classList.toggle("hidden", !paired);
+      dom.refreshPairCodeButton.disabled = !state.displayModeEnabled;
+      dom.copyPayloadButton.disabled = !state.displayModeEnabled;
+
+      if (paired) {
+        dom.displayConnectedTitle.textContent = `Connected to ${state.displayPairing.mainName || "Main Device"}`;
+        dom.displayConnectedText.textContent = `${state.displayPairing.mainDeviceId} กำลังจับคู่กับ browser display นี้อยู่ และยังคง pair ได้ทีละคู่เท่านั้น`;
+      }
+
+      const latest = state.latestCommand;
+      if (latest?.rawUrl) {
+        dom.latestCommandSummary.textContent = latest.rawUrl;
+        dom.latestCommandBadge.classList.toggle("hidden", latest.status !== "received");
+        dom.openLatestRouteButton.classList.remove("hidden");
+        dom.openLatestRouteButton.href = buildDisplayOpenUrl(latest.rawUrl);
+        dom.openLatestRouteButton.textContent = latest.status === "opened"
+          ? "เปิดเส้นทางล่าสุดอีกครั้ง"
+          : "เปิดเส้นทางล่าสุดใน Google Maps";
+      } else {
+        dom.latestCommandSummary.textContent = "ยังไม่มีคำสั่งใหม่";
+        dom.latestCommandBadge.classList.add("hidden");
+        dom.openLatestRouteButton.classList.add("hidden");
+        dom.openLatestRouteButton.href = "#";
+      }
+    }
+
+    function renderSettings() {
+      dom.firebaseAuthChip.textContent = state.firebaseReady ? "Anonymous Ready" : "Waiting";
+      dom.firebaseAuthChip.className = `chip ${state.firebaseReady ? "good" : "warn"}`;
+      dom.settingsRoleSummary.textContent = state.displayModeEnabled ? "display" : "main";
+      dom.settingsModeChip.textContent = state.displayModeEnabled ? "DISPLAY" : "MAIN";
+      dom.settingsModeChip.className = `chip ${state.displayModeEnabled ? "warn" : ""}`.trim();
+      dom.authDomainNotice.classList.toggle("hidden", !state.authError);
+    }
+
+    function renderQr(text) {
+      if (typeof window.QRCode === "undefined") {
+        dom.displayQrCode.textContent = "QR library not loaded";
+        return;
+      }
+
+      clearQr();
+      state.qrInstance = new window.QRCode(dom.displayQrCode, {
+        text,
+        width: 228,
+        height: 228,
+        colorDark: "#0e1d2f",
+        colorLight: "#ffffff",
+        correctLevel: window.QRCode.CorrectLevel.M
+      });
+    }
+
+    function clearQr() {
+      dom.displayQrCode.innerHTML = "";
+      state.qrInstance = null;
+    }
+
+    function showToast(message, tone = "info") {
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      if (tone === "error") toast.style.borderColor = "rgba(255, 122, 130, 0.28)";
+      if (tone === "success") toast.style.borderColor = "rgba(87, 227, 137, 0.26)";
+      shellRefs.toastLayer.appendChild(toast);
+      toast.textContent = message;
+      window.setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(12px)";
+        window.setTimeout(() => toast.remove(), 220);
+      }, 2800);
+    }
+
+    function makeChip(text, variant = "") {
+      const chip = document.createElement("div");
+      chip.className = `chip ${variant}`.trim();
+      chip.textContent = text;
+      return chip;
+    }
+
+    function normalizeRawInput(raw) {
+      const trimmed = raw.trim();
+      const url = tryParseUrl(trimmed);
+      if (url) return normalizeUrl(url) || trimmed;
+      if (/^-?\d+\.?\d*,-?\d+\.?\d*$/.test(trimmed)) {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trimmed)}`;
+      }
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trimmed)}`;
+    }
+
+    function normalizeUrl(url) {
+      const scheme = url.protocol.replace(":", "");
+      switch (scheme) {
+        case "geo": {
+          const query = url.searchParams.get("q");
+          if (query) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query.replace(/\+/g, " "))}`;
+          if (url.pathname.includes(",")) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(url.pathname)}`;
+          return null;
+        }
+        case "google.navigation": {
+          const q = url.searchParams.get("q");
+          return q ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}` : null;
+        }
+        case "http":
+        case "https":
+          return url.toString();
+        default:
+          return url.toString();
+      }
+    }
+
+    function isShortMapsLink(raw) {
+      const url = tryParseUrl(raw);
+      if (!url) return false;
+      const host = url.hostname.toLowerCase();
+      return host === "maps.app.goo.gl" || (host === "goo.gl" && /maps|app\/maps/.test(url.pathname));
+    }
+
+    function buildDisplayOpenUrl(raw) {
+      if (isShortMapsLink(raw)) return raw;
+      const destination = extractDestination(raw);
+      if (!destination) return raw;
+      const travelMode = state.displayNavMode === DISPLAY_NAV_MODE_MOTORCYCLE ? "two-wheeler" : "driving";
+      const base = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=${travelMode}`;
+      return state.displayOpenBehavior === DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION
+        ? appendQueryParam(base, "dir_action", "navigate")
+        : base;
+    }
+
+    function extractDestination(raw) {
+      const url = tryParseUrl(raw);
+      if (!url) return null;
+      const scheme = url.protocol.replace(":", "").toLowerCase();
+      if (scheme === "google.navigation") return url.searchParams.get("q");
+      if (scheme === "geo") return url.searchParams.get("q") || (url.pathname.includes(",") ? url.pathname : null);
+      if (scheme !== "http" && scheme !== "https") return null;
+
+      const queryDestination =
+        url.searchParams.get("destination") ||
+        url.searchParams.get("daddr") ||
+        url.searchParams.get("q") ||
+        url.searchParams.get("query");
+      if (queryDestination) return queryDestination;
+
+      const segments = url.pathname.split("/").filter(Boolean);
+      const dirIndex = segments.indexOf("dir");
+      if (dirIndex >= 0 && dirIndex + 1 < segments.length) {
+        const candidate = [...segments.slice(dirIndex + 1)].reverse().find((segment) => {
+          return segment && !segment.startsWith("@") && !segment.startsWith("data=") && !segment.includes("!");
+        });
+        if (candidate) return decodeURIComponent(candidate);
+      }
+
+      const placeIndex = segments.indexOf("place");
+      if (placeIndex >= 0 && placeIndex + 1 < segments.length) {
+        return decodeURIComponent(segments[placeIndex + 1]);
+      }
+      return null;
+    }
+
+    function appendQueryParam(raw, name, value) {
+      const url = tryParseUrl(raw);
+      if (!url) return raw;
+      if (!url.searchParams.has(name)) url.searchParams.set(name, value);
+      return url.toString();
+    }
+
+    function parsePairPayload(rawInput) {
+      const raw = rawInput.trim();
+      if (!raw) return null;
+
+      if (raw.startsWith("phantomgo://")) {
+        const queryIndex = raw.indexOf("?");
+        const params = new URLSearchParams(queryIndex >= 0 ? raw.slice(queryIndex + 1) : "");
+        const deviceId = params.get("deviceId")?.trim() || "";
+        const pairCode = params.get("pairCode")?.trim() || "";
+        const ip = params.get("ip")?.trim() || "";
+        const port = Number.parseInt(params.get("port") || "", 10);
+        const token = params.get("token")?.trim() || "";
+        if (deviceId && pairCode) {
+          return {
+            displayDeviceId: deviceId,
+            pairCode,
+            ip: ip || null,
+            port: Number.isFinite(port) ? port : null,
+            token: token || null
+          };
+        }
+      }
+
+      if (raw.startsWith("{") && raw.endsWith("}")) {
+        try {
+          const obj = JSON.parse(raw);
+          if (obj.deviceId && obj.pairCode) {
+            return {
+              displayDeviceId: obj.deviceId,
+              pairCode: obj.pairCode,
+              ip: obj.ip || null,
+              port: typeof obj.port === "number" ? obj.port : null,
+              token: obj.token || null
+            };
+          }
+        } catch (error) {
+          console.warn("JSON pair payload parse failed", error);
+        }
+      }
+
+      const parts = raw.split("|");
+      if (parts.length === 2) {
+        const [left, token] = parts;
+        const [ip, portText] = left.split(":");
+        const port = Number.parseInt(portText || "", 10);
+        if (ip && Number.isFinite(port) && token?.trim()) {
+          return { ip: ip.trim(), port, token: token.trim() };
+        }
+      }
+      return null;
+    }
+
+    function buildCloudPairPayload() {
+      const params = new URLSearchParams();
+      params.set("mode", "cloud");
+      params.set("deviceId", state.deviceId);
+      params.set("pairCode", state.pairCode);
+      return `phantomgo://pair?${params.toString()}`;
+    }
+
+    function randomHex(bytesLength) {
+      const bytes = new Uint8Array(bytesLength);
+      crypto.getRandomValues(bytes);
+      return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    }
+
+    function getOrCreate(key, factory) {
+      const existing = localStorage.getItem(key);
+      if (existing) return existing;
+      const next = factory();
+      localStorage.setItem(key, next);
+      return next;
+    }
+
+    function readBoolean(key, fallback) {
+      const value = localStorage.getItem(key);
+      if (value == null) return fallback;
+      return value === "true";
+    }
+
+    function friendlyDeviceName() {
+      const ua = navigator.userAgent;
+      if (/iPhone/i.test(ua)) return "iPhone Browser";
+      if (/iPad/i.test(ua)) return "iPad Browser";
+      if (/Android/i.test(ua)) return "Android Browser";
+      if (/Macintosh/i.test(ua)) return "Mac Browser";
+      if (/Windows/i.test(ua)) return "Windows Browser";
+      return "Web Browser";
+    }
+
+    function tryParseUrl(raw) {
+      try { return new URL(raw); } catch { return null; }
+    }
+
+    async function copyToClipboard(text, successMessage) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(successMessage, "success");
+      } catch (error) {
+        console.error(error);
+        showToast("คัดลอกไม่สำเร็จ", "error");
+      }
+    }
+
+    async function resetBrowserState() {
+      const confirmed = window.confirm("การล้าง state จะรีเซ็ต device id, pair code และตั้งค่าใน browser นี้ ต้องการทำต่อหรือไม่?");
+      if (!confirmed) return;
+      Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+      showToast("ล้าง state local แล้ว กรุณารีเฟรชหน้าเว็บ", "success");
+    }
+  </script>
+</body>
+</html>
