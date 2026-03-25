@@ -1,0 +1,213 @@
+PHANToM GO - Shot List
+=====================
+
+ไฟล์นี้เป็น shot list สำหรับทำวิดีโอจากภาพอ้างอิงที่อยู่ในโฟลเดอร์เดียวกัน
+ลำดับนี้ออกแบบให้ใช้ได้ทั้งกับ Sora, งานตัดต่อ manual, และการ briefing ให้ editor
+
+
+Shot 1
+------
+ไฟล์อ้างอิง: 01-main-home.png
+ชื่อช็อต: Main Home Intro
+เป้าหมาย: เปิดตัวแอปและบอกว่ามีการเชื่อมต่อระหว่าง Main กับ Display แล้ว
+ภาพที่ควรเห็น:
+- หน้า Main ของ PHANToM GO
+- สถานะ Paired
+- ปุ่ม Scan QR to Pair
+- การ์ด Display Device
+ข้อความขึ้นจอแนะนำ:
+- PHANToM GO
+- Send destinations from Main to Display
+เสียงพากย์แนะนำ:
+- นี่คือ PHANToM GO แอปที่ช่วยส่งปลายทางจากมือถือเครื่องหลักไปยังเครื่องจอในรถ
+คำแนะนำการเคลื่อนไหว:
+- ค่อย ๆ zoom in เข้าหน้าจอ
+- เน้นบริเวณ status card ด้านบน
+
+
+Shot 2
+------
+ไฟล์อ้างอิง: 02-main-drawer.png
+ชื่อช็อต: Navigation Drawer
+เป้าหมาย: แสดงว่ามีเมนูใช้งานพื้นฐานและหน้า Settings
+ภาพที่ควรเห็น:
+- Drawer menu
+- Settings
+- System Logs
+- About
+- Switch to Display Mode
+ข้อความขึ้นจอแนะนำ:
+- Simple navigation
+- Easy access to settings
+เสียงพากย์แนะนำ:
+- ผู้ใช้สามารถเข้าถึงการตั้งค่าและเมนูสำคัญได้อย่างรวดเร็ว
+คำแนะนำการเคลื่อนไหว:
+- เปิด drawer แบบนุ่ม ๆ
+- พักภาพสั้น ๆ ให้ผู้ชมอ่านเมนู
+
+
+Shot 3
+------
+ไฟล์อ้างอิง: 03-settings-top.png
+ชื่อช็อต: Settings Top
+เป้าหมาย: แสดงการตั้งค่าส่วนบน โดยเฉพาะ Notification permission
+ภาพที่ควรเห็น:
+- Settings header
+- Notification section
+- Main settings section เริ่มต้น
+ข้อความขึ้นจอแนะนำ:
+- Enable notifications
+- Stable background operation
+เสียงพากย์แนะนำ:
+- เริ่มจากเปิดสิทธิ์แจ้งเตือน เพื่อให้ระบบทำงานได้เสถียร
+คำแนะนำการเคลื่อนไหว:
+- แพนลงช้า ๆ จากหัว Settings ลงมาส่วน Notification
+
+
+Shot 4
+------
+ไฟล์อ้างอิง: 04-settings-middle.png
+ชื่อช็อต: Settings Middle
+เป้าหมาย: แสดงส่วนการตั้งค่าของเครื่องหลักและเครื่องจอ
+ภาพที่ควรเห็น:
+- Link Hub and Sending
+- Connection Transport
+- Display settings
+ข้อความขึ้นจอแนะนำ:
+- Main device settings
+- Display device settings
+เสียงพากย์แนะนำ:
+- ในหน้า Settings ผู้ใช้สามารถปรับค่าทั้งฝั่งเครื่องหลักและฝั่งเครื่องจอได้
+คำแนะนำการเคลื่อนไหว:
+- ใช้ slow scroll หรือ crop pan เฉพาะหัวข้อหลัก
+
+
+Shot 5
+------
+ไฟล์อ้างอิง: 05-settings-lower.png
+ชื่อช็อต: Settings Lower
+เป้าหมาย: แสดงตัวเลือกพฤติกรรมการส่งและระบบ log
+ภาพที่ควรเห็น:
+- After send behavior
+- Open Maps after send
+- Logcat / System Logs
+ข้อความขึ้นจอแนะนำ:
+- Fine-tune how the app behaves
+- Built-in logs for diagnostics
+เสียงพากย์แนะนำ:
+- ผู้ใช้ยังสามารถปรับพฤติกรรมหลังส่ง และตรวจดู log ของระบบได้ในหน้าเดียวกัน
+คำแนะนำการเคลื่อนไหว:
+- ค้างภาพให้คนอ่านตัวเลือกด้านล่าง
+
+
+Shot 6
+------
+ไฟล์อ้างอิง: 06-scan-qr.png
+ชื่อช็อต: Scan QR
+เป้าหมาย: แสดงฝั่ง Main ตอนเตรียมจับคู่
+ภาพที่ควรเห็น:
+- กล้องสแกน QR
+- ข้อความ Scan QR code from Display device
+ข้อความขึ้นจอแนะนำ:
+- Scan QR to pair
+- Pair in seconds
+เสียงพากย์แนะนำ:
+- จากเครื่องหลัก เพียงสแกน QR code ที่แสดงบนเครื่องจอ
+คำแนะนำการเคลื่อนไหว:
+- ใช้ quick cut หรือ simulated camera focus effect
+
+
+Shot 7
+------
+ไฟล์อ้างอิง: 07-share-sheet.png
+ชื่อช็อต: Share to PHANToM GO
+เป้าหมาย: แสดง flow การแชร์ปลายทางจากเครื่องหลัก
+ภาพที่ควรเห็น:
+- Android share sheet
+- PHANToM GO เป็นตัวเลือกใน share target
+ข้อความขึ้นจอแนะนำ:
+- Share destination instantly
+- Choose PHANToM GO
+เสียงพากย์แนะนำ:
+- เมื่อค้นหาปลายทางแล้ว เพียงกดแชร์และเลือก PHANToM GO
+คำแนะนำการเคลื่อนไหว:
+- เน้นไฮไลต์ไอคอน PHANToM GO ใน share sheet
+
+
+Shot 8
+------
+ไฟล์อ้างอิง: 08-display-qr.png
+ชื่อช็อต: Display QR Screen
+เป้าหมาย: แสดงหน้าจอฝั่ง Display ก่อนจับคู่
+ภาพที่ควรเห็น:
+- ชื่อ PHANToM GO - Display
+- QR code
+- ปุ่ม Refresh Token
+- ปุ่ม Copy Token
+ข้อความขึ้นจอแนะนำ:
+- Display mode ready
+- Show this QR to Main device
+เสียงพากย์แนะนำ:
+- บนเครื่องจอ ให้เปิด Display Mode แล้วแสดง QR code สำหรับการจับคู่
+คำแนะนำการเคลื่อนไหว:
+- ค้างภาพกลางจอให้เห็น QR ชัด ๆ
+
+
+Shot 9
+------
+ไฟล์อ้างอิง: 09-display-connected.png
+ชื่อช็อต: Display Connected
+เป้าหมาย: แสดงผลลัพธ์หลังจับคู่สำเร็จ
+ภาพที่ควรเห็น:
+- Display Connected
+- Paired
+- Disconnect Main Device
+- Open Last Navigation
+ข้อความขึ้นจอแนะนำ:
+- Connected automatically
+- Ready to receive routes
+เสียงพากย์แนะนำ:
+- เมื่อจับคู่สำเร็จ หน้าจอฝั่ง Display จะเปลี่ยนเป็นสถานะเชื่อมต่อโดยอัตโนมัติ
+คำแนะนำการเคลื่อนไหว:
+- ใช้ transition จาก QR screen ไป connected screen
+
+
+Shot 10
+-------
+ไฟล์อ้างอิง: 10-display-maps.png
+ชื่อช็อต: Navigation on Display
+เป้าหมาย: ปิดท้ายด้วยภาพใช้งานจริงบนเครื่องจอ
+ภาพที่ควรเห็น:
+- Google Maps บนเครื่องจอ
+- เส้นทางหรือปลายทางแสดงอยู่
+ข้อความขึ้นจอแนะนำ:
+- Navigation on your old Android device
+- Keep your main phone free for work
+เสียงพากย์แนะนำ:
+- เส้นทางจะไปปรากฏบนเครื่องจอทันที ช่วยให้เครื่องหลักเอาไว้จัดการงานได้เต็มที่
+คำแนะนำการเคลื่อนไหว:
+- ใช้ช็อตปิดท้ายแบบค่อย ๆ zoom out หรือ crossfade ไป lifestyle scene
+
+
+Suggested Final Sequence
+------------------------
+1. Pain point lifestyle shot
+2. Shot 1 main home
+3. Shot 8 display QR
+4. Shot 6 scan QR
+5. Shot 9 display connected
+6. Shot 7 share sheet
+7. Shot 10 display maps
+8. Rider using main phone for work while old phone shows map
+9. Closing benefits and app name
+
+
+Suggested On-Screen Benefit Captions
+------------------------------------
+- Reuse old Android devices
+- Protect your main phone
+- QR pairing in seconds
+- Separate work from navigation
+- Better for delivery riders
+- Instant route sharing
+

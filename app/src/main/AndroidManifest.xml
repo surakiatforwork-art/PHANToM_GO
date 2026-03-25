@@ -83,6 +83,11 @@
             android:theme="@style/Theme.CarNavRelay" />
 
         <activity
+            android:name=".PermissionSetupActivity"
+            android:exported="false"
+            android:theme="@style/Theme.CarNavRelay" />
+
+        <activity
             android:name=".RelayActivity"
             android:exported="true"
             android:launchMode="singleTask"

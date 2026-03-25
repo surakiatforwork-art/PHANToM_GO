@@ -1,0 +1,157 @@
+PHANToM GO - Sora2 Final Prompt
+===============================
+
+How to Use
+----------
+1. Attach this image as the main reference image:
+   00-ui-reference-board.png
+2. If Sora2 allows only one image, use that board image only.
+3. Paste the prompt below into Sora2.
+4. Generate a first draft in short duration first.
+5. If needed, make a second pass with tighter timing and more readable captions.
+
+
+Storyboard Summary
+------------------
+The video should follow this structure:
+1. Show the problem of using one phone for both delivery work and navigation.
+2. Introduce PHANToM GO as a two-device solution.
+3. Show the Main Device app UI.
+4. Show the Display Device QR code screen.
+5. Show the Main Device scanning the QR code.
+6. Show the Display Device changing to the Connected screen.
+7. Show sharing a destination from the Main Device.
+8. Show the route opening on the Display Device.
+9. Show rider workflow benefits with main phone for work and old phone for navigation.
+10. Show a new destination updating the display while navigation is already active.
+11. End with strong benefits and the app name.
+
+
+READY TO PASTE - SORA2 PROMPT
+-----------------------------
+Use the attached image 00-ui-reference-board.png as the master visual reference for the app UI. Keep the Android interface, colors, typography, spacing, button style, and dark cyan-teal design language consistent with that reference throughout the whole video. Do not invent unrelated UI styles. Do not use iPhone-like design. Do not use generic fake app screens.
+
+Create a polished product tutorial video for an Android app called PHANToM GO. The tone should be practical, trustworthy, modern, and easy to understand for Thai users. The video should explain what the app does, how it works, and why it is useful in real life.
+
+Main concept:
+PHANToM GO sends Google Maps destinations from a Main Device to a Display Device. The Main Device is the user's primary Android phone used for work, receiving jobs, checking order details, chatting, and searching for destinations. The Display Device is a second Android phone or tablet, often an older device, mounted in a car or on a motorcycle to show Google Maps.
+
+Core benefits to communicate:
+- Reuse an old Android phone or tablet as an in-car navigation display
+- Protect the main phone from heat, sunlight, and outdoor exposure
+- Reduce confusion when handling multiple orders or multiple destinations
+- Separate work management on the main phone from navigation on the display phone
+- Pair devices easily using a QR code
+- Send map destinations instantly
+- Update the destination on the display phone when a new location is shared
+- No registration required
+
+Video structure:
+Scene 1:
+Show the pain point first. A rider or driver uses one Android phone for both work and Google Maps, constantly switching between order details and navigation, looking interrupted and confused.
+
+Scene 2:
+Introduce the solution. Show two Android devices. Label one Main Device and the other Display Device. Emphasize that the Display Device is an older Android phone or tablet reused as a vehicle display.
+
+Scene 3:
+Show the real PHANToM GO main screen based on the attached reference board. Present it as a clean Android control screen for pairing and sending destinations.
+
+Scene 4:
+Show the Display Device entering Display Mode and presenting a QR code. The QR screen should visually match the reference images on the board.
+
+Scene 5:
+Show the Main Device scanning the QR code. Make the pairing feel fast and simple.
+
+Scene 6:
+Show successful connection. The Display Device should automatically change from the QR screen to a full-screen Connected state with a Disconnect button.
+
+Scene 7:
+Show the user opening Google Maps or a delivery app on the Main Device, tapping Share, and selecting PHANToM GO.
+
+Scene 8:
+Show the route appearing on the Display Device in Google Maps. Make it feel immediate and useful.
+
+Scene 9:
+Show the real-life rider workflow. The main phone stays in hand for jobs, order details, and chat. The mounted old Android phone keeps showing the map. Communicate reduced confusion, better focus, and a more organized workflow.
+
+Scene 10:
+Show a new destination being shared while navigation is already active. The Display Device updates to the latest route without friction. Make this feel especially useful for delivery riders handling multiple orders.
+
+Scene 11:
+End with a clean product close. Show the app name PHANToM GO and on-screen highlights:
+"Reuse old Android devices"
+"Protect your main phone"
+"QR pairing in seconds"
+"Ideal for delivery riders"
+"Instant route sharing"
+
+Visual style:
+- Real Android UI
+- Dark app theme with cyan and teal highlights
+- Premium but practical product-demo tone
+- Realistic rider scenes and in-car usage scenes
+- Smooth transitions
+- Readable layouts and captions
+- Close-up phone screen shots mixed with simple cinematic lifestyle shots
+
+Avoid:
+- Fake futuristic hologram UI
+- iPhone design language
+- Heavy purple color palette
+- Incorrect maps or incorrect QR pairing screens
+- Overly flashy advertisement tone
+
+If on-screen text is used, keep it short, bold, and readable.
+If narration is implied, the tone should feel calm, helpful, and suitable for a Thai audience.
+
+
+Thai Voiceover Script
+--------------------
+เคยไหม เวลาต้องวิ่งงานหรือขับรถส่งของ
+ต้องใช้มือถือเครื่องเดียวทั้งรับงานและดูแผนที่
+ยิ่งมีหลายออเดอร์ ก็ยิ่งสลับหน้าจอจนสับสน
+
+PHANToM GO ถูกออกแบบมาเพื่อแก้ปัญหานี้
+แอปนี้ช่วยส่งปลายทาง
+จากมือถือเครื่องหลักของคุณ
+ไปยังมือถือหรือแท็บเล็ต Android อีกเครื่อง
+ที่ใช้เป็นจอแสดงแผนที่บนรถ
+
+จุดเด่นสำคัญคือ
+คุณสามารถนำมือถือ Android เครื่องเก่า
+กลับมาใช้เป็นจอติดรถได้ทันที
+ไม่ต้องซื้ออุปกรณ์ใหม่
+
+เริ่มต้นใช้งานก็ง่าย
+บนเครื่องจอ เพียงเปิด Display Mode
+แล้วแสดง QR code
+
+จากนั้นบนเครื่องหลัก
+สแกน QR เพื่อจับคู่
+เมื่อเชื่อมต่อสำเร็จ
+เครื่องจอก็พร้อมรับเส้นทางทันที
+
+เมื่อค้นหาปลายทางแล้ว
+เพียงกดแชร์
+แล้วเลือก PHANToM GO
+ปลายทางจะไปเปิดบนเครื่องจอโดยอัตโนมัติ
+
+แบบนี้มือถือเครื่องหลัก
+ก็ยังเอาไว้รับงาน ดูออเดอร์ และจัดการงานต่าง ๆ ได้เต็มที่
+ส่วนเครื่องเก่าที่ติดอยู่บนรถ
+ก็ทำหน้าที่เป็นจอแผนที่โดยเฉพาะ
+
+และถ้ามีปลายทางใหม่ระหว่างกำลังนำทางอยู่
+ระบบก็อัปเดตไปยังเส้นทางล่าสุดได้ทันที
+
+PHANToM GO
+เปลี่ยนมือถือ Android เครื่องเก่า
+ให้กลายเป็นจอนำทางคู่ใจสำหรับรถของคุณ
+
+
+Recommended Output Goals
+------------------------
+- First draft: 20 to 30 seconds
+- Second draft: 45 to 60 seconds
+- Best use case: product demo + practical tutorial
+- Best audience: delivery riders, drivers, and Android users with old devices

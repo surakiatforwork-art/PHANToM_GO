@@ -1,0 +1,241 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="3400" viewBox="0 0 1600 3400">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#07111f"/>
+      <stop offset="100%" stop-color="#0d2342"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#102543"/>
+      <stop offset="100%" stop-color="#17213a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00d8ff"/>
+      <stop offset="100%" stop-color="#7cf7d4"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#010816" flood-opacity="0.45"/>
+    </filter>
+    <style>
+      .title { font: 700 54px 'Segoe UI', Arial, sans-serif; fill: #eefcff; }
+      .subtitle { font: 400 24px 'Segoe UI', Arial, sans-serif; fill: #b5cfe9; }
+      .section { font: 700 28px 'Segoe UI', Arial, sans-serif; fill: #7cf7d4; }
+      .step { font: 700 24px 'Segoe UI', Arial, sans-serif; fill: #07111f; }
+      .cardtitle { font: 700 28px 'Segoe UI', Arial, sans-serif; fill: #f5fdff; }
+      .body { font: 400 22px 'Segoe UI', Arial, sans-serif; fill: #d7e8f8; }
+      .small { font: 400 18px 'Segoe UI', Arial, sans-serif; fill: #9ec1dd; }
+      .pill { font: 700 20px 'Segoe UI', Arial, sans-serif; fill: #eaffff; }
+      .note { font: 400 17px 'Segoe UI', Arial, sans-serif; fill: #8fb0cd; }
+      .filename { font: 700 16px 'Segoe UI', Arial, sans-serif; fill: #7cecff; letter-spacing: 1px; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="3400" fill="url(#bg)"/>
+  <rect x="40" y="36" width="1520" height="3324" rx="34" fill="none" stroke="url(#accent)" stroke-width="3" opacity="0.55"/>
+
+  <text x="80" y="112" class="title">PHANToM GO</text>
+  <text x="80" y="154" class="subtitle">Storyboard Infographic with Real App Screens</text>
+  <text x="80" y="194" class="subtitle">Main Device sends Google Maps destinations to a Display Device using QR pairing and cloud delivery</text>
+
+  <rect x="80" y="236" width="430" height="72" rx="22" fill="url(#card)" stroke="#00d8ff" stroke-opacity="0.35"/>
+  <text x="112" y="282" class="pill">Reuse old Android devices</text>
+
+  <rect x="540" y="236" width="430" height="72" rx="22" fill="url(#card)" stroke="#00d8ff" stroke-opacity="0.35"/>
+  <text x="572" y="282" class="pill">Protect your main phone</text>
+
+  <rect x="1000" y="236" width="470" height="72" rx="22" fill="url(#card)" stroke="#00d8ff" stroke-opacity="0.35"/>
+  <text x="1032" y="282" class="pill">Ideal for riders and drivers</text>
+
+  <text x="80" y="344" class="section">All Key Screens in One Storyboard</text>
+
+  <!-- Card 1 -->
+  <g transform="translate(80,380)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="39" y="57" class="step">1</text>
+    <text x="588" y="56" class="filename" text-anchor="end">01-MAIN-HOME</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="01-main-home.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Main Home</text>
+    <text x="284" y="158" class="body">เปิดตัวหน้าแอปหลัก</text>
+    <text x="284" y="194" class="body">ให้ผู้ชมเห็นสถานะ paired</text>
+    <text x="284" y="230" class="body">ปุ่ม Scan QR และการ์ด Display</text>
+    <text x="284" y="284" class="small">ใช้เป็นภาพ anchor ของ UI หลัก</text>
+    <text x="284" y="316" class="small">สื่อว่าเครื่องหลักคือศูนย์ควบคุม</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">นี่คือ PHANToM GO</text>
+    <text x="284" y="456" class="body">แอปที่ช่วยส่งปลายทางจากเครื่องหลักไปยังเครื่องจอ</text>
+  </g>
+
+  <!-- Card 2 -->
+  <g transform="translate(840,380)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="39" y="57" class="step">2</text>
+    <text x="593" y="56" class="filename" text-anchor="end">02-MAIN-DRAWER</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="02-main-drawer.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Drawer Menu</text>
+    <text x="284" y="158" class="body">โชว์เมนูหลักของแอป</text>
+    <text x="284" y="194" class="body">Settings, Logs, About</text>
+    <text x="284" y="230" class="body">และทางลัดไป Display Mode</text>
+    <text x="284" y="284" class="small">ใช้บอกว่าการเข้าถึงเมนูต่าง ๆ ทำได้ง่าย</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">ผู้ใช้สามารถเข้าถึงการตั้งค่า</text>
+    <text x="284" y="456" class="body">และเครื่องมือสำคัญได้อย่างรวดเร็ว</text>
+  </g>
+
+  <!-- Card 3 -->
+  <g transform="translate(80,920)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="39" y="57" class="step">3</text>
+    <text x="596" y="56" class="filename" text-anchor="end">03-SETTINGS-TOP</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="03-settings-top.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Settings Top</text>
+    <text x="284" y="158" class="body">เริ่มจาก Notification permission</text>
+    <text x="284" y="194" class="body">เพื่อให้ระบบ background ทำงานเสถียร</text>
+    <text x="284" y="230" class="body">และเริ่มอธิบายการตั้งค่าฝั่งหลัก</text>
+    <text x="284" y="284" class="small">เหมาะกับฉากสอนติดตั้งและ setup</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">เริ่มจากเปิดสิทธิ์แจ้งเตือน</text>
+    <text x="284" y="456" class="body">เพื่อให้ระบบทำงานได้ต่อเนื่องและเสถียร</text>
+  </g>
+
+  <!-- Card 4 -->
+  <g transform="translate(840,920)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="39" y="57" class="step">4</text>
+    <text x="573" y="56" class="filename" text-anchor="end">04-SETTINGS-MIDDLE</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="04-settings-middle.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Settings Middle</text>
+    <text x="284" y="158" class="body">แสดงการตั้งค่าฝั่ง Main และ Display</text>
+    <text x="284" y="194" class="body">เช่น Link Hub, Transport</text>
+    <text x="284" y="230" class="body">และพฤติกรรมการเชื่อมต่อ</text>
+    <text x="284" y="284" class="small">ช่วยอธิบายว่าปรับระบบได้ทั้งสองฝั่ง</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">ผู้ใช้สามารถปรับค่าฝั่งเครื่องหลัก</text>
+    <text x="284" y="456" class="body">และเครื่องจอได้ในหน้าเดียว</text>
+  </g>
+
+  <!-- Card 5 -->
+  <g transform="translate(80,1460)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="39" y="57" class="step">5</text>
+    <text x="585" y="56" class="filename" text-anchor="end">05-SETTINGS-LOWER</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="05-settings-lower.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Settings Lower</text>
+    <text x="284" y="158" class="body">ส่วนการปรับ after-send behavior</text>
+    <text x="284" y="194" class="body">การเปิดแผนที่ และ System Logs</text>
+    <text x="284" y="230" class="body">เหมาะกับฉากสอนใช้งานละเอียด</text>
+    <text x="284" y="284" class="small">ใช้สื่อเรื่องการตั้งค่าขั้นสูงและการวิเคราะห์ปัญหา</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">ยังสามารถปรับพฤติกรรมหลังส่ง</text>
+    <text x="284" y="456" class="body">และดู log ของระบบได้ในหน้าเดียว</text>
+  </g>
+
+  <!-- Card 6 -->
+  <g transform="translate(840,1460)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="39" y="57" class="step">6</text>
+    <text x="614" y="56" class="filename" text-anchor="end">06-SCAN-QR</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="06-scan-qr.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Scan QR</text>
+    <text x="284" y="158" class="body">ฝั่ง Main เปิดหน้าสแกน</text>
+    <text x="284" y="194" class="body">แล้วใช้กล้องจับ QR จากเครื่องจอ</text>
+    <text x="284" y="230" class="body">เพื่อ pair แบบรวดเร็ว</text>
+    <text x="284" y="284" class="small">จังหวะนี้ควรดูง่ายและชัดเจน</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">จากเครื่องหลัก เพียงสแกน QR code</text>
+    <text x="284" y="456" class="body">การเชื่อมต่อก็เริ่มต้นได้ทันที</text>
+  </g>
+
+  <!-- Card 7 -->
+  <g transform="translate(80,2000)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="39" y="57" class="step">7</text>
+    <text x="594" y="56" class="filename" text-anchor="end">07-SHARE-SHEET</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="07-share-sheet.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Share Sheet</text>
+    <text x="284" y="158" class="body">เมื่อค้นหาปลายทางแล้ว</text>
+    <text x="284" y="194" class="body">กด Share และเลือก PHANToM GO</text>
+    <text x="284" y="230" class="body">เพื่อส่ง route ไปยังเครื่องจอ</text>
+    <text x="284" y="284" class="small">เป็นช็อตสำคัญของการใช้งานจริง</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">เมื่อมีปลายทางแล้ว</text>
+    <text x="284" y="456" class="body">เพียงกดแชร์แล้วเลือก PHANToM GO</text>
+  </g>
+
+  <!-- Card 8 -->
+  <g transform="translate(840,2000)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="39" y="57" class="step">8</text>
+    <text x="607" y="56" class="filename" text-anchor="end">08-DISPLAY-QR</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="08-display-qr.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Display QR</text>
+    <text x="284" y="158" class="body">ฝั่ง Display พร้อมใช้งาน</text>
+    <text x="284" y="194" class="body">และแสดง QR code สำหรับการ pair</text>
+    <text x="284" y="230" class="body">ให้เครื่องหลักสแกนได้ทันที</text>
+    <text x="284" y="284" class="small">ใช้คู่กับช็อต Scan QR เพื่อเล่า flow การเชื่อมต่อ</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">บนเครื่องจอ ให้เปิด Display Mode</text>
+    <text x="284" y="456" class="body">แล้วแสดง QR code สำหรับการจับคู่</text>
+  </g>
+
+  <!-- Card 9 -->
+  <g transform="translate(80,2540)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="39" y="57" class="step">9</text>
+    <text x="517" y="56" class="filename" text-anchor="end">09-DISPLAY-CONNECTED</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="09-display-connected.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Display Connected</text>
+    <text x="284" y="158" class="body">เมื่อ pair สำเร็จ</text>
+    <text x="284" y="194" class="body">ฝั่ง Display เปลี่ยนเป็นหน้าพร้อมใช้งาน</text>
+    <text x="284" y="230" class="body">และมีปุ่ม Disconnect</text>
+    <text x="284" y="284" class="small">ยืนยันผลลัพธ์ของการจับคู่แบบชัดเจน</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">เมื่อเชื่อมต่อสำเร็จ</text>
+    <text x="284" y="456" class="body">เครื่องจอก็พร้อมรับเส้นทางทันที</text>
+  </g>
+
+  <!-- Card 10 -->
+  <g transform="translate(840,2540)" filter="url(#shadow)">
+    <rect width="680" height="500" rx="30" fill="url(#card)" stroke="#12e4ff" stroke-opacity="0.35"/>
+    <circle cx="48" cy="48" r="24" fill="#7cf7d4"/>
+    <text x="26" y="57" class="step">10</text>
+    <text x="592" y="56" class="filename" text-anchor="end">10-DISPLAY-MAPS</text>
+    <rect x="28" y="78" width="226" height="394" rx="24" fill="#081224" stroke="#66ebff" stroke-opacity="0.45"/>
+    <image href="10-display-maps.png" x="34" y="84" width="214" height="382" preserveAspectRatio="xMidYMid slice"/>
+    <text x="284" y="116" class="cardtitle">Maps on Display</text>
+    <text x="284" y="158" class="body">ปลายทางเปิดบนเครื่องจออัตโนมัติ</text>
+    <text x="284" y="194" class="body">เหมาะกับการใช้เครื่องเก่าเป็นจอติดรถ</text>
+    <text x="284" y="230" class="body">ขณะเครื่องหลักใช้กดงานต่อได้</text>
+    <text x="284" y="284" class="small">เป็นภาพ payoff ของแอปทั้งหมด</text>
+    <text x="284" y="388" class="pill">Narration:</text>
+    <text x="284" y="424" class="body">เส้นทางจะไปแสดงบนเครื่องจอทันที</text>
+    <text x="284" y="456" class="body">ช่วยให้เครื่องหลักเอาไว้จัดการงานได้เต็มที่</text>
+  </g>
+
+  <text x="80" y="3126" class="section">Suggested Closing Captions</text>
+  <rect x="80" y="3160" width="1440" height="120" rx="24" fill="url(#card)" stroke="#1be3ff" stroke-opacity="0.35"/>
+  <text x="110" y="3206" class="pill">Reuse old Android devices</text>
+  <text x="110" y="3242" class="pill">Protect your main phone</text>
+  <text x="560" y="3206" class="pill">QR pairing in seconds</text>
+  <text x="560" y="3242" class="pill">Instant route sharing</text>
+  <text x="980" y="3206" class="pill">Ideal for delivery riders</text>
+  <text x="980" y="3242" class="pill">Less confusion, better workflow</text>
+
+  <text x="80" y="3340" class="note">This infographic includes all main screenshots 01-10 and is designed to be used with Storyboard.txt and Sora2-Prompt-Final.txt</text>
+</svg>

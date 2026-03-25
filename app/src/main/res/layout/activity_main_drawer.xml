@@ -8,19 +8,18 @@
     android:background="@drawable/aurora_bg"
     tools:openDrawer="start">
 
-    <!-- Main Content -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/aurora_bg">
 
-        <!-- Toolbar -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="0dp"
             android:layout_height="?attr/actionBarSize"
             android:background="@android:color/transparent"
             android:elevation="0dp"
+            android:paddingStart="4dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -34,26 +33,27 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="12dp"
+            android:alpha="0.92"
+            android:importantForAccessibility="no"
+            android:shadowColor="@color/aurora_cyan"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="10"
             android:text="👻"
             android:textColor="@color/aurora_pink"
             android:textSize="22sp"
-            android:shadowColor="@color/aurora_cyan"
-            android:shadowRadius="8"
-            android:shadowDx="0"
-            android:shadowDy="0"
-            android:alpha="0.9"
-            android:importantForAccessibility="no"
+            app:layout_constraintBottom_toBottomOf="@id/toolbar"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/toolbar"
-            app:layout_constraintBottom_toBottomOf="@id/toolbar" />
+            app:layout_constraintTop_toTopOf="@id/toolbar" />
 
-        <!-- Main Content ScrollView -->
-        <ScrollView
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/mainScrollView"
             android:layout_width="0dp"
             android:layout_height="0dp"
+            android:clipToPadding="false"
             android:fillViewport="true"
             android:paddingHorizontal="16dp"
-            android:paddingBottom="16dp"
+            android:paddingBottom="126dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -63,232 +63,265 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingVertical="8dp">
-                <!-- Connection Status Card -->
-                <com.google.android.material.card.MaterialCardView
+                android:paddingTop="10dp"
+                android:paddingBottom="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mission Control"
+                    android:textColor="@color/white_soft"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Pair your display, watch connection health, and launch routes with one hand."
+                    android:textColor="@color/gray_soft"
+                    android:textSize="14sp" />
+
+                <LinearLayout
                     android:id="@+id/statusCard"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardBackgroundColor="@color/aurora_dark_gray"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="4dp">
+                    android:layout_marginTop="18dp"
+                    android:background="@drawable/main_status_card"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingTop="18dp"
+                    android:paddingBottom="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Connection Status"
+                        android:textColor="@color/gray_soft"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvPairStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Not Paired"
+                        android:textColor="@color/aurora_warning"
+                        android:textSize="26sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvPairInfo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Scan a QR code from your Display device to connect."
+                        android:textColor="@color/gray_soft"
+                        android:textSize="14sp" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="20dp">
-
-                        <TextView
-                            android:id="@+id/tvPairStatus"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Not Paired"
-                            android:textColor="@color/aurora_waiting"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvPairInfo"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="Scan QR code from Display device"
-                            android:textColor="@color/aurora_silver"
-                            android:textSize="14sp" />
+                        android:layout_marginTop="14dp"
+                        android:gravity="start"
+                        android:orientation="horizontal">
 
                         <TextView
                             android:id="@+id/tvPendingCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
                             android:background="@drawable/badge_warning"
-                            android:paddingHorizontal="8dp"
-                            android:paddingVertical="4dp"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="6dp"
                             android:text="Pending: 0"
                             android:textColor="@color/aurora_warning"
-                            android:textSize="12sp" />
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/tvConnectionState"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginStart="10dp"
                             android:background="@drawable/badge_neutral"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="4dp"
-                            android:text="🟡 Waiting for Pairing"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="6dp"
+                            android:text="Waiting"
                             android:textColor="@color/aurora_waiting"
-                            android:textSize="13sp"
+                            android:textSize="12sp"
                             android:textStyle="bold" />
-
                     </LinearLayout>
+                </LinearLayout>
 
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Primary Action: Scan QR -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnScanQR"
-                    android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="@drawable/aurora_button_ripple"
-                    android:text="📷 Scan QR to Pair"
-                    android:textSize="18sp"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="Pair A Display"
+                    android:textColor="@color/white_soft"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
-                <!-- Secondary Actions Row -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="The large scan control matches the dashboard concept from your stitch example."
+                    android:textColor="@color/gray_soft"
+                    android:textSize="13sp" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp">
+
+                    <FrameLayout
+                        android:layout_width="264dp"
+                        android:layout_height="264dp"
+                        android:layout_gravity="center">
+
+                        <View
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_gravity="top|start"
+                            android:background="@drawable/main_scan_corner_top_left" />
+
+                        <View
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_gravity="top|end"
+                            android:background="@drawable/main_scan_corner_top_right" />
+
+                        <View
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_gravity="bottom|start"
+                            android:background="@drawable/main_scan_corner_bottom_left" />
+
+                        <View
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_gravity="bottom|end"
+                            android:background="@drawable/main_scan_corner_bottom_right" />
+
+                        <View
+                            android:layout_width="214dp"
+                            android:layout_height="214dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/main_scan_ring" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnScanQR"
+                            android:layout_width="176dp"
+                            android:layout_height="176dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/main_scan_button"
+                            android:gravity="center"
+                            android:minHeight="0dp"
+                            android:minWidth="0dp"
+                            android:paddingHorizontal="20dp"
+                            android:paddingVertical="22dp"
+                            android:text="Scan QR\nto Pair"
+                            android:textAllCaps="false"
+                            android:textColor="@color/white_soft"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            app:icon="@drawable/ic_qr_scan"
+                            app:iconGravity="textTop"
+                            app:iconPadding="14dp"
+                            app:iconTint="@color/white_soft" />
+                    </FrameLayout>
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Quick Actions"
+                    android:textColor="@color/white_soft"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Keep the old functionality, but present it like a polished command deck."
+                    android:textColor="@color/gray_soft"
+                    android:textSize="13sp" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
+                    android:layout_marginTop="14dp"
+                    android:baselineAligned="false"
                     android:orientation="horizontal">
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnSendTest"
                         android:layout_width="0dp"
-                        android:layout_height="56dp"
+                        android:layout_height="112dp"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
-                        android:enabled="false"
-                        android:text="📍 Test"
+                        android:background="@drawable/main_action_button_background"
+                        android:gravity="center"
+                        android:minHeight="0dp"
+                        android:text="Send Test"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white_soft"
                         android:textSize="16sp"
-                        style="@style/Widget.Material3.Button.TonalButton" />
+                        android:textStyle="bold"
+                        app:icon="@drawable/ic_location_route"
+                        app:iconGravity="textTop"
+                        app:iconPadding="10dp"
+                        app:iconTint="@color/aurora_cyan" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRetryPending"
                         android:layout_width="0dp"
-                        android:layout_height="56dp"
+                        android:layout_height="112dp"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
-                        android:enabled="false"
-                        android:text="🔄 Retry"
+                        android:background="@drawable/main_action_button_background"
+                        android:gravity="center"
+                        android:minHeight="0dp"
+                        android:text="Retry Pending"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white_soft"
                         android:textSize="16sp"
-                        style="@style/Widget.Material3.Button.OutlinedButton" />
-
+                        android:textStyle="bold"
+                        app:icon="@drawable/ic_refresh_loop"
+                        app:iconGravity="textTop"
+                        app:iconPadding="10dp"
+                        app:iconTint="@color/aurora_cyan" />
                 </LinearLayout>
 
-                <!-- Display Mode Card (Large, Prominent) -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardDisplay"
-                    android:layout_width="match_parent"
-                    android:layout_height="120dp"
-                    android:layout_marginBottom="16dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    app:cardBackgroundColor="@color/teal_700"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="8dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="horizontal"
-                        android:padding="20dp">
-
-                        <ImageView
-                            android:layout_width="56dp"
-                            android:layout_height="56dp"
-                            android:src="@drawable/ic_display_mode"
-                            app:tint="@color/white" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/mode_display"
-                                android:textColor="@color/white"
-                                android:textSize="20sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:text="Open Display Mode"
-                                android:textColor="@color/white"
-                                android:textSize="14sp"
-                                android:alpha="0.8" />
-
-                        </LinearLayout>
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:alpha="0.6"
-                            android:src="@drawable/ic_swap"
-                            app:tint="@color/white" />
-
-                    </LinearLayout>
-
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Utility Actions -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnClearPairing"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginBottom="12dp"
-                    android:enabled="false"
-                    android:text="🗑️ Clear Pairing"
-                    android:textSize="14sp"
-                    style="@style/Widget.Material3.Button.OutlinedButton" />
+                    android:layout_height="54dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/main_outline_action_background"
+                    android:text="Clear Pairing"
+                    android:textAllCaps="false"
+                    android:textColor="@color/aurora_pink"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
-                <!-- Status Info (Compact) -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:background="@color/aurora_dark_gray"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:id="@+id/tvA11yStatus"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Accessibility features removed"
-                        android:textColor="@color/aurora_disconnected"
-                        android:textSize="12sp" />
-
-                    <TextView
-                        android:id="@+id/tvA11yToggle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="REMOVED"
-                        android:textColor="@color/aurora_disconnected"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <!-- Footer -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:alpha="0.6"
-                    android:text="PHANToM GO - QR + HTTP Navigation"
-                    android:textColor="@color/aurora_silver"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="18dp"
+                    android:alpha="0.72"
+                    android:text="PHANToM GO · QR + Cloud Navigation Relay"
+                    android:textColor="@color/gray_soft"
                     android:textSize="11sp" />
-
             </LinearLayout>
-
-        </ScrollView>
-
+        </androidx.core.widget.NestedScrollView>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Navigation Drawer -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
         android:layout_width="280dp"

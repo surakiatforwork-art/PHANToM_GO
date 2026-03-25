@@ -41,6 +41,7 @@ class DisplayServerService : Service() {
     private var overlayController: OverlayController? = null
     private var lastUrl: String? = null
     private var lastCmdAt: Long = 0
+    private var foregroundStarted = false
     @Volatile private var resolveToken: Long = 0
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -57,11 +58,14 @@ class DisplayServerService : Service() {
         super.onCreate()
         Log.d(TAG, "▶️ DisplayServerService.onCreate()")
         prefsManager = PrefsManager(this)
+        createNotificationChannel()
+        if (!ensureForegroundStarted()) {
+            stopSelf()
+            return
+        }
         prefsManager.setDeviceMode(PrefsManager.MODE_DISPLAY)
         FirebaseManager.ensureSignedInAndSync(this, "display-service-create")
-        FirebaseManager.startDisplayCommandListener(this, "display-service-create")
         overlayController = OverlayController(this)
-        createNotificationChannel()
         acquireWakeLock()
 
         try {
@@ -88,19 +92,7 @@ class DisplayServerService : Service() {
             return START_NOT_STICKY
         }
 
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    createNotification(),
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-                )
-            } else {
-                startForeground(NOTIFICATION_ID, createNotification())
-            }
-            Log.d(TAG, "✅ Foreground service started")
-        } catch (e: Exception) {
-            Log.e(TAG, "💥 Failed to start foreground service", e)
+        if (!ensureForegroundStarted()) {
             stopSelf()
             return START_NOT_STICKY
         }
@@ -123,6 +115,8 @@ class DisplayServerService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+
+        FirebaseManager.startDisplayCommandListener(this, "display-service-start-command")
 
         if (!navigationUrl.isNullOrEmpty()) {
             onNavigationReceived(navigationUrl, navigationCommandId)
@@ -178,6 +172,30 @@ class DisplayServerService : Service() {
             }
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun ensureForegroundStarted(): Boolean {
+        if (foregroundStarted) {
+            return true
+        }
+
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    createNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, createNotification())
+            }
+            foregroundStarted = true
+            Log.d(TAG, "✅ Foreground service started")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "💥 Failed to start foreground service", e)
+            false
         }
     }
 

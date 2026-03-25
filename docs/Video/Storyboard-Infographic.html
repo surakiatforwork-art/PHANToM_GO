@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1600, initial-scale=1">
+  <title>PHANToM GO Storyboard Infographic</title>
+  <style>
+    :root {
+      --bg-1: #07111f;
+      --bg-2: #0d2342;
+      --card-1: #102543;
+      --card-2: #17213a;
+      --line: rgba(18, 228, 255, 0.35);
+      --line-strong: rgba(102, 235, 255, 0.45);
+      --cyan: #00d8ff;
+      --mint: #7cf7d4;
+      --text: #eefcff;
+      --text-soft: #d7e8f8;
+      --text-muted: #9ec1dd;
+      --ink: #07111f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 1600px;
+      min-height: 3900px;
+      background:
+        radial-gradient(circle at top left, rgba(0,216,255,0.08), transparent 30%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+    }
+
+    .page {
+      width: 1600px;
+      min-height: 3900px;
+      padding: 36px 40px 40px;
+    }
+
+    .frame {
+      min-height: 3820px;
+      border: 3px solid rgba(124, 247, 212, 0.35);
+      border-radius: 34px;
+      padding: 34px 36px 30px;
+      background: rgba(4, 12, 24, 0.06);
+    }
+
+    .title {
+      font-size: 54px;
+      font-weight: 700;
+      line-height: 1.1;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .subtitle {
+      margin: 14px 0 0;
+      font-size: 24px;
+      line-height: 1.35;
+      color: #b5cfe9;
+    }
+
+    .pill-row {
+      display: flex;
+      gap: 28px;
+      margin-top: 34px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      min-width: 350px;
+      padding: 20px 28px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, var(--card-1), var(--card-2));
+      color: #eaffff;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .section {
+      margin: 34px 0 22px;
+      color: var(--mint);
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px 40px;
+    }
+
+    .card {
+      min-height: 640px;
+      border-radius: 30px;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, var(--card-1), var(--card-2));
+      padding: 24px 24px 26px;
+      box-shadow: 0 18px 36px rgba(1, 8, 22, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 24px;
+      background: var(--mint);
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+
+    .filename {
+      color: #7cecff;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 232px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .phone {
+      width: 232px;
+      height: 414px;
+      border-radius: 24px;
+      border: 1px solid var(--line-strong);
+      background: #081224;
+      padding: 6px;
+      overflow: hidden;
+    }
+
+    .phone img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      border-radius: 18px;
+      display: block;
+    }
+
+    .card h3 {
+      margin: 6px 0 18px;
+      font-size: 30px;
+      line-height: 1.1;
+      color: #f5fdff;
+    }
+
+    .card p {
+      margin: 0 0 12px;
+      color: var(--text-soft);
+      font-size: 22px;
+      line-height: 1.4;
+    }
+
+    .meta {
+      margin-top: 26px;
+      color: var(--text-muted);
+      font-size: 18px;
+      line-height: 1.45;
+    }
+
+    .narration-label {
+      margin-top: 28px;
+      color: #eaffff;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .footer {
+      margin-top: 38px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: linear-gradient(135deg, var(--card-1), var(--card-2));
+      padding: 24px 28px 26px;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px 30px;
+      margin-top: 6px;
+    }
+
+    .footer-item {
+      color: #eaffff;
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .note {
+      margin-top: 26px;
+      color: #8fb0cd;
+      font-size: 17px;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="frame">
+      <h1 class="title">PHANToM GO</h1>
+      <p class="subtitle">Storyboard Infographic with Real App Screens</p>
+      <p class="subtitle">Main Device sends Google Maps destinations to a Display Device using QR pairing and cloud delivery</p>
+
+      <div class="pill-row">
+        <div class="pill">Reuse old Android devices</div>
+        <div class="pill">Protect your main phone</div>
+        <div class="pill">Ideal for riders and drivers</div>
+      </div>
+
+      <div class="section">All Key Screens in One Storyboard</div>
+
+      <div class="grid">
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">1</div>
+            <div class="filename">01-main-home</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="01-main-home.png" alt="Main Home"></div>
+            <div>
+              <h3>Main Home</h3>
+              <p>เปิดตัวหน้าแอปหลัก</p>
+              <p>ให้ผู้ชมเห็นสถานะ paired</p>
+              <p>ปุ่ม Scan QR และการ์ด Display</p>
+              <div class="meta">ใช้เป็นภาพ anchor ของ UI หลัก และสื่อว่าเครื่องหลักคือศูนย์ควบคุม</div>
+              <div class="narration-label">Narration:</div>
+              <p>นี่คือ PHANToM GO แอปที่ช่วยส่งปลายทางจากเครื่องหลักไปยังเครื่องจอ</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">2</div>
+            <div class="filename">02-main-drawer</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="02-main-drawer.png" alt="Main Drawer"></div>
+            <div>
+              <h3>Drawer Menu</h3>
+              <p>โชว์เมนูหลักของแอป</p>
+              <p>Settings, Logs, About</p>
+              <p>และทางลัดไป Display Mode</p>
+              <div class="meta">ใช้บอกว่าการเข้าถึงเมนูต่าง ๆ ทำได้ง่าย</div>
+              <div class="narration-label">Narration:</div>
+              <p>ผู้ใช้สามารถเข้าถึงการตั้งค่าและเครื่องมือสำคัญได้อย่างรวดเร็ว</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">3</div>
+            <div class="filename">03-settings-top</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="03-settings-top.png" alt="Settings Top"></div>
+            <div>
+              <h3>Settings Top</h3>
+              <p>เริ่มจาก Notification permission</p>
+              <p>เพื่อให้ระบบ background ทำงานเสถียร</p>
+              <p>และเริ่มอธิบายการตั้งค่าฝั่งหลัก</p>
+              <div class="meta">เหมาะกับฉากสอนติดตั้งและ setup</div>
+              <div class="narration-label">Narration:</div>
+              <p>เริ่มจากเปิดสิทธิ์แจ้งเตือน เพื่อให้ระบบทำงานได้ต่อเนื่องและเสถียร</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">4</div>
+            <div class="filename">04-settings-middle</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="04-settings-middle.png" alt="Settings Middle"></div>
+            <div>
+              <h3>Settings Middle</h3>
+              <p>แสดงการตั้งค่าฝั่ง Main และ Display</p>
+              <p>เช่น Link Hub, Transport</p>
+              <p>และพฤติกรรมการเชื่อมต่อ</p>
+              <div class="meta">ช่วยอธิบายว่าปรับระบบได้ทั้งสองฝั่ง</div>
+              <div class="narration-label">Narration:</div>
+              <p>ผู้ใช้สามารถปรับค่าฝั่งเครื่องหลักและเครื่องจอได้ในหน้าเดียว</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">5</div>
+            <div class="filename">05-settings-lower</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="05-settings-lower.png" alt="Settings Lower"></div>
+            <div>
+              <h3>Settings Lower</h3>
+              <p>ส่วนการปรับ after-send behavior</p>
+              <p>การเปิดแผนที่ และ System Logs</p>
+              <p>เหมาะกับฉากสอนใช้งานละเอียด</p>
+              <div class="meta">ใช้สื่อเรื่องการตั้งค่าขั้นสูงและการวิเคราะห์ปัญหา</div>
+              <div class="narration-label">Narration:</div>
+              <p>ยังสามารถปรับพฤติกรรมหลังส่ง และดู log ของระบบได้ในหน้าเดียว</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">6</div>
+            <div class="filename">06-scan-qr</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="06-scan-qr.png" alt="Scan QR"></div>
+            <div>
+              <h3>Scan QR</h3>
+              <p>ฝั่ง Main เปิดหน้าสแกน</p>
+              <p>แล้วใช้กล้องจับ QR จากเครื่องจอ</p>
+              <p>เพื่อ pair แบบรวดเร็ว</p>
+              <div class="meta">จังหวะนี้ควรดูง่ายและชัดเจน</div>
+              <div class="narration-label">Narration:</div>
+              <p>จากเครื่องหลัก เพียงสแกน QR code การเชื่อมต่อก็เริ่มต้นได้ทันที</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">7</div>
+            <div class="filename">07-share-sheet</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="07-share-sheet.png" alt="Share Sheet"></div>
+            <div>
+              <h3>Share Sheet</h3>
+              <p>เมื่อค้นหาปลายทางแล้ว</p>
+              <p>กด Share และเลือก PHANToM GO</p>
+              <p>เพื่อส่ง route ไปยังเครื่องจอ</p>
+              <div class="meta">เป็นช็อตสำคัญของการใช้งานจริง</div>
+              <div class="narration-label">Narration:</div>
+              <p>เมื่อมีปลายทางแล้ว เพียงกดแชร์แล้วเลือก PHANToM GO</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">8</div>
+            <div class="filename">08-display-qr</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="08-display-qr.png" alt="Display QR"></div>
+            <div>
+              <h3>Display QR</h3>
+              <p>ฝั่ง Display พร้อมใช้งาน</p>
+              <p>และแสดง QR code สำหรับการ pair</p>
+              <p>ให้เครื่องหลักสแกนได้ทันที</p>
+              <div class="meta">ใช้คู่กับช็อต Scan QR เพื่อเล่า flow การเชื่อมต่อ</div>
+              <div class="narration-label">Narration:</div>
+              <p>บนเครื่องจอ ให้เปิด Display Mode แล้วแสดง QR code สำหรับการจับคู่</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">9</div>
+            <div class="filename">09-display-connected</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="09-display-connected.png" alt="Display Connected"></div>
+            <div>
+              <h3>Display Connected</h3>
+              <p>เมื่อ pair สำเร็จ</p>
+              <p>ฝั่ง Display เปลี่ยนเป็นหน้าพร้อมใช้งาน</p>
+              <p>และมีปุ่ม Disconnect</p>
+              <div class="meta">ยืนยันผลลัพธ์ของการจับคู่แบบชัดเจน</div>
+              <div class="narration-label">Narration:</div>
+              <p>เมื่อเชื่อมต่อสำเร็จ เครื่องจอก็พร้อมรับเส้นทางทันที</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-top">
+            <div class="badge">10</div>
+            <div class="filename">10-display-maps</div>
+          </div>
+          <div class="content">
+            <div class="phone"><img src="10-display-maps.png" alt="Maps on Display"></div>
+            <div>
+              <h3>Maps on Display</h3>
+              <p>ปลายทางเปิดบนเครื่องจออัตโนมัติ</p>
+              <p>เหมาะกับการใช้เครื่องเก่าเป็นจอติดรถ</p>
+              <p>ขณะเครื่องหลักใช้กดงานต่อได้</p>
+              <div class="meta">เป็นภาพ payoff ของแอปทั้งหมด</div>
+              <div class="narration-label">Narration:</div>
+              <p>เส้นทางจะไปแสดงบนเครื่องจอทันที ช่วยให้เครื่องหลักเอาไว้จัดการงานได้เต็มที่</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="section">Suggested Closing Captions</div>
+      <div class="footer">
+        <div class="footer-grid">
+          <div class="footer-item">Reuse old Android devices</div>
+          <div class="footer-item">Protect your main phone</div>
+          <div class="footer-item">Ideal for delivery riders</div>
+          <div class="footer-item">QR pairing in seconds</div>
+          <div class="footer-item">Instant route sharing</div>
+          <div class="footer-item">Less confusion, better workflow</div>
+        </div>
+      </div>
+
+      <div class="note">
+        This infographic includes all main screenshots 01-10 and is designed to be used with Storyboard.txt and Sora2-Prompt-Final.txt
+      </div>
+    </div>
+  </div>
+</body>
+</html>

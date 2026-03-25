@@ -2,6 +2,7 @@ package com.phantom.carnavrelay
 
 import android.content.Context
 import android.content.Intent
+import android.app.ActivityManager
 import android.os.Build
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
@@ -655,7 +656,9 @@ object FirebaseManager {
         }
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (isDisplayServerServiceRunning(context)) {
+                context.startService(serviceIntent)
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(serviceIntent)
             } else {
                 context.startService(serviceIntent)
@@ -665,6 +668,19 @@ object FirebaseManager {
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to start DisplayServerService for cloud command $commandId", e)
             PhantomLog.e("Failed to start DisplayServerService for cloud command $commandId", e)
+        }
+    }
+
+    private fun isDisplayServerServiceRunning(context: Context): Boolean {
+        return try {
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+                ?: return false
+            activityManager.getRunningServices(Integer.MAX_VALUE).any {
+                it.service.className == DisplayServerService::class.java.name && it.foreground
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Could not check DisplayServerService status", e)
+            false
         }
     }
 

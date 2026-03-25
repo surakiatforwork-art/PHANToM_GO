@@ -101,12 +101,6 @@ class PhantomGoApplication : Application(), Application.ActivityLifecycleCallbac
         startedCount += 1
         inForeground = startedCount > 0
         FirebaseManager.syncDeviceRecord(this, "activity-started")
-        val prefs = PrefsManager(this)
-        if (prefs.getDeviceMode() == PrefsManager.MODE_DISPLAY) {
-            FirebaseManager.startDisplayCommandListener(this, "app-activity-started")
-        } else {
-            FirebaseManager.stopDisplayCommandListener()
-        }
         if (startedCount == 1) {
             try {
                 val intent = android.content.Intent(DisplayServerService.ACTION_APP_FOREGROUND).apply {

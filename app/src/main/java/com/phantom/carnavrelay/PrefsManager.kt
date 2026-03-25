@@ -99,6 +99,9 @@ class PrefsManager(context: Context) {
         private const val KEY_PAIRED_DISPLAY_DEVICE_ID = "paired_display_device_id"
         private const val KEY_PAIRED_DISPLAY_NAME = "paired_display_name"
         private const val KEY_PAIRED_VIA_CLOUD = "paired_via_cloud"
+
+        // One-time onboarding / permission setup
+        private const val KEY_INITIAL_PERMISSION_SETUP_SHOWN = "initial_permission_setup_shown"
     }
     
     // Display device: Server token
@@ -484,6 +487,14 @@ class PrefsManager(context: Context) {
         }
         obj.put(shortUrl, resolvedUrl)
         prefs.edit().putString(KEY_URL_RESOLVE_CACHE, obj.toString()).apply()
+    }
+
+    fun hasShownInitialPermissionSetup(): Boolean {
+        return prefs.getBoolean(KEY_INITIAL_PERMISSION_SETUP_SHOWN, false)
+    }
+
+    fun markInitialPermissionSetupShown() {
+        prefs.edit().putBoolean(KEY_INITIAL_PERMISSION_SETUP_SHOWN, true).apply()
     }
     
     private fun generateNewToken(): String {

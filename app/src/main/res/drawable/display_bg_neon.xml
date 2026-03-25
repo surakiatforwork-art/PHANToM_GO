@@ -9,10 +9,4 @@
                 android:angle="135" />
         </shape>
     </item>
-    <item
-        android:alpha="0.18"
-        android:drawable="@drawable/neon_grid_tile" />
-    <item
-        android:alpha="0.12"
-        android:drawable="@drawable/neon_grid_tile_fine" />
 </layer-list>
