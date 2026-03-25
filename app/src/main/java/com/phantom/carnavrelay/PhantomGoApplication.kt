@@ -88,6 +88,7 @@ class PhantomGoApplication : Application(), Application.ActivityLifecycleCallbac
             val prefs = PrefsManager(this)
             if (prefs.getDeviceMode() != PrefsManager.MODE_MAIN) return
             if (!prefs.isPaired()) return
+            if (!prefs.hasLocalPairingTransport()) return
             if (prefs.getConnectionTransport() == PrefsManager.TRANSPORT_BLUETOOTH) return
             MainSender.triggerAutoReconnect(this, reason)
         } catch (e: Exception) {

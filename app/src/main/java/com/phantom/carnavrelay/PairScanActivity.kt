@@ -268,6 +268,11 @@ class PairScanActivity : AppCompatActivity() {
                         displayName = result.displayName,
                         viaCloud = true
                     )
+                } else {
+                    prefsManager.saveCloudPairing(
+                        displayDeviceId = result.displayDeviceId,
+                        displayName = result.displayName
+                    )
                 }
 
                 mainHandler.post {

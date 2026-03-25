@@ -122,15 +122,22 @@ class MainSender(
 
     fun getPairedInfo(): String {
         if (!isPaired()) return "Not paired"
-        val ip = prefsManager.getPairedIp() ?: "unknown"
+        val ip = prefsManager.getPairedIp()
         val port = prefsManager.getPairedPort()
-        val tokenHint = prefsManager.getPairedToken()?.let { prefsManager.getTokenHint(it) } ?: "****"
+        val tokenHint = prefsManager.getPairedToken()?.let { prefsManager.getTokenHint(it) }
         val verified = if (prefsManager.isPairedVerified()) "✅" else "⏳"
         val displayName = prefsManager.getPairedDisplayName()
-        return if (prefsManager.isCloudPaired() && !displayName.isNullOrBlank()) {
-            "$verified $displayName via Cloud ($ip:$port, Token: $tokenHint)"
-        } else {
-            "$verified $ip:$port (Token: $tokenHint)"
+        return when {
+            prefsManager.isCloudPaired() && !prefsManager.hasLocalPairingTransport() -> {
+                val label = displayName ?: prefsManager.getPairedDisplayDeviceId() ?: "Display"
+                "$verified $label via Cloud"
+            }
+            prefsManager.isCloudPaired() && !displayName.isNullOrBlank() -> {
+                "$verified $displayName via Cloud (${ip ?: "unknown"}:$port, Token: ${tokenHint ?: "****"})"
+            }
+            else -> {
+                "$verified ${ip ?: "unknown"}:$port (Token: ${tokenHint ?: "****"})"
+            }
         }
     }
 
@@ -715,6 +722,7 @@ class MainSender(
 
     private fun maybeDiscoverDisplay(reason: String) {
         if (!isPaired()) return
+        if (!prefsManager.hasLocalPairingTransport()) return
         val now = System.currentTimeMillis()
         val cooldown = if (reason.contains("network", ignoreCase = true) || reason.contains("manual", ignoreCase = true)) {
             DISCOVERY_COOLDOWN_FAST_MS

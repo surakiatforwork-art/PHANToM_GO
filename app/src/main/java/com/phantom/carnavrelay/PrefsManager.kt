@@ -185,11 +185,19 @@ class PrefsManager(context: Context) {
     fun getPairedToken(): String? {
         return prefs.getString(KEY_PAIRED_TOKEN, null)
     }
+
+    fun hasLocalPairingTransport(): Boolean {
+        return !getPairedIp().isNullOrBlank() && !getPairedToken().isNullOrBlank()
+    }
+
+    fun hasCloudPairingTarget(): Boolean {
+        return prefs.getBoolean(KEY_PAIRED_VIA_CLOUD, false) &&
+            !getPairedDisplayDeviceId().isNullOrBlank()
+    }
     
     fun isPaired(): Boolean {
-        return prefs.getBoolean(KEY_IS_PAIRED, false) && 
-               !getPairedIp().isNullOrEmpty() && 
-               !getPairedToken().isNullOrEmpty()
+        if (!prefs.getBoolean(KEY_IS_PAIRED, false)) return false
+        return hasLocalPairingTransport() || hasCloudPairingTarget()
     }
     
     fun isPairedVerified(): Boolean {
@@ -222,6 +230,23 @@ class PrefsManager(context: Context) {
         }
     }
 
+    fun saveCloudPairing(
+        displayDeviceId: String,
+        displayName: String? = null
+    ) {
+        prefs.edit().apply {
+            remove(KEY_PAIRED_IP)
+            remove(KEY_PAIRED_PORT)
+            remove(KEY_PAIRED_TOKEN)
+            putBoolean(KEY_IS_PAIRED, true)
+            putBoolean(KEY_PAIRED_VERIFIED, false)
+            putString(KEY_PAIRED_DISPLAY_DEVICE_ID, displayDeviceId)
+            putString(KEY_PAIRED_DISPLAY_NAME, displayName)
+            putBoolean(KEY_PAIRED_VIA_CLOUD, true)
+            apply()
+        }
+    }
+
     fun clearPairing() {
         prefs.edit().apply {
             remove(KEY_PAIRED_IP)
@@ -245,7 +270,7 @@ class PrefsManager(context: Context) {
     }
 
     fun isCloudPaired(): Boolean {
-        return prefs.getBoolean(KEY_PAIRED_VIA_CLOUD, false)
+        return prefs.getBoolean(KEY_IS_PAIRED, false) && hasCloudPairingTarget()
     }
     
     // Pending queue for failed sends

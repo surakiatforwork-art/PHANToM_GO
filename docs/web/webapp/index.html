@@ -476,6 +476,85 @@
     .scanner-actions { display: flex; gap: 12px; margin-top: 16px; }
     .hidden { display: none !important; }
 
+    .route-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 72;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(3, 6, 10, 0.72);
+      backdrop-filter: blur(16px);
+    }
+    .route-modal.show { display: flex; }
+
+    .route-modal-card {
+      width: min(100%, 420px);
+      min-height: min(52vh, 460px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 24px 22px;
+      border-radius: 30px;
+      background:
+        linear-gradient(135deg, rgba(18, 164, 208, 0.18), rgba(126, 87, 255, 0.18)),
+        linear-gradient(180deg, rgba(17, 24, 38, 0.99), rgba(8, 13, 22, 0.98));
+      border: 1px solid rgba(127, 222, 255, 0.22);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+    }
+
+    .route-modal-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      width: fit-content;
+      background: rgba(87, 227, 137, 0.12);
+      border: 1px solid rgba(87, 227, 137, 0.22);
+      color: var(--green);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .route-modal-title {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.5rem, 4vw, 1.9rem);
+      line-height: 1.06;
+      letter-spacing: -0.04em;
+    }
+
+    .route-modal-copy {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 0.96rem;
+    }
+
+    .route-preview-box {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(5, 10, 17, 0.56);
+      border: 1px solid rgba(127, 222, 255, 0.12);
+      color: #d8f3ff;
+      word-break: break-word;
+      line-height: 1.6;
+      font-size: 0.94rem;
+    }
+
+    .route-modal-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
     .value-list { display: grid; gap: 12px; margin-top: 16px; }
     .value-row {
       display: flex;
@@ -570,6 +649,19 @@
     </div>
   </div>
 
+  <div class="route-modal" id="routeModal">
+    <div class="route-modal-card">
+      <div>
+        <div class="route-modal-kicker">New Route Received</div>
+        <h3 class="route-modal-title">มีเส้นทางใหม่ส่งเข้ามา</h3>
+        <p class="route-modal-copy">แตะปุ่มด้านล่างเพื่อปิด popup นี้และเปิด Google Maps ตามค่าที่ตั้งไว้ของ browser display เครื่องนี้</p>
+        <div class="route-preview-box" id="routeModalSummary">กำลังรอข้อมูลเส้นทาง...</div>
+        <div class="route-modal-meta" id="routeModalMeta"></div>
+      </div>
+      <button class="button primary full" id="routeModalOpenButton">เปิดเส้นทางล่าสุด</button>
+    </div>
+  </div>
+
   <div class="toast-layer" id="toastLayer"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -608,7 +700,9 @@
       pairCode: "phantomgo_web_pair_code",
       displayMode: "phantomgo_web_display_mode",
       navMode: "phantomgo_web_nav_mode",
-      openBehavior: "phantomgo_web_open_behavior"
+      openBehavior: "phantomgo_web_open_behavior",
+      lastCommand: "phantomgo_web_last_command",
+      pairedPeerInfo: "phantomgo_web_paired_peer_info"
     };
 
     const PATHS = {
@@ -767,7 +861,7 @@
             <div class="action-row">
               <a class="button primary full linkish hidden" id="openLatestRouteButton" href="#" target="_blank" rel="noopener">เปิดเส้นทางล่าสุดใน Google Maps</a>
             </div>
-            <div class="notice">ถ้าลิงก์ที่แชร์มาเป็น <span class="inline-code">maps.app.goo.gl</span> แบบ short link บน browser อาจยังบังคับรถยนต์หรือมอเตอร์ไซต์ไม่ได้ครบเท่า APK เพราะ browser อ่านปลายทางจริงจากลิงก์ย่อไม่ได้เสมอ แต่ถ้าฝั่ง Display เป็น APK จะยังแปลงต่อได้ตามปกติ</div>
+            <div class="notice">บน browser การเปิดแบบนำทางจะทำได้แม่นขึ้นเมื่ออนุญาตตำแหน่งปัจจุบันให้เว็บนี้ และโหมด <span class="inline-code">two-wheeler</span> จะขึ้นกับประเทศที่ Google Maps รองรับด้วย ถ้าปลายทางถูกแชร์มาเป็น short link ระบบจะพยายาม resolve ก่อน แต่บาง browser อาจยัง fallback เป็นลิงก์เดิมได้</div>
           </div>
         </div>
       `,
@@ -865,8 +959,9 @@
       activeScreen: "home",
       mainPairing: null,
       displayPairing: null,
+      pairedPeerInfo: readJson(STORAGE_KEYS.pairedPeerInfo, null),
       displayPresence: null,
-      latestCommand: null,
+      latestCommand: readJson(STORAGE_KEYS.lastCommand, null),
       qrInstance: null,
       qrScanner: null,
       displayCommandUnsubs: [],
@@ -878,6 +973,10 @@
       headerStatus: document.getElementById("headerStatus"),
       scannerModal: document.getElementById("scannerModal"),
       closeScannerButton: document.getElementById("closeScannerButton"),
+      routeModal: document.getElementById("routeModal"),
+      routeModalSummary: document.getElementById("routeModalSummary"),
+      routeModalMeta: document.getElementById("routeModalMeta"),
+      routeModalOpenButton: document.getElementById("routeModalOpenButton"),
       toastLayer: document.getElementById("toastLayer"),
       screens: [...document.querySelectorAll(".screen")],
       navButtons: [...document.querySelectorAll(".nav-button")]
@@ -955,16 +1054,8 @@
       dom.copyDeviceIdButton.addEventListener("click", () => copyToClipboard(state.deviceId, "คัดลอก Device ID แล้ว"));
       dom.resetBrowserStateButton.addEventListener("click", resetBrowserState);
 
-      dom.openLatestRouteButton.addEventListener("click", async (event) => {
-        if (!state.latestCommand?.rawUrl) {
-          event.preventDefault();
-          showToast("ยังไม่มีเส้นทางใหม่ให้เปิด", "warn");
-          return;
-        }
-        const finalUrl = buildDisplayOpenUrl(state.latestCommand.rawUrl);
-        dom.openLatestRouteButton.href = finalUrl;
-        await markLatestCommandOpened(finalUrl);
-      });
+      dom.openLatestRouteButton.addEventListener("click", handleLatestRouteOpen);
+      shellRefs.routeModalOpenButton.addEventListener("click", handleLatestRouteOpen);
 
       dom.navModeOptions.forEach((input) => {
         input.addEventListener("change", () => {
@@ -1055,6 +1146,7 @@
     function attachPairingListeners() {
       onValue(ref(db, `${PATHS.pairingsByMain}/${state.deviceId}`), (snapshot) => {
         state.mainPairing = snapshot.exists() ? { id: state.deviceId, ...snapshot.val() } : null;
+        persistPairedPeerInfo();
         attachDisplayPresenceListener();
         renderHome();
         renderSettings();
@@ -1062,6 +1154,7 @@
 
       onValue(ref(db, `${PATHS.pairingsByDisplay}/${state.deviceId}`), async (snapshot) => {
         state.displayPairing = snapshot.exists() ? { id: state.deviceId, ...snapshot.val() } : null;
+        persistPairedPeerInfo();
         renderDisplay();
         renderSettings();
 
@@ -1142,7 +1235,7 @@
 
       const previous = state.pairCode;
       state.pairCode = randomHex(5);
-      localStorage.setItem(STORAGE_KEYS.pairCode, state.pairCode);
+      persistPairCode();
       await update(ref(db), { [`${PATHS.pairingCodes}/${previous}`]: null });
       await publishPairingCode("manual-refresh");
       showToast("รีเฟรช Pair Code แล้ว", "success");
@@ -1185,9 +1278,11 @@
         receivedAt: Date.now(),
         status: "received"
       };
+      persistLatestCommand();
 
       document.title = "PHANToM GO • New Route";
       renderDisplay();
+      openRouteModal();
       showToast("มีเส้นทางใหม่เข้ามาแล้ว", "success");
     }
 
@@ -1201,7 +1296,9 @@
       });
 
       state.latestCommand = { ...state.latestCommand, status: "opened", finalUrl };
+      persistLatestCommand();
       document.title = "PHANToM GO Web Relay";
+      closeRouteModal();
       renderDisplay();
     }
 
@@ -1290,6 +1387,7 @@
       }
 
       await update(ref(db), updates);
+      persistPairedPeerInfo();
     }
 
     async function clearMainPairing() {
@@ -1303,6 +1401,8 @@
         [`${PATHS.pairingsByDisplay}/${state.mainPairing.displayDeviceId}`]: null
       };
       await update(ref(db), updates);
+      clearStoredPeerInfo();
+      closeRouteModal();
       showToast("ยกเลิกการเชื่อมต่อแล้ว", "success");
     }
 
@@ -1314,7 +1414,7 @@
 
       const oldPairCode = state.pairCode;
       state.pairCode = randomHex(5);
-      localStorage.setItem(STORAGE_KEYS.pairCode, state.pairCode);
+      persistPairCode();
 
       const updates = {
         [`${PATHS.pairingsByDisplay}/${state.deviceId}`]: null,
@@ -1324,6 +1424,9 @@
       await update(ref(db), updates);
       await publishPairingCode("display-disconnect");
       state.latestCommand = null;
+      persistLatestCommand();
+      clearStoredPeerInfo();
+      closeRouteModal();
       renderDisplay();
       showToast("ตัดการเชื่อมต่อแล้ว พร้อม pair ใหม่", "success");
     }
@@ -1348,6 +1451,8 @@
         state.displayModeEnabled = false;
         detachDisplayCommandListeners();
         state.latestCommand = null;
+        persistLatestCommand();
+        closeRouteModal();
         await handleDisplayModeState("toggle-off");
         showToast("ปิด Display Mode แล้ว", "success");
         return;
@@ -1475,11 +1580,33 @@
       }
     }
 
+    async function handleLatestRouteOpen(event) {
+      event?.preventDefault?.();
+      if (!state.latestCommand?.rawUrl) {
+        showToast("ยังไม่มีเส้นทางใหม่ให้เปิด", "warn");
+        return;
+      }
+      const launchPlan = await buildDisplayOpenUrl(state.latestCommand.rawUrl);
+      dom.openLatestRouteButton.href = launchPlan.fallbackUrl;
+      closeRouteModal();
+      await markLatestCommandOpened(launchPlan.launchUrl);
+      openRouteLaunchPlan(launchPlan);
+    }
+
+    function openRouteModal() {
+      shellRefs.routeModal.classList.add("show");
+    }
+
+    function closeRouteModal() {
+      shellRefs.routeModal.classList.remove("show");
+    }
+
     function renderAll() {
       syncSettingsRadios();
       renderHeader();
       renderHome();
       renderDisplay();
+      renderRouteModal();
       renderSettings();
       switchScreen(state.activeScreen);
     }
@@ -1528,6 +1655,8 @@
 
       if (state.mainPairing?.displayDeviceId) {
         dom.homePairingStatus.textContent = `${state.mainPairing.displayName || "Display"} • ${state.mainPairing.displayDeviceId}`;
+      } else if (state.pairedPeerInfo?.role === "main") {
+        dom.homePairingStatus.textContent = `ล่าสุด: ${state.pairedPeerInfo.name || "Display"} • ${state.pairedPeerInfo.deviceId}`;
       } else {
         dom.homePairingStatus.textContent = "ยังไม่ได้เชื่อมต่อ";
       }
@@ -1564,6 +1693,8 @@
       const paired = Boolean(state.displayPairing?.mainDeviceId);
       dom.displayPairingStatus.textContent = paired
         ? `${state.displayPairing.mainName || "Main"} • ${state.displayPairing.mainDeviceId}`
+        : state.pairedPeerInfo?.role === "display"
+          ? `ล่าสุด: ${state.pairedPeerInfo.name || "Main"} • ${state.pairedPeerInfo.deviceId}`
         : "ยังไม่เชื่อมต่อ";
 
       dom.displayQrPanel.classList.toggle("hidden", !state.displayModeEnabled || paired);
@@ -1581,7 +1712,7 @@
         dom.latestCommandSummary.textContent = latest.rawUrl;
         dom.latestCommandBadge.classList.toggle("hidden", latest.status !== "received");
         dom.openLatestRouteButton.classList.remove("hidden");
-        dom.openLatestRouteButton.href = buildDisplayOpenUrl(latest.rawUrl);
+        dom.openLatestRouteButton.href = buildDisplayPreviewHref(latest.rawUrl);
         dom.openLatestRouteButton.textContent = latest.status === "opened"
           ? "เปิดเส้นทางล่าสุดอีกครั้ง"
           : "เปิดเส้นทางล่าสุดใน Google Maps";
@@ -1590,6 +1721,28 @@
         dom.latestCommandBadge.classList.add("hidden");
         dom.openLatestRouteButton.classList.add("hidden");
         dom.openLatestRouteButton.href = "#";
+      }
+
+      renderRouteModal();
+    }
+
+    function renderRouteModal() {
+      const latest = state.latestCommand;
+      const shouldShow = state.displayModeEnabled && latest?.rawUrl && latest.status === "received";
+      shellRefs.routeModal.classList.toggle("show", Boolean(shouldShow));
+
+      if (!latest?.rawUrl) {
+        shellRefs.routeModalSummary.textContent = "กำลังรอข้อมูลเส้นทาง...";
+        shellRefs.routeModalMeta.innerHTML = "";
+        return;
+      }
+
+      shellRefs.routeModalSummary.textContent = latest.rawUrl;
+      shellRefs.routeModalMeta.innerHTML = "";
+      shellRefs.routeModalMeta.appendChild(makeChip(state.displayNavMode === DISPLAY_NAV_MODE_MOTORCYCLE ? "Motorcycle Mode" : "Driving Mode"));
+      shellRefs.routeModalMeta.appendChild(makeChip(state.displayOpenBehavior === DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION ? "Start Navigation" : "Route Preview", state.displayOpenBehavior === DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION ? "good" : ""));
+      if (latest.receivedAt) {
+        shellRefs.routeModalMeta.appendChild(makeChip(`Received ${new Date(latest.receivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`));
       }
     }
 
@@ -1683,15 +1836,107 @@
       return host === "maps.app.goo.gl" || (host === "goo.gl" && /maps|app\/maps/.test(url.pathname));
     }
 
-    function buildDisplayOpenUrl(raw) {
-      if (isShortMapsLink(raw)) return raw;
+    async function resolveShortMapsLinkIfNeeded(raw) {
+      if (!isShortMapsLink(raw)) return raw;
+      try {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 2600);
+        const response = await fetch(raw, {
+          method: "GET",
+          mode: "no-cors",
+          redirect: "follow",
+          signal: controller.signal
+        });
+        window.clearTimeout(timeoutId);
+        return response?.url && response.url !== "about:blank" ? response.url : raw;
+      } catch {
+        return raw;
+      }
+    }
+
+    async function getCurrentOriginParam() {
+      if (!navigator.geolocation) return null;
+      return await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => resolve(`${position.coords.latitude},${position.coords.longitude}`),
+          () => resolve(null),
+          {
+            enableHighAccuracy: true,
+            maximumAge: 60000,
+            timeout: 3000
+          }
+        );
+      });
+    }
+
+    function buildPlatformLaunchUrl(universalUrl) {
+      if (!isIOSBrowser()) return universalUrl;
+      if (!/^https?:\/\//i.test(universalUrl)) return universalUrl;
+      return universalUrl.replace(/^https?:\/\//i, "comgooglemapsurl://");
+    }
+
+    async function buildDisplayOpenUrl(raw) {
+      const resolvedRaw = await resolveShortMapsLinkIfNeeded(raw);
+      const destination = extractDestination(resolvedRaw);
+      if (!destination) {
+        return {
+          launchUrl: resolvedRaw,
+          fallbackUrl: resolvedRaw,
+          universalUrl: resolvedRaw
+        };
+      }
+
+      const travelMode = state.displayNavMode === DISPLAY_NAV_MODE_MOTORCYCLE ? "two-wheeler" : "driving";
+      let universalUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=${travelMode}`;
+
+      if (state.displayOpenBehavior === DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION) {
+        const origin = await getCurrentOriginParam();
+        if (origin) {
+          universalUrl = appendQueryParam(universalUrl, "origin", origin);
+        } else {
+          showToast("ถ้า Google Maps ยังไม่เข้าโหมดนำทางทันที ให้อนุญาตตำแหน่งปัจจุบันกับ browser นี้ก่อน", "warn");
+        }
+        universalUrl = appendQueryParam(universalUrl, "dir_action", "navigate");
+      }
+
+      return {
+        launchUrl: buildPlatformLaunchUrl(universalUrl),
+        fallbackUrl: universalUrl,
+        universalUrl
+      };
+    }
+
+    function buildDisplayPreviewHref(raw) {
       const destination = extractDestination(raw);
       if (!destination) return raw;
       const travelMode = state.displayNavMode === DISPLAY_NAV_MODE_MOTORCYCLE ? "two-wheeler" : "driving";
-      const base = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=${travelMode}`;
-      return state.displayOpenBehavior === DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION
-        ? appendQueryParam(base, "dir_action", "navigate")
-        : base;
+      let universalUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=${travelMode}`;
+      if (state.displayOpenBehavior === DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION) {
+        universalUrl = appendQueryParam(universalUrl, "dir_action", "navigate");
+      }
+      return universalUrl;
+    }
+
+    function openRouteLaunchPlan(plan) {
+      if (!plan?.launchUrl) return;
+      if (plan.launchUrl === plan.fallbackUrl) {
+        window.location.assign(plan.launchUrl);
+        return;
+      }
+
+      const fallbackTimer = window.setTimeout(() => {
+        if (document.visibilityState === "visible") {
+          window.location.assign(plan.fallbackUrl);
+        }
+      }, 1200);
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+          window.clearTimeout(fallbackTimer);
+        }
+      }, { once: true });
+
+      window.location.href = plan.launchUrl;
     }
 
     function extractDestination(raw) {
@@ -1792,6 +2037,42 @@
       return `phantomgo://pair?${params.toString()}`;
     }
 
+    function persistPairCode() {
+      localStorage.setItem(STORAGE_KEYS.pairCode, state.pairCode);
+    }
+
+    function persistLatestCommand() {
+      writeJson(STORAGE_KEYS.lastCommand, state.latestCommand);
+    }
+
+    function persistPairedPeerInfo() {
+      if (state.mainPairing?.displayDeviceId) {
+        state.pairedPeerInfo = {
+          role: "main",
+          deviceId: state.mainPairing.displayDeviceId,
+          name: state.mainPairing.displayName || "Display",
+          updatedAt: Date.now()
+        };
+        writeJson(STORAGE_KEYS.pairedPeerInfo, state.pairedPeerInfo);
+        return;
+      }
+
+      if (state.displayPairing?.mainDeviceId) {
+        state.pairedPeerInfo = {
+          role: "display",
+          deviceId: state.displayPairing.mainDeviceId,
+          name: state.displayPairing.mainName || "Main",
+          updatedAt: Date.now()
+        };
+        writeJson(STORAGE_KEYS.pairedPeerInfo, state.pairedPeerInfo);
+      }
+    }
+
+    function clearStoredPeerInfo() {
+      state.pairedPeerInfo = null;
+      writeJson(STORAGE_KEYS.pairedPeerInfo, null);
+    }
+
     function randomHex(bytesLength) {
       const bytes = new Uint8Array(bytesLength);
       crypto.getRandomValues(bytes);
@@ -1804,6 +2085,24 @@
       const next = factory();
       localStorage.setItem(key, next);
       return next;
+    }
+
+    function readJson(key, fallback = null) {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    }
+
+    function writeJson(key, value) {
+      if (value == null) {
+        localStorage.removeItem(key);
+        return;
+      }
+      localStorage.setItem(key, JSON.stringify(value));
     }
 
     function readBoolean(key, fallback) {
@@ -1820,6 +2119,10 @@
       if (/Macintosh/i.test(ua)) return "Mac Browser";
       if (/Windows/i.test(ua)) return "Windows Browser";
       return "Web Browser";
+    }
+
+    function isIOSBrowser() {
+      return /iPhone|iPad|iPod/i.test(navigator.userAgent);
     }
 
     function tryParseUrl(raw) {
