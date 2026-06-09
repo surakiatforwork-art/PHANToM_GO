@@ -1,0 +1,8 @@
+build/
+DerivedData/
+GoogleService-Info.plist
+PHANToMGO.xcodeproj/
+*.xcarchive
+*.ipa
+.swiftpm/
+Package.resolved

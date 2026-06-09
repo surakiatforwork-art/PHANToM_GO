@@ -1,0 +1,64 @@
+name: PHANToMGO
+
+options:
+  bundleIdPrefix: com.phantom
+  deploymentTarget:
+    iOS: "16.0"
+
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 11.10.0
+
+targets:
+  PHANToMGO:
+    type: application
+    platform: iOS
+    sources:
+      - path: PHANToMGO/Sources
+    resources:
+      - path: PHANToMGO/Resources
+        excludes:
+          - GoogleService-Info.plist.template
+    dependencies:
+      - package: Firebase
+        product: FirebaseCore
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseDatabase
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.phantom.PHANToMGO
+        PRODUCT_NAME: PHANToM GO
+        PRODUCT_MODULE_NAME: PHANToMGO
+        SWIFT_VERSION: 5.10
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0.0
+        INFOPLIST_KEY_CFBundleDisplayName: PHANToM GO
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: PHANToM GO needs the camera to scan pairing QR codes.
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: PHANToM GO uses location to improve route and navigation workflows when needed.
+        INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: PHANToM GO may use location for display and navigation-related features when enabled.
+        INFOPLIST_KEY_LSApplicationQueriesSchemes:
+          - comgooglemaps
+          - googlemaps
+          - phantomgo
+    scheme:
+      gatherCoverageData: true
+      testTargets:
+        - PHANToMGOTests
+
+  PHANToMGOTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: PHANToMGOTests
+    dependencies:
+      - target: PHANToMGO
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.phantom.PHANToMGOTests
+        PRODUCT_NAME: PHANToM GO Tests
+        SWIFT_VERSION: 5.10
