@@ -269,24 +269,24 @@ final class FirebaseService {
     }
 
     private func setValue(path: String, value: Any?) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             database.reference(withPath: path).setValue(value) { error, _ in
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
-                    continuation.resume()
+                    continuation.resume(returning: ())
                 }
             }
         }
     }
 
     private func updateChildren(path: String, payload: [String: Any?]) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             database.reference(withPath: path).updateChildValues(payload.compactMapValues { $0 }) { error, _ in
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
-                    continuation.resume()
+                    continuation.resume(returning: ())
                 }
             }
         }
@@ -296,12 +296,12 @@ final class FirebaseService {
         let normalized = payload.reduce(into: [String: Any]()) { result, entry in
             result[entry.key] = entry.value ?? NSNull()
         }
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             database.reference().updateChildValues(normalized) { error, _ in
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
-                    continuation.resume()
+                    continuation.resume(returning: ())
                 }
             }
         }
