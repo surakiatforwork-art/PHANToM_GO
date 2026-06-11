@@ -3,9 +3,13 @@ package com.phantom.carnavrelay
 import android.Manifest
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import android.content.BroadcastReceiver
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -52,6 +56,18 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
     private lateinit var btnClearPairing: Button
     private lateinit var ghostIcon: TextView
     private var ghostAnimator: ObjectAnimator? = null
+    private var antiTheftReceiverRegistered = false
+    private var lastSecurityAlertId: String? = null
+
+    private val antiTheftAlertReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != FirebaseManager.ACTION_SECURITY_ALERT_RECEIVED || !isAdded) return
+            val alertId = intent.getStringExtra("alertId") ?: return
+            if (lastSecurityAlertId == alertId) return
+            lastSecurityAlertId = alertId
+            showSecurityAlertDialog(intent)
+        }
+    }
 
     private val scanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
@@ -310,9 +326,19 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         handler.post(statusCheckRunnable)
     }
 
+    override fun onStart() {
+        super.onStart()
+        registerAntiTheftReceiverIfNeeded()
+    }
+
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(statusCheckRunnable)
+    }
+
+    override fun onStop() {
+        unregisterAntiTheftReceiverIfNeeded()
+        super.onStop()
     }
 
     private fun isDisplayServiceRunning(): Boolean {
@@ -366,6 +392,7 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
     }
 
     override fun onDestroyView() {
+        unregisterAntiTheftReceiverIfNeeded()
         ghostAnimator?.cancel()
         super.onDestroyView()
     }
@@ -385,6 +412,79 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
                     Toast.makeText(requireContext(), "Camera permission required for QR scanning", Toast.LENGTH_LONG).show()
                 }
             }
+        }
+    }
+
+    private fun registerAntiTheftReceiverIfNeeded() {
+        if (antiTheftReceiverRegistered || !isAdded) return
+        val filter = IntentFilter(FirebaseManager.ACTION_SECURITY_ALERT_RECEIVED)
+        ContextCompat.registerReceiver(
+            requireContext(),
+            antiTheftAlertReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        antiTheftReceiverRegistered = true
+    }
+
+    private fun unregisterAntiTheftReceiverIfNeeded() {
+        if (!antiTheftReceiverRegistered || !isAdded) return
+        runCatching {
+            requireContext().unregisterReceiver(antiTheftAlertReceiver)
+        }
+        antiTheftReceiverRegistered = false
+    }
+
+    private fun showSecurityAlertDialog(intent: Intent) {
+        val eventType = intent.getStringExtra("eventType") ?: "unknown"
+        val displayName = intent.getStringExtra("displayName") ?: intent.getStringExtra("displayDeviceId") ?: "Display device"
+        val locationAvailable = intent.getBooleanExtra("locationAvailable", false)
+        val lat = if (intent.hasExtra("lat")) intent.getDoubleExtra("lat", 0.0) else null
+        val lng = if (intent.hasExtra("lng")) intent.getDoubleExtra("lng", 0.0) else null
+        val speedKmh = if (intent.hasExtra("speedKmh")) intent.getIntExtra("speedKmh", 0) else null
+
+        val message = buildString {
+            append(displayName)
+            append("\n\n")
+            append(securityAlertEventLabel(eventType))
+            if (speedKmh != null) {
+                append("\nSpeed: ")
+                append(speedKmh)
+                append(" km/h")
+            }
+            if (locationAvailable && lat != null && lng != null) {
+                append("\nLocation: ")
+                append(lat)
+                append(", ")
+                append(lng)
+            }
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Anti-Theft Alert")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .apply {
+                if (locationAvailable && lat != null && lng != null) {
+                    setNeutralButton("Open Map") { _, _ ->
+                        val uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng")
+                        startActivity(Intent(Intent.ACTION_VIEW, uri))
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun securityAlertEventLabel(eventType: String): String {
+        return when (eventType) {
+            DisplayAntiTheftManager.ALERT_TIMEOUT_1 -> "No PIN was entered within 15 seconds."
+            DisplayAntiTheftManager.ALERT_REPLUG_DURING_CHALLENGE_1 -> "The 3.5 mm jack was replugged during the first challenge."
+            DisplayAntiTheftManager.ALERT_WRONG_PIN_1 -> "A wrong PIN was entered once."
+            DisplayAntiTheftManager.ALERT_WRONG_PIN_2 -> "A wrong PIN was entered twice."
+            DisplayAntiTheftManager.ALERT_ALARM_STARTED -> "The display device alarm has started."
+            DisplayAntiTheftManager.ALERT_ALARM_ESCALATED_FULLSCREEN -> "The display device escalated to full-screen PIN lock."
+            DisplayAntiTheftManager.ALERT_DISARMED_SUCCESS -> "The display device was disarmed successfully."
+            else -> "Event: $eventType"
         }
     }
 }

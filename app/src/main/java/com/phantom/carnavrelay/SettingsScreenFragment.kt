@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.media.RingtoneManager
 import android.provider.Settings
 import android.util.Log
 import android.view.HapticFeedbackConstants
@@ -68,6 +69,18 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var displayOpenModePreview: android.widget.RadioButton
     private lateinit var displayOpenModeNavigate: android.widget.RadioButton
     private lateinit var displayOpenModeStatusText: TextView
+    private lateinit var speedometerSwitch: Switch
+    private lateinit var speedometerStatusText: TextView
+    private lateinit var speedometerPermissionText: TextView
+    private lateinit var requestLocationPermissionButton: Button
+    private lateinit var antiTheftEnabledSwitch: Switch
+    private lateinit var antiTheftStatusText: TextView
+    private lateinit var antiTheftDetailText: TextView
+    private lateinit var antiTheftAttachLocationSwitch: Switch
+    private lateinit var antiTheftAttachLocationStatus: TextView
+    private lateinit var antiTheftPinButton: Button
+    private lateinit var antiTheftSoundButton: Button
+    private lateinit var antiTheftTestButton: Button
     private lateinit var logScrollView: ScrollView
     private lateinit var logText: TextView
     private lateinit var copyLogButton: Button
@@ -85,7 +98,25 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private var updatingTransportUi = false
     private var updatingDisplayNavModeUi = false
     private var updatingDisplayOpenModeUi = false
+    private var updatingSpeedometerUi = false
+    private var updatingAntiTheftUi = false
     private var bluetoothPickPending = false
+
+    private val pickAntiTheftSoundLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val data = result.data
+        if (data == null) return@registerForActivityResult
+        val pickedUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+        }
+        DisplayAntiTheftManager.setAlarmSoundUri(requireContext(), pickedUri)
+        updateAntiTheftStatus()
+        Toast.makeText(requireContext(), "Alarm sound updated", Toast.LENGTH_SHORT).show()
+    }
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -114,6 +145,25 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             bluetoothPickPending = false
             showBluetoothDevicePicker()
         }
+    }
+
+    private val requestLocationPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        val fineGranted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted) {
+            requestBackgroundLocationPermissionIfNeeded()
+        }
+        updateSpeedometerStatus()
+        notifyDisplayServiceSpeedSettingsChanged()
+    }
+
+    private val requestBackgroundLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        updateSpeedometerStatus()
+        notifyDisplayServiceSpeedSettingsChanged()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -162,6 +212,18 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         displayOpenModePreview = root.findViewById(R.id.displayOpenModePreview)
         displayOpenModeNavigate = root.findViewById(R.id.displayOpenModeNavigate)
         displayOpenModeStatusText = root.findViewById(R.id.displayOpenModeStatusText)
+        speedometerSwitch = root.findViewById(R.id.speedometerSwitch)
+        speedometerStatusText = root.findViewById(R.id.speedometerStatusText)
+        speedometerPermissionText = root.findViewById(R.id.speedometerPermissionText)
+        requestLocationPermissionButton = root.findViewById(R.id.requestLocationPermissionButton)
+        antiTheftEnabledSwitch = root.findViewById(R.id.antiTheftEnabledSwitch)
+        antiTheftStatusText = root.findViewById(R.id.antiTheftStatusText)
+        antiTheftDetailText = root.findViewById(R.id.antiTheftDetailText)
+        antiTheftAttachLocationSwitch = root.findViewById(R.id.antiTheftAttachLocationSwitch)
+        antiTheftAttachLocationStatus = root.findViewById(R.id.antiTheftAttachLocationStatus)
+        antiTheftPinButton = root.findViewById(R.id.antiTheftPinButton)
+        antiTheftSoundButton = root.findViewById(R.id.antiTheftSoundButton)
+        antiTheftTestButton = root.findViewById(R.id.antiTheftTestButton)
         logScrollView = root.findViewById(R.id.logScrollView)
         logText = root.findViewById(R.id.logText)
         copyLogButton = root.findViewById(R.id.copyLogButton)
@@ -260,6 +322,47 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             updateDisplayOpenModeStatus()
         }
 
+        speedometerSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingSpeedometerUi) return@setOnCheckedChangeListener
+            prefsManager.setSpeedometerEnabled(isChecked)
+            if (isChecked && !DisplaySpeedMonitor.hasLocationPermission(requireContext())) {
+                requestLocationPermissionFlow()
+            }
+            updateSpeedometerStatus()
+            notifyDisplayServiceSpeedSettingsChanged()
+            speedometerSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        antiTheftEnabledSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingAntiTheftUi) return@setOnCheckedChangeListener
+            DisplayAntiTheftManager.setFeatureEnabled(requireContext(), isChecked)
+            updateAntiTheftStatus()
+            antiTheftEnabledSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        antiTheftAttachLocationSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingAntiTheftUi) return@setOnCheckedChangeListener
+            DisplayAntiTheftManager.setAttachLocationEnabled(requireContext(), isChecked)
+            updateAntiTheftStatus()
+            antiTheftAttachLocationSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        antiTheftPinButton.setOnClickListener {
+            promptAntiTheftPinDialog()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        antiTheftSoundButton.setOnClickListener {
+            openAntiTheftSoundPicker()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        antiTheftTestButton.setOnClickListener {
+            DisplayAntiTheftManager.testAlarm(requireContext())
+            Toast.makeText(requireContext(), "Anti-Theft alarm test started", Toast.LENGTH_SHORT).show()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
         openByDefaultButton.setOnClickListener {
             openDefaultHandlerSettings()
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -285,6 +388,11 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
+        requestLocationPermissionButton.setOnClickListener {
+            requestLocationPermissionFlow()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
         backButton.setOnClickListener {
             (activity as? MainActivity)?.navigateBackToPreviousTab()
         }
@@ -297,6 +405,8 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         updateSmartModeStatus()
         updateDisplayNavModeStatus()
         updateDisplayOpenModeStatus()
+        updateSpeedometerStatus()
+        updateAntiTheftStatus()
         updateNotificationStatus()
         loadLogs()
     }
@@ -546,6 +656,127 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         displayOpenModeStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_cyan))
     }
 
+    private fun updateSpeedometerStatus() {
+        val enabled = prefsManager.isSpeedometerEnabled()
+        val hasLocation = DisplaySpeedMonitor.hasLocationPermission(requireContext())
+        val hasBackground = DisplaySpeedMonitor.hasBackgroundLocationPermission(requireContext())
+        val locationEnabled = DisplaySpeedMonitor.isLocationEnabled(requireContext())
+
+        updatingSpeedometerUi = true
+        speedometerSwitch.isChecked = enabled
+        updatingSpeedometerUi = false
+
+        speedometerStatusText.text = when {
+            !enabled -> "Off"
+            !hasLocation -> "Need location"
+            !hasBackground -> "Need all-time access"
+            !locationEnabled -> "Location turned off"
+            else -> "On"
+        }
+        speedometerStatusText.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                when {
+                    !enabled -> R.color.aurora_warning
+                    !hasLocation || !hasBackground || !locationEnabled -> R.color.aurora_warning
+                    else -> R.color.aurora_success
+                }
+            )
+        )
+
+        speedometerPermissionText.text = buildString {
+            append("Location: ")
+            append(if (hasLocation) "granted" else "not granted")
+            append(" • All-time: ")
+            append(if (hasBackground) "granted" else "required")
+            append(" • GPS: ")
+            append(if (locationEnabled) "on" else "off")
+        }
+        requestLocationPermissionButton.visibility = if (enabled || !hasLocation || !hasBackground) View.VISIBLE else View.GONE
+    }
+
+    private fun updateAntiTheftStatus() {
+        val snapshot = DisplayAntiTheftManager.snapshot(requireContext())
+        val currentSound = DisplayAntiTheftManager.getAlarmSoundUri(requireContext())
+        updatingAntiTheftUi = true
+        antiTheftEnabledSwitch.isChecked = snapshot.featureEnabled
+        antiTheftAttachLocationSwitch.isChecked = DisplayAntiTheftManager.isAttachLocationEnabled(requireContext())
+        updatingAntiTheftUi = false
+
+        antiTheftStatusText.text = when {
+            !snapshot.featureEnabled -> "Off"
+            snapshot.armed -> "Armed"
+            snapshot.state == AntiTheftState.READY_UNPLUGGED -> "Waiting for jack"
+            snapshot.hasPin -> "Ready"
+            else -> "Need PIN"
+        }
+        antiTheftStatusText.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                when {
+                    !snapshot.featureEnabled -> R.color.aurora_warning
+                    snapshot.armed -> R.color.aurora_success
+                    snapshot.hasPin -> R.color.aurora_cyan
+                    else -> R.color.aurora_warning
+                }
+            )
+        )
+
+        antiTheftDetailText.text = buildString {
+            append(snapshot.detail)
+            append("\nPIN: ")
+            append(if (snapshot.hasPin) "configured" else "not set")
+            append(" • Trigger: ")
+            append(if (snapshot.headsetPlugged) "3.5 mm detected" else "not detected")
+            if (currentSound != null) {
+                append(" • Sound: custom")
+            } else {
+                append(" • Sound: default alarm")
+            }
+        }
+
+        antiTheftAttachLocationStatus.text = if (DisplayAntiTheftManager.isAttachLocationEnabled(requireContext())) "On" else "Off"
+        antiTheftAttachLocationStatus.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                if (DisplayAntiTheftManager.isAttachLocationEnabled(requireContext())) R.color.aurora_success
+                else R.color.aurora_warning
+            )
+        )
+    }
+
+    private fun promptAntiTheftPinDialog() {
+        val input = android.widget.EditText(requireContext()).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            hint = "PIN (4-6 digits)"
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle("Set / Change Anti-Theft PIN")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val ok = DisplayAntiTheftManager.savePin(requireContext(), input.text?.toString().orEmpty())
+                Toast.makeText(
+                    requireContext(),
+                    if (ok) "Anti-Theft PIN saved" else "PIN must be 4-6 digits",
+                    Toast.LENGTH_SHORT
+                ).show()
+                updateAntiTheftStatus()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun openAntiTheftSoundPicker() {
+        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Choose Anti-Theft Alarm Sound")
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, DisplayAntiTheftManager.getAlarmSoundUri(requireContext()))
+        }
+        pickAntiTheftSoundLauncher.launch(intent)
+    }
+
     private fun setMapLinkHandlerEnabled(enabled: Boolean) {
         val component = android.content.ComponentName(
             requireContext(),
@@ -603,6 +834,60 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         )
         startActivity(intent)
         Toast.makeText(requireContext(), "Grant overlay permission and return", Toast.LENGTH_LONG).show()
+    }
+
+    private fun requestLocationPermissionFlow() {
+        val permissions = mutableListOf<String>()
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissions += Manifest.permission.ACCESS_FINE_LOCATION
+        }
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permissions += Manifest.permission.ACCESS_COARSE_LOCATION
+        }
+
+        if (permissions.isNotEmpty()) {
+            requestLocationPermissionsLauncher.launch(permissions.toTypedArray())
+            return
+        }
+
+        requestBackgroundLocationPermissionIfNeeded()
+    }
+
+    private fun requestBackgroundLocationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            DisplaySpeedMonitor.hasBackgroundLocationPermission(requireContext())
+        ) {
+            updateSpeedometerStatus()
+            notifyDisplayServiceSpeedSettingsChanged()
+            return
+        }
+
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+            requestBackgroundLocationPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            return
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Allow all-time location")
+            .setMessage("Speedometer in Display mode works best with all-time location access. Android will open App Settings so you can set Location to Allow all the time.")
+            .setPositiveButton("Open Settings") { _, _ ->
+                openAppLocationSettings()
+            }
+            .setNegativeButton("Later", null)
+            .show()
+    }
+
+    private fun openAppLocationSettings() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:${requireContext().packageName}")
+        }
+        startActivity(intent)
+    }
+
+    private fun notifyDisplayServiceSpeedSettingsChanged() {
+        if (isDisplayModeActive()) {
+            DisplayServerService.requestSpeedometerRefresh(requireContext())
+        }
     }
 
     private fun requestNotificationPermission() {
@@ -682,5 +967,6 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     override fun onResume() {
         super.onResume()
         refreshUi()
+        notifyDisplayServiceSpeedSettingsChanged()
     }
 }

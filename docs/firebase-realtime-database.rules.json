@@ -41,6 +41,16 @@
           ".write": "auth != null && ((!data.exists() && root.child('pairings/byDisplay').child($displayDeviceId).child('mainAuthUid').val() == auth.uid && newData.child('fromMainAuthUid').val() == auth.uid && newData.child('fromMainDeviceId').val() == root.child('pairings/byDisplay').child($displayDeviceId).child('mainDeviceId').val()) || (data.exists() && root.child('devices').child($displayDeviceId).child('authUid').val() == auth.uid && data.child('fromMainAuthUid').val() == newData.child('fromMainAuthUid').val() && data.child('fromMainDeviceId').val() == newData.child('fromMainDeviceId').val() && data.child('url').val() == newData.child('url').val() && data.child('createdAt').val() == newData.child('createdAt').val()))"
         }
       }
+    },
+    "securityAlerts": {
+      "byMain": {
+        "$mainDeviceId": {
+          ".read": "auth != null && (root.child('devices').child($mainDeviceId).child('authUid').val() == auth.uid || root.child('pairings/byMain').child($mainDeviceId).child('mainAuthUid').val() == auth.uid)",
+          "$alertId": {
+            ".write": "auth != null && ((!data.exists() && root.child('pairings/byMain').child($mainDeviceId).child('displayAuthUid').val() == auth.uid && newData.child('fromDisplayDeviceId').val() == root.child('pairings/byMain').child($mainDeviceId).child('displayDeviceId').val() && newData.child('toMainDeviceId').val() == $mainDeviceId && newData.child('eventType').isString()) || (data.exists() && root.child('devices').child($mainDeviceId).child('authUid').val() == auth.uid && !newData.exists()))"
+          }
+        }
+      }
     }
   }
 }

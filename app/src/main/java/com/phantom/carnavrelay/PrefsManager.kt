@@ -3,6 +3,8 @@ package com.phantom.carnavrelay
 import android.content.Context
 import android.content.SharedPreferences
 import com.phantom.carnavrelay.util.generateTokenHex
+import java.security.MessageDigest
+import java.security.SecureRandom
 
 class PrefsManager(context: Context) {
     
@@ -102,6 +104,29 @@ class PrefsManager(context: Context) {
 
         // One-time onboarding / permission setup
         private const val KEY_INITIAL_PERMISSION_SETUP_SHOWN = "initial_permission_setup_shown"
+
+        // Speedometer / location
+        private const val KEY_SPEEDOMETER_ENABLED = "speedometer_enabled"
+        private const val KEY_SPEED_LAST_KMH = "speed_last_kmh"
+        private const val KEY_SPEED_LAST_UPDATED_AT = "speed_last_updated_at"
+        private const val KEY_SPEED_LAST_ACCURACY_METERS = "speed_last_accuracy_meters"
+        private const val KEY_SPEED_LAST_PROVIDER = "speed_last_provider"
+        private const val KEY_SPEED_LAST_HAS_FIX = "speed_last_has_fix"
+
+        // Display anti-theft
+        private const val KEY_ANTI_THEFT_ENABLED = "anti_theft_enabled"
+        private const val KEY_ANTI_THEFT_ARMED = "anti_theft_armed"
+        private const val KEY_ANTI_THEFT_PIN_HASH = "anti_theft_pin_hash"
+        private const val KEY_ANTI_THEFT_PIN_SALT = "anti_theft_pin_salt"
+        private const val KEY_ANTI_THEFT_PIN_ALGO_VERSION = "anti_theft_pin_algo_version"
+        private const val KEY_ANTI_THEFT_ATTACH_LOCATION = "anti_theft_attach_location"
+        private const val KEY_ANTI_THEFT_ALARM_SOUND_URI = "anti_theft_alarm_sound_uri"
+        private const val KEY_ANTI_THEFT_LAST_STATE = "anti_theft_last_state"
+        private const val KEY_ANTI_THEFT_LAST_HEADSET_PLUGGED = "anti_theft_last_headset_plugged"
+        private const val KEY_ANTI_THEFT_SESSION_ID = "anti_theft_session_id"
+        private const val KEY_ANTI_THEFT_WRONG_ATTEMPTS = "anti_theft_wrong_attempts"
+        private const val KEY_ANTI_THEFT_ALARM_STARTED_AT = "anti_theft_alarm_started_at"
+        private const val PIN_ALGO_V1 = "SHA-256:PIN-V1"
     }
     
     // Display device: Server token
@@ -520,6 +545,208 @@ class PrefsManager(context: Context) {
 
     fun markInitialPermissionSetupShown() {
         prefs.edit().putBoolean(KEY_INITIAL_PERMISSION_SETUP_SHOWN, true).apply()
+    }
+
+    fun isSpeedometerEnabled(): Boolean {
+        return prefs.getBoolean(KEY_SPEEDOMETER_ENABLED, false)
+    }
+
+    fun setSpeedometerEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SPEEDOMETER_ENABLED, enabled).apply()
+    }
+
+    fun saveSpeedSnapshot(
+        kmh: Int?,
+        hasFix: Boolean,
+        updatedAt: Long,
+        accuracyMeters: Float? = null,
+        provider: String? = null
+    ) {
+        prefs.edit().apply {
+            if (kmh == null) {
+                remove(KEY_SPEED_LAST_KMH)
+            } else {
+                putInt(KEY_SPEED_LAST_KMH, kmh)
+            }
+            putBoolean(KEY_SPEED_LAST_HAS_FIX, hasFix)
+            putLong(KEY_SPEED_LAST_UPDATED_AT, updatedAt)
+            if (accuracyMeters == null) {
+                remove(KEY_SPEED_LAST_ACCURACY_METERS)
+            } else {
+                putFloat(KEY_SPEED_LAST_ACCURACY_METERS, accuracyMeters)
+            }
+            if (provider.isNullOrBlank()) {
+                remove(KEY_SPEED_LAST_PROVIDER)
+            } else {
+                putString(KEY_SPEED_LAST_PROVIDER, provider)
+            }
+            apply()
+        }
+    }
+
+    fun clearSpeedSnapshot() {
+        prefs.edit().apply {
+            remove(KEY_SPEED_LAST_KMH)
+            remove(KEY_SPEED_LAST_UPDATED_AT)
+            remove(KEY_SPEED_LAST_ACCURACY_METERS)
+            remove(KEY_SPEED_LAST_PROVIDER)
+            putBoolean(KEY_SPEED_LAST_HAS_FIX, false)
+            apply()
+        }
+    }
+
+    fun getLastSpeedKmh(): Int? {
+        return if (!prefs.contains(KEY_SPEED_LAST_KMH)) null else prefs.getInt(KEY_SPEED_LAST_KMH, 0)
+    }
+
+    fun getLastSpeedUpdatedAt(): Long {
+        return prefs.getLong(KEY_SPEED_LAST_UPDATED_AT, 0L)
+    }
+
+    fun getLastSpeedAccuracyMeters(): Float? {
+        return if (!prefs.contains(KEY_SPEED_LAST_ACCURACY_METERS)) null
+        else prefs.getFloat(KEY_SPEED_LAST_ACCURACY_METERS, 0f)
+    }
+
+    fun getLastSpeedProvider(): String? {
+        return prefs.getString(KEY_SPEED_LAST_PROVIDER, null)
+    }
+
+    fun hasSpeedFix(): Boolean {
+        return prefs.getBoolean(KEY_SPEED_LAST_HAS_FIX, false)
+    }
+
+    fun isAntiTheftEnabled(): Boolean {
+        return prefs.getBoolean(KEY_ANTI_THEFT_ENABLED, false)
+    }
+
+    fun setAntiTheftEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_ANTI_THEFT_ENABLED, enabled).apply()
+    }
+
+    fun isAntiTheftArmed(): Boolean {
+        return prefs.getBoolean(KEY_ANTI_THEFT_ARMED, false)
+    }
+
+    fun setAntiTheftArmed(armed: Boolean) {
+        prefs.edit().putBoolean(KEY_ANTI_THEFT_ARMED, armed).apply()
+    }
+
+    fun hasAntiTheftPin(): Boolean {
+        return !prefs.getString(KEY_ANTI_THEFT_PIN_HASH, null).isNullOrBlank() &&
+            !prefs.getString(KEY_ANTI_THEFT_PIN_SALT, null).isNullOrBlank()
+    }
+
+    fun setAntiTheftPin(pin: String) {
+        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val saltHex = salt.joinToString("") { b -> "%02x".format(b) }
+        val hash = hashPin(pin, saltHex)
+        prefs.edit().apply {
+            putString(KEY_ANTI_THEFT_PIN_HASH, hash)
+            putString(KEY_ANTI_THEFT_PIN_SALT, saltHex)
+            putString(KEY_ANTI_THEFT_PIN_ALGO_VERSION, PIN_ALGO_V1)
+            apply()
+        }
+    }
+
+    fun verifyAntiTheftPin(pin: String): Boolean {
+        val saltHex = prefs.getString(KEY_ANTI_THEFT_PIN_SALT, null) ?: return false
+        val storedHash = prefs.getString(KEY_ANTI_THEFT_PIN_HASH, null) ?: return false
+        return hashPin(pin, saltHex) == storedHash
+    }
+
+    fun isAntiTheftAttachLocationEnabled(): Boolean {
+        return prefs.getBoolean(KEY_ANTI_THEFT_ATTACH_LOCATION, true)
+    }
+
+    fun setAntiTheftAttachLocationEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_ANTI_THEFT_ATTACH_LOCATION, enabled).apply()
+    }
+
+    fun getAntiTheftAlarmSoundUri(): String? {
+        return prefs.getString(KEY_ANTI_THEFT_ALARM_SOUND_URI, null)
+    }
+
+    fun setAntiTheftAlarmSoundUri(uri: String?) {
+        prefs.edit().apply {
+            if (uri.isNullOrBlank()) {
+                remove(KEY_ANTI_THEFT_ALARM_SOUND_URI)
+            } else {
+                putString(KEY_ANTI_THEFT_ALARM_SOUND_URI, uri)
+            }
+            apply()
+        }
+    }
+
+    fun getAntiTheftLastState(): String? {
+        return prefs.getString(KEY_ANTI_THEFT_LAST_STATE, null)
+    }
+
+    fun setAntiTheftLastState(state: String?) {
+        prefs.edit().apply {
+            if (state.isNullOrBlank()) {
+                remove(KEY_ANTI_THEFT_LAST_STATE)
+            } else {
+                putString(KEY_ANTI_THEFT_LAST_STATE, state)
+            }
+            apply()
+        }
+    }
+
+    fun wasAntiTheftHeadsetPlugged(): Boolean {
+        return prefs.getBoolean(KEY_ANTI_THEFT_LAST_HEADSET_PLUGGED, false)
+    }
+
+    fun setAntiTheftHeadsetPlugged(plugged: Boolean) {
+        prefs.edit().putBoolean(KEY_ANTI_THEFT_LAST_HEADSET_PLUGGED, plugged).apply()
+    }
+
+    fun getAntiTheftSessionId(): String? {
+        return prefs.getString(KEY_ANTI_THEFT_SESSION_ID, null)
+    }
+
+    fun setAntiTheftSessionId(sessionId: String?) {
+        prefs.edit().apply {
+            if (sessionId.isNullOrBlank()) {
+                remove(KEY_ANTI_THEFT_SESSION_ID)
+            } else {
+                putString(KEY_ANTI_THEFT_SESSION_ID, sessionId)
+            }
+            apply()
+        }
+    }
+
+    fun getAntiTheftWrongAttempts(): Int {
+        return prefs.getInt(KEY_ANTI_THEFT_WRONG_ATTEMPTS, 0)
+    }
+
+    fun setAntiTheftWrongAttempts(count: Int) {
+        prefs.edit().putInt(KEY_ANTI_THEFT_WRONG_ATTEMPTS, count.coerceAtLeast(0)).apply()
+    }
+
+    fun getAntiTheftAlarmStartedAt(): Long {
+        return prefs.getLong(KEY_ANTI_THEFT_ALARM_STARTED_AT, 0L)
+    }
+
+    fun setAntiTheftAlarmStartedAt(timestampMs: Long) {
+        prefs.edit().putLong(KEY_ANTI_THEFT_ALARM_STARTED_AT, timestampMs).apply()
+    }
+
+    fun clearAntiTheftSession() {
+        prefs.edit().apply {
+            putBoolean(KEY_ANTI_THEFT_ARMED, false)
+            remove(KEY_ANTI_THEFT_LAST_STATE)
+            remove(KEY_ANTI_THEFT_SESSION_ID)
+            putInt(KEY_ANTI_THEFT_WRONG_ATTEMPTS, 0)
+            putLong(KEY_ANTI_THEFT_ALARM_STARTED_AT, 0L)
+            apply()
+        }
+    }
+
+    private fun hashPin(pin: String, saltHex: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val bytes = digest.digest("$PIN_ALGO_V1|$saltHex|$pin".toByteArray(Charsets.UTF_8))
+        return bytes.joinToString("") { b -> "%02x".format(b) }
     }
     
     private fun generateNewToken(): String {

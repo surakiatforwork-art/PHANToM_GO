@@ -517,6 +517,188 @@
 
                 </RadioGroup>
 
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="18dp"
+                    android:layout_marginBottom="18dp"
+                    android:alpha="0.45"
+                    android:background="@color/aurora_gray" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Display Speedometer"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="ใช้ GPS และสิทธิ์เข้าถึงตำแหน่งเพื่อแสดงความเร็วปัจจุบันเป็น km/h ระหว่างใช้งาน Display mode"
+                    android:textColor="@color/aurora_silver"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <Switch
+                        android:id="@+id/speedometerSwitch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:thumbTint="@color/aurora_cyan"
+                        android:trackTint="@color/aurora_gray" />
+
+                    <TextView
+                        android:id="@+id/speedometerStatusText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="Off"
+                        android:textColor="@color/aurora_warning"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/speedometerPermissionText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Location permission: not granted"
+                    android:textColor="@color/aurora_silver"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/requestLocationPermissionButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/aurora_button_ripple"
+                    android:text="อนุญาตตำแหน่งและ All-time access"
+                    android:textColor="@color/white" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="18dp"
+                    android:layout_marginBottom="18dp"
+                    android:alpha="0.45"
+                    android:background="@color/aurora_gray" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Display Anti-Theft"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="ใช้งานเฉพาะกับสาย trigger ที่เสียบผ่านช่อง 3.5 mm บนเครื่องจอ เมื่อถอดสายจะให้ใส่ PIN และสามารถส่งแจ้งเตือนไปยังเครื่องหลักที่จับคู่ไว้"
+                    android:textColor="@color/aurora_silver"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <Switch
+                        android:id="@+id/antiTheftEnabledSwitch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:thumbTint="@color/aurora_cyan"
+                        android:trackTint="@color/aurora_gray" />
+
+                    <TextView
+                        android:id="@+id/antiTheftStatusText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="Off"
+                        android:textColor="@color/aurora_warning"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/antiTheftDetailText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Waiting for a 3.5 mm trigger"
+                    android:textColor="@color/aurora_silver"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <Switch
+                        android:id="@+id/antiTheftAttachLocationSwitch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Attach location in theft alerts"
+                        android:textColor="@color/text_primary"
+                        android:thumbTint="@color/aurora_cyan"
+                        android:trackTint="@color/aurora_gray" />
+
+                    <TextView
+                        android:id="@+id/antiTheftAttachLocationStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="On"
+                        android:textColor="@color/aurora_cyan"
+                        android:textSize="14sp" />
+
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/antiTheftPinButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/aurora_button_ripple"
+                    android:text="Set / Change Anti-Theft PIN"
+                    android:textColor="@color/white" />
+
+                <Button
+                    android:id="@+id/antiTheftSoundButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/aurora_button_ripple"
+                    android:text="Choose Alarm Sound"
+                    android:textColor="@color/white" />
+
+                <Button
+                    android:id="@+id/antiTheftTestButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/aurora_button_ripple"
+                    android:text="Test Anti-Theft Alarm"
+                    android:textColor="@color/white" />
+
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>

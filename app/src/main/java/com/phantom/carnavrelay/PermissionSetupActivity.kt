@@ -25,6 +25,8 @@ class PermissionSetupActivity : AppCompatActivity() {
     private lateinit var overlayController: OverlayController
     private lateinit var tvCameraStatus: TextView
     private lateinit var tvNotificationStatus: TextView
+    private lateinit var tvLocationStatus: TextView
+    private lateinit var tvBackgroundLocationStatus: TextView
     private lateinit var tvOverlayStatus: TextView
     private lateinit var tvBatteryStatus: TextView
     private lateinit var tvPermissionSummary: TextView
@@ -39,7 +41,7 @@ class PermissionSetupActivity : AppCompatActivity() {
         if (hasMissingRuntimePermissions() && hasPermanentlyDeniedRuntimePermission()) {
             showAppSettingsDialog()
         } else {
-            requestOverlayAccessIfNeeded()
+            requestBackgroundLocationIfNeeded()
         }
     }
 
@@ -51,6 +53,13 @@ class PermissionSetupActivity : AppCompatActivity() {
             continueFlowAfterOverlay = false
             requestBatteryOptimizationIfNeeded()
         }
+    }
+
+    private val backgroundLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        updatePermissionState()
+        requestOverlayAccessIfNeeded()
     }
 
     private val batterySettingsLauncher = registerForActivityResult(
@@ -68,6 +77,8 @@ class PermissionSetupActivity : AppCompatActivity() {
 
         tvCameraStatus = findViewById(R.id.tvCameraStatus)
         tvNotificationStatus = findViewById(R.id.tvNotificationStatus)
+        tvLocationStatus = findViewById(R.id.tvLocationStatus)
+        tvBackgroundLocationStatus = findViewById(R.id.tvBackgroundLocationStatus)
         tvOverlayStatus = findViewById(R.id.tvOverlayStatus)
         tvBatteryStatus = findViewById(R.id.tvBatteryStatus)
         tvPermissionSummary = findViewById(R.id.tvPermissionSummary)
@@ -96,7 +107,7 @@ class PermissionSetupActivity : AppCompatActivity() {
             runtimePermissionsLauncher.launch(runtimePermissions.toTypedArray())
             return
         }
-        requestOverlayAccessIfNeeded()
+        requestBackgroundLocationIfNeeded()
     }
 
     private fun requestOverlayAccessIfNeeded() {
@@ -144,15 +155,26 @@ class PermissionSetupActivity : AppCompatActivity() {
     private fun updatePermissionState() {
         val cameraGranted = isPermissionGranted(Manifest.permission.CAMERA)
         val notificationsGranted = NotificationHelper.canPostNotifications(this)
+        val locationGranted = DisplaySpeedMonitor.hasLocationPermission(this)
+        val backgroundLocationGranted = DisplaySpeedMonitor.hasBackgroundLocationPermission(this)
         val overlayGranted = overlayController.hasOverlayPermission()
         val batteryGranted = isIgnoringBatteryOptimizations()
 
         updateStatusLine(tvCameraStatus, cameraGranted, "Granted", "Needs action")
         updateStatusLine(tvNotificationStatus, notificationsGranted, "Granted", "Recommended")
+        updateStatusLine(tvLocationStatus, locationGranted, "Granted", "Recommended")
+        updateStatusLine(tvBackgroundLocationStatus, backgroundLocationGranted, "Granted", "Recommended")
         updateStatusLine(tvOverlayStatus, overlayGranted, "Granted", "Recommended")
         updateStatusLine(tvBatteryStatus, batteryGranted, "Granted", "Recommended")
 
-        val missingCount = listOf(cameraGranted, notificationsGranted, overlayGranted, batteryGranted).count { !it }
+        val missingCount = listOf(
+            cameraGranted,
+            notificationsGranted,
+            locationGranted,
+            backgroundLocationGranted,
+            overlayGranted,
+            batteryGranted
+        ).count { !it }
         tvPermissionSummary.text = if (missingCount == 0) {
             "All requested permissions are ready. You can start using the app now."
         } else {
@@ -183,6 +205,12 @@ class PermissionSetupActivity : AppCompatActivity() {
 
         if (!isPermissionGranted(Manifest.permission.CAMERA)) {
             permissions += Manifest.permission.CAMERA
+        }
+        if (!isPermissionGranted(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            permissions += Manifest.permission.ACCESS_FINE_LOCATION
+        }
+        if (!isPermissionGranted(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            permissions += Manifest.permission.ACCESS_COARSE_LOCATION
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             !isPermissionGranted(Manifest.permission.POST_NOTIFICATIONS)
@@ -227,6 +255,39 @@ class PermissionSetupActivity : AppCompatActivity() {
                 startActivity(intent)
             }
             .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun requestBackgroundLocationIfNeeded() {
+        if (!DisplaySpeedMonitor.hasLocationPermission(this)) {
+            requestOverlayAccessIfNeeded()
+            return
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            DisplaySpeedMonitor.hasBackgroundLocationPermission(this)
+        ) {
+            requestOverlayAccessIfNeeded()
+            return
+        }
+
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+            backgroundLocationPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Allow all-time location")
+            .setMessage("PHANToM GO can show live speed in Display mode. Android will open App Settings so you can set Location to Allow all the time.")
+            .setPositiveButton("Open Settings") { _, _ ->
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            }
+            .setNegativeButton("Skip") { _, _ ->
+                requestOverlayAccessIfNeeded()
+            }
             .show()
     }
 }

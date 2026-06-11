@@ -27,13 +27,32 @@ class DisplayServerService : Service() {
         private const val CHANNEL_ID = "phantom_go_display"
         private const val ACTION_OPEN_MAPS = "com.phantom.carnavrelay.OPEN_MAPS"
         private const val ACTION_STOP_SERVER = "com.phantom.carnavrelay.STOP_SERVER"
+        private const val ACTION_REFRESH_SPEEDOMETER = "com.phantom.carnavrelay.REFRESH_SPEEDOMETER"
         const val ACTION_NAVIGATION_RECEIVED = "com.phantom.carnavrelay.NAVIGATION_RECEIVED"
         const val ACTION_APP_FOREGROUND = "com.phantom.carnavrelay.APP_FOREGROUND"
+        const val ACTION_SPEED_UPDATED = "com.phantom.carnavrelay.SPEED_UPDATED"
+        const val EXTRA_SPEED_KMH = "speed_kmh"
+        const val EXTRA_SPEED_HAS_FIX = "speed_has_fix"
+        const val EXTRA_SPEED_UPDATED_AT = "speed_updated_at"
+        const val EXTRA_SPEED_PROVIDER = "speed_provider"
+        const val EXTRA_SPEED_ACCURACY = "speed_accuracy"
+        const val EXTRA_SPEED_SOURCE = "speed_source"
         private const val ROUTE_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000L
         
         // Wake lock
         private const val WAKE_LOCK_TAG = "PHANTOM_GO:DisplayServer"
         private var wakeLock: PowerManager.WakeLock? = null
+
+        fun requestSpeedometerRefresh(context: Context) {
+            val intent = Intent(context, DisplayServerService::class.java).apply {
+                action = ACTION_REFRESH_SPEEDOMETER
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
     }
 
     private var httpServer: HttpServer? = null
@@ -42,6 +61,7 @@ class DisplayServerService : Service() {
     private var lastUrl: String? = null
     private var lastCmdAt: Long = 0
     private var foregroundStarted = false
+    private var speedMonitor: DisplaySpeedMonitor? = null
     @Volatile private var resolveToken: Long = 0
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -65,8 +85,10 @@ class DisplayServerService : Service() {
         }
         prefsManager.setDeviceMode(PrefsManager.MODE_DISPLAY)
         FirebaseManager.ensureSignedInAndSync(this, "display-service-create")
+        DisplayAntiTheftManager.onDisplayServiceStarted(this)
         overlayController = OverlayController(this)
         acquireWakeLock()
+        refreshSpeedometerTracking()
 
         try {
             androidx.core.content.ContextCompat.registerReceiver(
@@ -97,6 +119,11 @@ class DisplayServerService : Service() {
             return START_NOT_STICKY
         }
 
+        if (intent?.action == ACTION_REFRESH_SPEEDOMETER) {
+            refreshSpeedometerTracking()
+            return START_STICKY
+        }
+
         Log.d(TAG, "ℹ️ Bluetooth bridge disabled (Wi‑Fi only mode)")
 
         // Start HTTP server
@@ -117,6 +144,7 @@ class DisplayServerService : Service() {
         }
 
         FirebaseManager.startDisplayCommandListener(this, "display-service-start-command")
+        refreshSpeedometerTracking()
 
         if (!navigationUrl.isNullOrEmpty()) {
             onNavigationReceived(navigationUrl, navigationCommandId)
@@ -134,6 +162,8 @@ class DisplayServerService : Service() {
         prefsManager.setDeviceMode(PrefsManager.MODE_MAIN)
         FirebaseManager.syncDeviceRecord(this, "display-service-destroy")
         FirebaseManager.stopDisplayCommandListener()
+        DisplayAntiTheftManager.onDisplayServiceStopped()
+        stopSpeedometerTracking()
         
         // Cleanup overlay
         overlayController?.cleanup()
@@ -185,7 +215,7 @@ class DisplayServerService : Service() {
                 startForeground(
                     NOTIFICATION_ID,
                     createNotification(),
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
                 )
             } else {
                 startForeground(NOTIFICATION_ID, createNotification())
@@ -197,6 +227,80 @@ class DisplayServerService : Service() {
             Log.e(TAG, "💥 Failed to start foreground service", e)
             false
         }
+    }
+
+    private fun refreshSpeedometerTracking() {
+        if (!prefsManager.isSpeedometerEnabled()) {
+            stopSpeedometerTracking()
+            prefsManager.clearSpeedSnapshot()
+            broadcastSpeedState(
+                SpeedSnapshot(
+                    kmh = null,
+                    hasFix = false,
+                    updatedAt = System.currentTimeMillis(),
+                    source = "DISABLED"
+                )
+            )
+            return
+        }
+
+        if (!DisplaySpeedMonitor.hasLocationPermission(this)) {
+            stopSpeedometerTracking()
+            prefsManager.clearSpeedSnapshot()
+            broadcastSpeedState(
+                SpeedSnapshot(
+                    kmh = null,
+                    hasFix = false,
+                    updatedAt = System.currentTimeMillis(),
+                    source = "NO_PERMISSION"
+                )
+            )
+            return
+        }
+
+        if (!DisplaySpeedMonitor.isLocationEnabled(this)) {
+            stopSpeedometerTracking()
+            prefsManager.clearSpeedSnapshot()
+            broadcastSpeedState(
+                SpeedSnapshot(
+                    kmh = null,
+                    hasFix = false,
+                    updatedAt = System.currentTimeMillis(),
+                    source = "LOCATION_DISABLED"
+                )
+            )
+            return
+        }
+
+        if (speedMonitor == null) {
+            speedMonitor = DisplaySpeedMonitor(this) { snapshot ->
+                prefsManager.saveSpeedSnapshot(
+                    kmh = snapshot.kmh,
+                    hasFix = snapshot.hasFix,
+                    updatedAt = snapshot.updatedAt,
+                    accuracyMeters = snapshot.accuracyMeters,
+                    provider = snapshot.provider
+                )
+                broadcastSpeedState(snapshot)
+            }
+        }
+        speedMonitor?.start()
+    }
+
+    private fun stopSpeedometerTracking() {
+        speedMonitor?.stop()
+    }
+
+    private fun broadcastSpeedState(snapshot: SpeedSnapshot) {
+        val intent = Intent(ACTION_SPEED_UPDATED).apply {
+            putExtra(EXTRA_SPEED_HAS_FIX, snapshot.hasFix)
+            putExtra(EXTRA_SPEED_UPDATED_AT, snapshot.updatedAt)
+            putExtra(EXTRA_SPEED_SOURCE, snapshot.source)
+            snapshot.kmh?.let { putExtra(EXTRA_SPEED_KMH, it) }
+            snapshot.provider?.let { putExtra(EXTRA_SPEED_PROVIDER, it) }
+            snapshot.accuracyMeters?.let { putExtra(EXTRA_SPEED_ACCURACY, it) }
+        }
+        sendBroadcast(intent)
     }
 
     private fun startBluetoothBridgeService() {

@@ -25,6 +25,8 @@ object FirebaseManager {
     private const val PATH_PAIRINGS_BY_DISPLAY = "pairings/byDisplay"
     private const val PATH_PAIRINGS_BY_MAIN = "pairings/byMain"
     private const val PATH_COMMANDS = "commands"
+    private const val PATH_SECURITY_ALERTS = "securityAlerts"
+    const val ACTION_SECURITY_ALERT_RECEIVED = "com.phantom.carnavrelay.SECURITY_ALERT_RECEIVED"
 
     @Volatile
     private var initialized = false
@@ -41,7 +43,14 @@ object FirebaseManager {
     @Volatile
     private var displayCommandListener: ChildEventListener? = null
 
+    @Volatile
+    private var mainSecurityAlertListenerDeviceId: String? = null
+
+    @Volatile
+    private var mainSecurityAlertListener: ChildEventListener? = null
+
     private val processedCommandIds = Collections.synchronizedSet(mutableSetOf<String>())
+    private val processedSecurityAlertIds = Collections.synchronizedSet(mutableSetOf<String>())
 
     data class ClaimPairingResult(
         val displayDeviceId: String,
@@ -49,6 +58,24 @@ object FirebaseManager {
         val localIp: String?,
         val localPort: Int?,
         val localToken: String?
+    )
+
+    data class SecurityAlert(
+        val alertId: String,
+        val eventType: String,
+        val displayDeviceId: String?,
+        val displayName: String?,
+        val sessionId: String?,
+        val wrongAttemptCount: Int,
+        val jackPlugged: Boolean,
+        val alarmState: String?,
+        val lat: Double?,
+        val lng: Double?,
+        val accuracyMeters: Float?,
+        val provider: String?,
+        val locationAvailable: Boolean,
+        val speedKmh: Int?,
+        val createdAt: Long
     )
 
     fun initialize(context: Context) {
@@ -75,6 +102,12 @@ object FirebaseManager {
                 syncDeviceRecord(appContext, reason)
                 attachPresenceListener(appContext)
                 attachDisplayPairingListener(appContext)
+                val prefs = PrefsManager(appContext)
+                if (prefs.getDeviceMode() == PrefsManager.MODE_DISPLAY) {
+                    stopMainSecurityAlertListener()
+                } else {
+                    startMainSecurityAlertListener(appContext, reason)
+                }
             },
             onFailure = { e ->
                 PhantomLog.w("Firebase auth failed ($reason): ${e.message}")
@@ -455,6 +488,81 @@ object FirebaseManager {
         )
     }
 
+    fun sendSecurityAlert(
+        context: Context,
+        eventType: String,
+        sessionId: String,
+        wrongAttemptCount: Int,
+        jackPlugged: Boolean,
+        location: AntiTheftLocationSnapshot,
+        speedKmh: Int?,
+        alarmState: String?
+    ) {
+        val appContext = context.applicationContext
+        withSignedInUser(
+            context = appContext,
+            reason = "send-security-alert:$eventType",
+            onReady = { authUid ->
+                val prefs = PrefsManager(appContext)
+                val displayDeviceId = prefs.getLocalDeviceId()
+                val mainDeviceId = prefs.getDisplayPairedMainId()
+                if (mainDeviceId.isNullOrBlank()) {
+                    Log.w(TAG, "⚠️ No paired main device for security alert $eventType")
+                    return@withSignedInUser
+                }
+
+                val alertRef = database()
+                    .getReference("$PATH_SECURITY_ALERTS/byMain")
+                    .child(mainDeviceId)
+                    .push()
+                val alertId = alertRef.key
+                if (alertId.isNullOrBlank()) {
+                    Log.w(TAG, "⚠️ Failed to allocate security alert id")
+                    return@withSignedInUser
+                }
+
+                val payload = hashMapOf<String, Any?>(
+                    "alertId" to alertId,
+                    "eventType" to eventType,
+                    "fromDisplayDeviceId" to displayDeviceId,
+                    "fromDisplayAuthUid" to authUid,
+                    "displayName" to Build.MODEL,
+                    "toMainDeviceId" to mainDeviceId,
+                    "sessionId" to sessionId,
+                    "wrongAttemptCount" to wrongAttemptCount,
+                    "jackPlugged" to jackPlugged,
+                    "alarmState" to alarmState,
+                    "locationAvailable" to location.available,
+                    "lat" to location.lat,
+                    "lng" to location.lng,
+                    "accuracyMeters" to location.accuracyMeters,
+                    "provider" to location.provider,
+                    "locationCapturedAt" to location.capturedAt,
+                    "locationAgeMs" to location.ageMs,
+                    "speedKmh" to speedKmh,
+                    "platform" to "android",
+                    "appVersion" to getAppVersion(appContext),
+                    "eventAt" to System.currentTimeMillis(),
+                    "createdAt" to ServerValue.TIMESTAMP
+                )
+
+                alertRef.setValue(payload)
+                    .addOnSuccessListener {
+                        Log.d(TAG, "✅ Security alert queued ($eventType -> $mainDeviceId / $alertId)")
+                        PhantomLog.w("Security alert queued: $eventType -> $mainDeviceId")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "💥 Security alert write failed ($eventType)", e)
+                        PhantomLog.e("Security alert write failed: $eventType", e)
+                    }
+            },
+            onFailure = { e ->
+                Log.e(TAG, "💥 Security alert auth failed ($eventType)", e)
+                PhantomLog.e("Security alert auth failed: $eventType", e)
+            }
+        )
+    }
+
     fun startDisplayCommandListener(context: Context, reason: String = "display-service") {
         val appContext = context.applicationContext
         withSignedInUser(
@@ -512,6 +620,132 @@ object FirebaseManager {
             displayCommandListenerDeviceId = null
             displayCommandListener = null
             processedCommandIds.clear()
+        }
+    }
+
+    fun startMainSecurityAlertListener(context: Context, reason: String = "main-app") {
+        val appContext = context.applicationContext
+        withSignedInUser(
+            context = appContext,
+            reason = "start-main-security-alert-listener:$reason",
+            onReady = {
+                val prefs = PrefsManager(appContext)
+                if (prefs.getDeviceMode() == PrefsManager.MODE_DISPLAY) {
+                    stopMainSecurityAlertListener()
+                    return@withSignedInUser
+                }
+                val mainDeviceId = prefs.getLocalDeviceId()
+                synchronized(this) {
+                    if (mainSecurityAlertListenerDeviceId == mainDeviceId && mainSecurityAlertListener != null) {
+                        return@withSignedInUser
+                    }
+                    stopMainSecurityAlertListener()
+                    val ref = database()
+                        .getReference("$PATH_SECURITY_ALERTS/byMain")
+                        .child(mainDeviceId)
+                    val listener = object : ChildEventListener {
+                        override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                            handleMainSecurityAlertSnapshot(appContext, snapshot)
+                        }
+
+                        override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                            handleMainSecurityAlertSnapshot(appContext, snapshot)
+                        }
+
+                        override fun onChildRemoved(snapshot: DataSnapshot) = Unit
+                        override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) = Unit
+
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.w(TAG, "⚠️ Main security alert listener cancelled: ${error.message}")
+                        }
+                    }
+                    ref.addChildEventListener(listener)
+                    mainSecurityAlertListenerDeviceId = mainDeviceId
+                    mainSecurityAlertListener = listener
+                    Log.d(TAG, "✅ Main security alert listener attached for $mainDeviceId [$reason]")
+                    PhantomLog.i("Main security alert listener attached for $mainDeviceId [$reason]")
+                }
+            }
+        )
+    }
+
+    fun stopMainSecurityAlertListener() {
+        synchronized(this) {
+            val deviceId = mainSecurityAlertListenerDeviceId
+            val listener = mainSecurityAlertListener
+            if (!deviceId.isNullOrBlank() && listener != null) {
+                database()
+                    .getReference("$PATH_SECURITY_ALERTS/byMain")
+                    .child(deviceId)
+                    .removeEventListener(listener)
+            }
+            mainSecurityAlertListenerDeviceId = null
+            mainSecurityAlertListener = null
+            processedSecurityAlertIds.clear()
+        }
+    }
+
+    private fun handleMainSecurityAlertSnapshot(context: Context, snapshot: DataSnapshot) {
+        val alertId = snapshot.key ?: return
+        if (!processedSecurityAlertIds.add(alertId)) return
+
+        val createdAt = snapshot.child("createdAt").getValue(Long::class.java)
+            ?: snapshot.child("eventAt").getValue(Long::class.java)
+            ?: System.currentTimeMillis()
+        val alert = SecurityAlert(
+            alertId = alertId,
+            eventType = snapshot.child("eventType").getValue(String::class.java) ?: "unknown",
+            displayDeviceId = snapshot.child("fromDisplayDeviceId").getValue(String::class.java),
+            displayName = snapshot.child("displayName").getValue(String::class.java),
+            sessionId = snapshot.child("sessionId").getValue(String::class.java),
+            wrongAttemptCount = snapshot.child("wrongAttemptCount").getValue(Int::class.java)
+                ?: snapshot.child("wrongAttemptCount").getValue(Long::class.java)?.toInt()
+                ?: 0,
+            jackPlugged = snapshot.child("jackPlugged").getValue(Boolean::class.java) == true,
+            alarmState = snapshot.child("alarmState").getValue(String::class.java),
+            lat = snapshot.child("lat").getValue(Double::class.java),
+            lng = snapshot.child("lng").getValue(Double::class.java),
+            accuracyMeters = snapshot.child("accuracyMeters").getValue(Float::class.java)
+                ?: snapshot.child("accuracyMeters").getValue(Double::class.java)?.toFloat()
+                ?: snapshot.child("accuracyMeters").getValue(Long::class.java)?.toFloat(),
+            provider = snapshot.child("provider").getValue(String::class.java),
+            locationAvailable = snapshot.child("locationAvailable").getValue(Boolean::class.java) == true,
+            speedKmh = snapshot.child("speedKmh").getValue(Int::class.java)
+                ?: snapshot.child("speedKmh").getValue(Long::class.java)?.toInt(),
+            createdAt = createdAt
+        )
+
+        NotificationHelper.showAntiTheftAlert(context, alert)
+        broadcastSecurityAlert(context, alert)
+        snapshot.ref.removeValue()
+            .addOnFailureListener { e ->
+                Log.w(TAG, "⚠️ Failed to delete processed security alert $alertId: ${e.message}")
+            }
+    }
+
+    private fun broadcastSecurityAlert(context: Context, alert: SecurityAlert) {
+        try {
+            val intent = Intent(ACTION_SECURITY_ALERT_RECEIVED).apply {
+                setPackage(context.packageName)
+                putExtra("alertId", alert.alertId)
+                putExtra("eventType", alert.eventType)
+                putExtra("displayDeviceId", alert.displayDeviceId)
+                putExtra("displayName", alert.displayName)
+                putExtra("sessionId", alert.sessionId)
+                putExtra("wrongAttemptCount", alert.wrongAttemptCount)
+                putExtra("jackPlugged", alert.jackPlugged)
+                putExtra("alarmState", alert.alarmState)
+                putExtra("locationAvailable", alert.locationAvailable)
+                if (alert.lat != null) putExtra("lat", alert.lat)
+                if (alert.lng != null) putExtra("lng", alert.lng)
+                if (alert.accuracyMeters != null) putExtra("accuracyMeters", alert.accuracyMeters)
+                putExtra("provider", alert.provider)
+                if (alert.speedKmh != null) putExtra("speedKmh", alert.speedKmh)
+                putExtra("createdAt", alert.createdAt)
+            }
+            context.sendBroadcast(intent)
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Failed to broadcast security alert ${alert.alertId}: ${e.message}")
         }
     }
 
