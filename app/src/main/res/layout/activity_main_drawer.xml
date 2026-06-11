@@ -298,10 +298,26 @@
                 </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFindDisplay"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/main_action_button_background"
+                    android:text="Find Display"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white_soft"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:icon="@drawable/ic_location_route"
+                    app:iconGravity="textStart"
+                    app:iconPadding="10dp"
+                    app:iconTint="@color/aurora_cyan" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnClearPairing"
                     android:layout_width="match_parent"
                     android:layout_height="54dp"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="14dp"
                     android:background="@drawable/main_outline_action_background"
                     android:text="Clear Pairing"
                     android:textAllCaps="false"

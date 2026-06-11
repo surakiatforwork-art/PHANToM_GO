@@ -30,7 +30,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="Enter PIN"
+                android:text="Security Verification"
                 android:textAlignment="center"
                 android:textColor="@color/text_primary"
                 android:textSize="26sp"
@@ -43,7 +43,7 @@
                 android:layout_marginTop="12dp"
                 android:gravity="center"
                 android:maxWidth="320dp"
-                android:text="Enter your PIN to stop the anti-theft flow."
+                android:text="Enter your security PIN to continue."
                 android:textAlignment="center"
                 android:textColor="@color/text_secondary"
                 android:textSize="15sp" />
@@ -64,7 +64,7 @@
                 android:layout_marginTop="18dp"
                 android:background="@drawable/bg_code_block"
                 android:gravity="center"
-                android:hint="PIN"
+                android:hint="Security PIN"
                 android:importantForAutofill="no"
                 android:inputType="numberPassword"
                 android:maxLength="6"
@@ -79,7 +79,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:alpha="0"
-                android:text="Wrong PIN"
+                android:text="Verification failed"
                 android:textColor="@color/aurora_error"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -89,7 +89,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="18dp"
-                android:text="Confirm PIN"
+                android:text="Verify"
                 android:textColor="@color/white"
                 style="@style/Widget.CarNavRelay.Button" />
 

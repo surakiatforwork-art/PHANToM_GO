@@ -19,7 +19,10 @@ data class SpeedSnapshot(
     val updatedAt: Long,
     val accuracyMeters: Float? = null,
     val provider: String? = null,
-    val source: String = "UNKNOWN"
+    val source: String = "UNKNOWN",
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val locationTime: Long? = null
 )
 
 class DisplaySpeedMonitor(
@@ -142,7 +145,10 @@ class DisplaySpeedMonitor(
             updatedAt = System.currentTimeMillis(),
             accuracyMeters = if (location.hasAccuracy()) location.accuracy else null,
             provider = location.provider,
-            source = if (location.hasSpeed()) "GPS_SPEED" else "DISTANCE_DELTA"
+            source = if (location.hasSpeed()) "GPS_SPEED" else "DISTANCE_DELTA",
+            lat = location.latitude,
+            lng = location.longitude,
+            locationTime = location.time
         )
     }
 }

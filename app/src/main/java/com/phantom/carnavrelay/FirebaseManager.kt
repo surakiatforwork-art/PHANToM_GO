@@ -78,6 +78,21 @@ object FirebaseManager {
         val createdAt: Long
     )
 
+    data class DisplayLocationInfo(
+        val displayDeviceId: String,
+        val displayName: String?,
+        val connected: Boolean,
+        val lat: Double?,
+        val lng: Double?,
+        val accuracyMeters: Float?,
+        val provider: String?,
+        val source: String?,
+        val speedKmh: Int?,
+        val locationUpdatedAt: Long?,
+        val lastOnlineAt: Long?,
+        val presenceUpdatedAt: Long?
+    )
+
     fun initialize(context: Context) {
             if (initialized) return
             synchronized(this) {
@@ -150,6 +165,46 @@ object FirebaseManager {
                 Log.e(TAG, "💥 Firebase device sync failed [$reason]", e)
                 PhantomLog.w("Firebase device sync failed ($reason): ${e.message}")
             }
+    }
+
+    fun updateDisplayPresenceLocation(context: Context, snapshot: SpeedSnapshot) {
+        val lat = snapshot.lat ?: return
+        val lng = snapshot.lng ?: return
+        val appContext = context.applicationContext
+        withSignedInUser(
+            context = appContext,
+            reason = "update-display-location",
+            onReady = { authUid ->
+                val prefs = PrefsManager(appContext)
+                val deviceId = prefs.getLocalDeviceId()
+                val presenceRef = database()
+                    .getReference(PATH_PRESENCE)
+                    .child(deviceId)
+
+                val payload = hashMapOf<String, Any?>(
+                    "deviceId" to deviceId,
+                    "authUid" to authUid,
+                    "role" to prefs.getDeviceMode().lowercase(),
+                    "connected" to true,
+                    "locationLat" to lat,
+                    "locationLng" to lng,
+                    "locationAccuracyMeters" to snapshot.accuracyMeters,
+                    "locationProvider" to snapshot.provider,
+                    "locationSource" to snapshot.source,
+                    "locationSpeedKmh" to snapshot.kmh,
+                    "locationUpdatedAt" to (snapshot.locationTime ?: snapshot.updatedAt),
+                    "updatedAt" to ServerValue.TIMESTAMP
+                )
+
+                presenceRef.updateChildren(payload)
+                    .addOnFailureListener { e ->
+                        Log.w(TAG, "⚠️ Display location sync failed: ${e.message}")
+                    }
+            },
+            onFailure = { e ->
+                Log.w(TAG, "⚠️ Display location auth failed: ${e.message}")
+            }
+        )
     }
 
     fun publishPairingCode(
@@ -430,6 +485,61 @@ object FirebaseManager {
             },
             onFailure = { e ->
                 onFailure(e.message ?: "Firebase sign-in failed")
+            }
+        )
+    }
+
+    fun getPairedDisplayLocation(
+        context: Context,
+        onResult: (DisplayLocationInfo?, String?) -> Unit
+    ) {
+        val appContext = context.applicationContext
+        withSignedInUser(
+            context = appContext,
+            reason = "get-paired-display-location",
+            onReady = {
+                val prefs = PrefsManager(appContext)
+                val displayDeviceId = prefs.getPairedDisplayDeviceId()
+                if (displayDeviceId.isNullOrBlank()) {
+                    onResult(null, "No paired display device")
+                    return@withSignedInUser
+                }
+
+                database()
+                    .getReference(PATH_PRESENCE)
+                    .child(displayDeviceId)
+                    .get()
+                    .addOnSuccessListener { snapshot ->
+                        if (!snapshot.exists()) {
+                            onResult(null, "No location record from the paired display yet")
+                            return@addOnSuccessListener
+                        }
+
+                        val locationInfo = DisplayLocationInfo(
+                            displayDeviceId = displayDeviceId,
+                            displayName = prefs.getPairedDisplayName(),
+                            connected = snapshot.child("connected").getValue(Boolean::class.java) == true,
+                            lat = snapshot.child("locationLat").getValue(Double::class.java),
+                            lng = snapshot.child("locationLng").getValue(Double::class.java),
+                            accuracyMeters = snapshot.child("locationAccuracyMeters").getValue(Float::class.java)
+                                ?: snapshot.child("locationAccuracyMeters").getValue(Double::class.java)?.toFloat()
+                                ?: snapshot.child("locationAccuracyMeters").getValue(Long::class.java)?.toFloat(),
+                            provider = snapshot.child("locationProvider").getValue(String::class.java),
+                            source = snapshot.child("locationSource").getValue(String::class.java),
+                            speedKmh = snapshot.child("locationSpeedKmh").getValue(Int::class.java)
+                                ?: snapshot.child("locationSpeedKmh").getValue(Long::class.java)?.toInt(),
+                            locationUpdatedAt = snapshot.child("locationUpdatedAt").getValue(Long::class.java),
+                            lastOnlineAt = snapshot.child("lastOnlineAt").getValue(Long::class.java),
+                            presenceUpdatedAt = snapshot.child("updatedAt").getValue(Long::class.java)
+                        )
+                        onResult(locationInfo, null)
+                    }
+                    .addOnFailureListener { e ->
+                        onResult(null, e.message ?: "Failed to read display location")
+                    }
+            },
+            onFailure = { e ->
+                onResult(null, e.message ?: "Firebase sign-in failed")
             }
         )
     }

@@ -18,6 +18,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.phantom.carnavrelay.receiver.OpenMapsReceiver
+import kotlin.math.abs
 
 class DisplayServerService : Service() {
 
@@ -38,6 +39,8 @@ class DisplayServerService : Service() {
         const val EXTRA_SPEED_ACCURACY = "speed_accuracy"
         const val EXTRA_SPEED_SOURCE = "speed_source"
         private const val ROUTE_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000L
+        private const val DISPLAY_LOCATION_SYNC_INTERVAL_MS = 15_000L
+        private const val DISPLAY_LOCATION_MIN_DISTANCE_METERS = 35f
         
         // Wake lock
         private const val WAKE_LOCK_TAG = "PHANTOM_GO:DisplayServer"
@@ -62,14 +65,23 @@ class DisplayServerService : Service() {
     private var lastCmdAt: Long = 0
     private var foregroundStarted = false
     private var speedMonitor: DisplaySpeedMonitor? = null
+    private var lastDisplayLocationSyncAt = 0L
+    private var lastDisplayLocationLat: Double? = null
+    private var lastDisplayLocationLng: Double? = null
     @Volatile private var resolveToken: Long = 0
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val appStateReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == ACTION_APP_FOREGROUND) {
-                Log.d(TAG, "📱 App foregrounded - hiding overlay")
-                overlayController?.hideOverlay()
+            when (intent?.action) {
+                ACTION_APP_FOREGROUND -> {
+                    Log.d(TAG, "📱 App foregrounded - hiding overlay")
+                    overlayController?.hideOverlay()
+                }
+                HttpServer.ACTION_PAIRING_CHANGED -> {
+                    Log.d(TAG, "🔁 Pairing changed - refreshing display tracking")
+                    refreshSpeedometerTracking()
+                }
             }
         }
     }
@@ -94,7 +106,10 @@ class DisplayServerService : Service() {
             androidx.core.content.ContextCompat.registerReceiver(
                 this,
                 appStateReceiver,
-                android.content.IntentFilter(ACTION_APP_FOREGROUND),
+                android.content.IntentFilter().apply {
+                    addAction(ACTION_APP_FOREGROUND)
+                    addAction(HttpServer.ACTION_PAIRING_CHANGED)
+                },
                 androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
             )
         } catch (e: Exception) {
@@ -230,8 +245,10 @@ class DisplayServerService : Service() {
     }
 
     private fun refreshSpeedometerTracking() {
-        if (!prefsManager.isSpeedometerEnabled()) {
-            stopSpeedometerTracking()
+        val keepLocationTracking = shouldKeepDisplayLocationTracking()
+        val speedometerEnabled = prefsManager.isSpeedometerEnabled()
+
+        if (!speedometerEnabled) {
             prefsManager.clearSpeedSnapshot()
             broadcastSpeedState(
                 SpeedSnapshot(
@@ -241,47 +258,58 @@ class DisplayServerService : Service() {
                     source = "DISABLED"
                 )
             )
+        }
+
+        if (!speedometerEnabled && !keepLocationTracking) {
+            stopSpeedometerTracking()
             return
         }
 
         if (!DisplaySpeedMonitor.hasLocationPermission(this)) {
             stopSpeedometerTracking()
-            prefsManager.clearSpeedSnapshot()
-            broadcastSpeedState(
-                SpeedSnapshot(
-                    kmh = null,
-                    hasFix = false,
-                    updatedAt = System.currentTimeMillis(),
-                    source = "NO_PERMISSION"
+            if (speedometerEnabled) {
+                prefsManager.clearSpeedSnapshot()
+                broadcastSpeedState(
+                    SpeedSnapshot(
+                        kmh = null,
+                        hasFix = false,
+                        updatedAt = System.currentTimeMillis(),
+                        source = "NO_PERMISSION"
+                    )
                 )
-            )
+            }
             return
         }
 
         if (!DisplaySpeedMonitor.isLocationEnabled(this)) {
             stopSpeedometerTracking()
-            prefsManager.clearSpeedSnapshot()
-            broadcastSpeedState(
-                SpeedSnapshot(
-                    kmh = null,
-                    hasFix = false,
-                    updatedAt = System.currentTimeMillis(),
-                    source = "LOCATION_DISABLED"
+            if (speedometerEnabled) {
+                prefsManager.clearSpeedSnapshot()
+                broadcastSpeedState(
+                    SpeedSnapshot(
+                        kmh = null,
+                        hasFix = false,
+                        updatedAt = System.currentTimeMillis(),
+                        source = "LOCATION_DISABLED"
+                    )
                 )
-            )
+            }
             return
         }
 
         if (speedMonitor == null) {
             speedMonitor = DisplaySpeedMonitor(this) { snapshot ->
-                prefsManager.saveSpeedSnapshot(
-                    kmh = snapshot.kmh,
-                    hasFix = snapshot.hasFix,
-                    updatedAt = snapshot.updatedAt,
-                    accuracyMeters = snapshot.accuracyMeters,
-                    provider = snapshot.provider
-                )
-                broadcastSpeedState(snapshot)
+                if (prefsManager.isSpeedometerEnabled()) {
+                    prefsManager.saveSpeedSnapshot(
+                        kmh = snapshot.kmh,
+                        hasFix = snapshot.hasFix,
+                        updatedAt = snapshot.updatedAt,
+                        accuracyMeters = snapshot.accuracyMeters,
+                        provider = snapshot.provider
+                    )
+                    broadcastSpeedState(snapshot)
+                }
+                maybeSyncDisplayLocation(snapshot)
             }
         }
         speedMonitor?.start()
@@ -289,6 +317,42 @@ class DisplayServerService : Service() {
 
     private fun stopSpeedometerTracking() {
         speedMonitor?.stop()
+    }
+
+    private fun shouldKeepDisplayLocationTracking(): Boolean {
+        return prefsManager.isDisplayPaired() ||
+            prefsManager.isAntiTheftAttachLocationEnabled()
+    }
+
+    private fun maybeSyncDisplayLocation(snapshot: SpeedSnapshot) {
+        val lat = snapshot.lat ?: return
+        val lng = snapshot.lng ?: return
+        val now = System.currentTimeMillis()
+
+        val timeDue = now - lastDisplayLocationSyncAt >= DISPLAY_LOCATION_SYNC_INTERVAL_MS
+        val movedEnough = if (lastDisplayLocationLat == null || lastDisplayLocationLng == null) {
+            true
+        } else {
+            distanceMeters(lastDisplayLocationLat!!, lastDisplayLocationLng!!, lat, lng) >= DISPLAY_LOCATION_MIN_DISTANCE_METERS
+        }
+
+        if (!timeDue && !movedEnough) return
+
+        FirebaseManager.updateDisplayPresenceLocation(this, snapshot)
+        lastDisplayLocationSyncAt = now
+        lastDisplayLocationLat = lat
+        lastDisplayLocationLng = lng
+    }
+
+    private fun distanceMeters(
+        startLat: Double,
+        startLng: Double,
+        endLat: Double,
+        endLng: Double
+    ): Float {
+        val results = FloatArray(1)
+        android.location.Location.distanceBetween(startLat, startLng, endLat, endLng, results)
+        return abs(results.firstOrNull() ?: 0f)
     }
 
     private fun broadcastSpeedState(snapshot: SpeedSnapshot) {

@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -31,6 +32,9 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.navigation.NavigationView
+import java.text.DateFormat
+import java.util.Date
+import java.util.Locale
 
 class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
 
@@ -53,6 +57,7 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
     private lateinit var btnScanQR: Button
     private lateinit var btnSendTest: Button
     private lateinit var btnRetryPending: Button
+    private lateinit var btnFindDisplay: Button
     private lateinit var btnClearPairing: Button
     private lateinit var ghostIcon: TextView
     private var ghostAnimator: ObjectAnimator? = null
@@ -110,6 +115,7 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         btnScanQR = root.findViewById(R.id.btnScanQR)
         btnSendTest = root.findViewById(R.id.btnSendTest)
         btnRetryPending = root.findViewById(R.id.btnRetryPending)
+        btnFindDisplay = root.findViewById(R.id.btnFindDisplay)
         btnClearPairing = root.findViewById(R.id.btnClearPairing)
         ghostIcon = root.findViewById(R.id.ghostIcon)
 
@@ -117,11 +123,13 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         setupButtonEffects(btnScanQR)
         setupButtonEffects(btnSendTest)
         setupButtonEffects(btnRetryPending)
+        setupButtonEffects(btnFindDisplay)
         setupButtonEffects(btnClearPairing)
 
         btnScanQR.setOnClickListener { startQRScan() }
         btnSendTest.setOnClickListener { sendTestLocation() }
         btnRetryPending.setOnClickListener { retryPending() }
+        btnFindDisplay.setOnClickListener { findDisplay() }
         btnClearPairing.setOnClickListener { confirmClearPairing() }
     }
 
@@ -230,6 +238,25 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         })
     }
 
+    private fun findDisplay() {
+        if (!mainSender.isPaired()) {
+            Toast.makeText(requireContext(), "Not paired with Display device", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Toast.makeText(requireContext(), "Looking up display location…", Toast.LENGTH_SHORT).show()
+        FirebaseManager.getPairedDisplayLocation(requireContext()) { info, error ->
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                if (info == null) {
+                    Toast.makeText(requireContext(), error ?: "Could not load display location", Toast.LENGTH_LONG).show()
+                    return@runOnUiThread
+                }
+                resolveAddressAndShowDisplayLocation(info)
+            }
+        }
+    }
+
     private fun confirmClearPairing() {
         AlertDialog.Builder(requireContext())
             .setTitle("Clear Pairing")
@@ -312,9 +339,11 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
 
         btnSendTest.isEnabled = isPaired
         btnRetryPending.isEnabled = isPaired && pendingCount > 0
+        btnFindDisplay.isEnabled = isPaired
         btnClearPairing.isEnabled = isPaired
         btnSendTest.alpha = if (btnSendTest.isEnabled) 1f else 0.52f
         btnRetryPending.alpha = if (btnRetryPending.isEnabled) 1f else 0.52f
+        btnFindDisplay.alpha = if (btnFindDisplay.isEnabled) 1f else 0.52f
         btnClearPairing.alpha = if (btnClearPairing.isEnabled) 1f else 0.52f
     }
 
@@ -486,5 +515,91 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
             DisplayAntiTheftManager.ALERT_DISARMED_SUCCESS -> "The display device was disarmed successfully."
             else -> "Event: $eventType"
         }
+    }
+
+    private fun resolveAddressAndShowDisplayLocation(info: FirebaseManager.DisplayLocationInfo) {
+        val lat = info.lat
+        val lng = info.lng
+        if (lat == null || lng == null) {
+            showDisplayLocationDialog(info, null)
+            return
+        }
+
+        Thread {
+            val address = runCatching {
+                val geocoder = Geocoder(requireContext(), Locale.getDefault())
+                @Suppress("DEPRECATION")
+                geocoder.getFromLocation(lat, lng, 1)
+                    ?.firstOrNull()
+                    ?.getAddressLine(0)
+            }.getOrNull()
+
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                showDisplayLocationDialog(info, address)
+            }
+        }.start()
+    }
+
+    private fun showDisplayLocationDialog(
+        info: FirebaseManager.DisplayLocationInfo,
+        address: String?
+    ) {
+        val title = info.displayName ?: "Display device"
+        val status = if (info.connected) "Online now" else "Offline - showing latest recorded location"
+        val lat = info.lat
+        val lng = info.lng
+        val timestamp = info.locationUpdatedAt ?: info.lastOnlineAt ?: info.presenceUpdatedAt
+        val accuracy = info.accuracyMeters?.let { String.format(Locale.US, "%.1f m", it) } ?: "Unknown"
+        val updatedText = timestamp?.let { formatTimestamp(it) } ?: "Unknown"
+        val message = buildString {
+            append(title)
+            append("\n\n")
+            append(status)
+            append("\n\n")
+            if (lat != null && lng != null) {
+                append("Coordinates: ")
+                append(String.format(Locale.US, "%.6f, %.6f", lat, lng))
+                append("\n")
+            } else {
+                append("Coordinates: Not available\n")
+            }
+            append("Accuracy: ")
+            append(accuracy)
+            append("\n")
+            append("Updated: ")
+            append(updatedText)
+            info.speedKmh?.let {
+                append("\nSpeed: ")
+                append(it)
+                append(" km/h")
+            }
+            if (!address.isNullOrBlank()) {
+                append("\n\nAddress:\n")
+                append(address)
+            }
+        }
+
+        val builder = AlertDialog.Builder(requireContext())
+            .setTitle("Find Display")
+            .setMessage(message)
+            .setPositiveButton("Close", null)
+
+        if (lat != null && lng != null) {
+            builder.setNeutralButton("Open Map") { _, _ ->
+                val uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng")
+                startActivity(Intent(Intent.ACTION_VIEW, uri))
+            }
+        }
+
+        builder.show()
+    }
+
+    private fun formatTimestamp(timestamp: Long): String {
+        return DateFormat.getDateTimeInstance(
+            DateFormat.MEDIUM,
+            DateFormat.SHORT,
+            Locale.getDefault()
+        ).format(Date(timestamp))
     }
 }

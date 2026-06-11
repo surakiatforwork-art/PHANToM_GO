@@ -210,10 +210,13 @@
             android:name=".AntiTheftPinActivity"
             android:exported="false"
             android:excludeFromRecents="true"
+            android:label="Security Verification"
             android:launchMode="singleTask"
+            android:noHistory="true"
             android:showWhenLocked="true"
+            android:taskAffinity=""
             android:turnScreenOn="true"
-            android:theme="@style/Theme.CarNavRelay.Translucent" />
+            android:theme="@style/Theme.CarNavRelay.SecurityOverlay" />
 
     </application>
 </manifest>

@@ -668,7 +668,12 @@ object DisplayAntiTheftManager {
         val intent = Intent(appContext, AntiTheftPinActivity::class.java).apply {
             action = ACTION_OPEN_CHALLENGE
             putExtra(AntiTheftPinActivity.EXTRA_FULLSCREEN, fullscreen)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                    Intent.FLAG_ACTIVITY_NO_ANIMATION
+            )
         }
         runCatching { appContext.startActivity(intent) }
             .onFailure {
@@ -681,7 +686,12 @@ object DisplayAntiTheftManager {
         val launchIntent = Intent(appContext, AntiTheftPinActivity::class.java).apply {
             action = ACTION_OPEN_CHALLENGE
             putExtra(AntiTheftPinActivity.EXTRA_FULLSCREEN, fullscreen)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                    Intent.FLAG_ACTIVITY_NO_ANIMATION
+            )
         }
         val pendingIntent = PendingIntent.getActivity(
             appContext,
@@ -691,7 +701,7 @@ object DisplayAntiTheftManager {
         )
         val notification = NotificationCompat.Builder(appContext, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_display_mode)
-            .setContentTitle(if (fullscreen) "PHANToM GO Alarm Lock" else "PHANToM GO PIN Challenge")
+            .setContentTitle(if (fullscreen) "Security lock active" else "Security verification required")
             .setContentText(stateDetail(state))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -716,10 +726,10 @@ object DisplayAntiTheftManager {
         val manager = appContext.getSystemService(NotificationManager::class.java) ?: return
         val channel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
-            "PHANToM GO Anti-Theft",
+            "Security Verification",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "PIN challenge and alarm notifications for the display anti-theft flow"
+            description = "Security verification and lock notifications"
             enableVibration(true)
             lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
         }
@@ -781,31 +791,31 @@ object DisplayAntiTheftManager {
 
     private fun stateHeadline(currentState: AntiTheftState): String {
         return when (currentState) {
-            AntiTheftState.DISABLED -> "Anti-Theft Off"
-            AntiTheftState.UNAVAILABLE_NO_JACK -> "Plug in 3.5 mm Trigger"
-            AntiTheftState.READY -> "Anti-Theft Ready"
-            AntiTheftState.READY_UNPLUGGED -> "Waiting for Jack Re-Plug"
-            AntiTheftState.ARMED -> "Anti-Theft Armed"
-            AntiTheftState.CHALLENGE_1 -> "Enter PIN to Unlock"
-            AntiTheftState.CHALLENGE_2 -> "Wrong PIN - Try Again"
-            AntiTheftState.POST_ALERT_COUNTDOWN -> "Alert Sent to Main"
-            AntiTheftState.ALARM_ACTIVE -> "Theft Alarm Active"
-            AntiTheftState.FULLSCREEN_LOCK -> "Alarm Locked"
+            AntiTheftState.DISABLED -> "Security monitoring off"
+            AntiTheftState.UNAVAILABLE_NO_JACK -> "Security trigger unavailable"
+            AntiTheftState.READY -> "Security monitoring ready"
+            AntiTheftState.READY_UNPLUGGED -> "Security trigger missing"
+            AntiTheftState.ARMED -> "Security monitoring armed"
+            AntiTheftState.CHALLENGE_1 -> "Security verification"
+            AntiTheftState.CHALLENGE_2 -> "Verification required"
+            AntiTheftState.POST_ALERT_COUNTDOWN -> "Security verification"
+            AntiTheftState.ALARM_ACTIVE -> "Security lock active"
+            AntiTheftState.FULLSCREEN_LOCK -> "Security lock active"
         }
     }
 
     private fun stateDetail(currentState: AntiTheftState): String {
         return when (currentState) {
-            AntiTheftState.DISABLED -> "Enable anti-theft in Settings to use this feature."
-            AntiTheftState.UNAVAILABLE_NO_JACK -> "This feature only works with a 3.5 mm headset jack trigger."
-            AntiTheftState.READY -> "3.5 mm trigger detected. Arm the display to monitor unplug events."
-            AntiTheftState.READY_UNPLUGGED -> "Re-plug the 3.5 mm trigger to arm protection again."
-            AntiTheftState.ARMED -> "Monitoring the 3.5 mm trigger. Unplugging it will require your PIN."
-            AntiTheftState.CHALLENGE_1 -> "Enter your PIN within ${remainingSeconds()} seconds."
-            AntiTheftState.CHALLENGE_2 -> "Wrong PIN once. Enter the correct PIN within ${remainingSeconds()} seconds."
-            AntiTheftState.POST_ALERT_COUNTDOWN -> "Main device notified. Enter the correct PIN before the alarm starts in ${remainingSeconds()} seconds."
-            AntiTheftState.ALARM_ACTIVE -> "Alarm is playing. Enter the correct PIN to stop it."
-            AntiTheftState.FULLSCREEN_LOCK -> "Enter the correct PIN to stop the alarm and unlock the display."
+            AntiTheftState.DISABLED -> "Enable security monitoring in Settings to use this feature."
+            AntiTheftState.UNAVAILABLE_NO_JACK -> "This security mode requires a connected 3.5 mm trigger."
+            AntiTheftState.READY -> "A trigger is connected. Arm security monitoring when you are ready."
+            AntiTheftState.READY_UNPLUGGED -> "Reconnect the 3.5 mm trigger to arm protection again."
+            AntiTheftState.ARMED -> "The trigger is being monitored. Verification will be required if it is removed."
+            AntiTheftState.CHALLENGE_1 -> "Enter your security PIN within ${remainingSeconds()} seconds."
+            AntiTheftState.CHALLENGE_2 -> "Verification failed once. Enter the correct PIN within ${remainingSeconds()} seconds."
+            AntiTheftState.POST_ALERT_COUNTDOWN -> "A paired device has been notified. Enter the correct PIN before the security lock escalates in ${remainingSeconds()} seconds."
+            AntiTheftState.ALARM_ACTIVE -> "Security lock is active. Enter the correct PIN to continue."
+            AntiTheftState.FULLSCREEN_LOCK -> "Enter the correct security PIN to stop the lock and continue."
         }
     }
 

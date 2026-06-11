@@ -43,6 +43,7 @@ class AntiTheftPinActivity : AppCompatActivity() {
         setTurnScreenOn(true)
         setShowWhenLocked(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
 
         rootCard = findViewById(R.id.antiTheftPinCard)
         titleText = findViewById(R.id.antiTheftPinTitle)
@@ -59,7 +60,7 @@ class AntiTheftPinActivity : AppCompatActivity() {
                 finish()
             } else {
                 pinInput.text?.clear()
-                errorText.text = "Wrong PIN"
+                errorText.text = "Verification failed"
                 errorText.alpha = 1f
                 applyState()
             }
@@ -117,7 +118,7 @@ class AntiTheftPinActivity : AppCompatActivity() {
                     "Time left: ${((snapshot.remainingMs + 999L) / 1000L)}s"
                 } else {
                     if (snapshot.state == AntiTheftState.ALARM_ACTIVE || snapshot.state == AntiTheftState.FULLSCREEN_LOCK) {
-                        "Alarm active"
+                        "Verification required"
                     } else {
                         ""
                     }
