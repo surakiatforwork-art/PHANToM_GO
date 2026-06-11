@@ -12,8 +12,8 @@ android {
     applicationId = "com.phantom.carnavrelay"
     minSdk = 23
     targetSdk = 34
-    versionCode = 15
-    versionName = "1.0.14"
+    versionCode = 16
+    versionName = "1.0.15-beta.1"
   }
 
   buildTypes {
@@ -53,4 +53,6 @@ dependencies {
 
   // WorkManager
   implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+  testImplementation("junit:junit:4.13.2")
 }

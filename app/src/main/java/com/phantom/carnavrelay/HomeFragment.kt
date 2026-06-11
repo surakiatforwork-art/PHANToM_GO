@@ -59,6 +59,10 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
     private lateinit var btnRetryPending: Button
     private lateinit var btnFindDisplay: Button
     private lateinit var btnClearPairing: Button
+    private lateinit var tvMapsAutoShareStatus: TextView
+    private lateinit var tvMapsAutoShareDetails: TextView
+    private lateinit var btnMapsAutoShareAccessibility: Button
+    private lateinit var btnMapsAutoShareNotification: Button
     private lateinit var ghostIcon: TextView
     private var ghostAnimator: ObjectAnimator? = null
     private var antiTheftReceiverRegistered = false
@@ -117,6 +121,10 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         btnRetryPending = root.findViewById(R.id.btnRetryPending)
         btnFindDisplay = root.findViewById(R.id.btnFindDisplay)
         btnClearPairing = root.findViewById(R.id.btnClearPairing)
+        tvMapsAutoShareStatus = root.findViewById(R.id.tvMapsAutoShareStatus)
+        tvMapsAutoShareDetails = root.findViewById(R.id.tvMapsAutoShareDetails)
+        btnMapsAutoShareAccessibility = root.findViewById(R.id.btnMapsAutoShareAccessibility)
+        btnMapsAutoShareNotification = root.findViewById(R.id.btnMapsAutoShareNotification)
         ghostIcon = root.findViewById(R.id.ghostIcon)
 
         startGhostAnimation()
@@ -125,12 +133,20 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         setupButtonEffects(btnRetryPending)
         setupButtonEffects(btnFindDisplay)
         setupButtonEffects(btnClearPairing)
+        setupButtonEffects(btnMapsAutoShareAccessibility)
+        setupButtonEffects(btnMapsAutoShareNotification)
 
         btnScanQR.setOnClickListener { startQRScan() }
         btnSendTest.setOnClickListener { sendTestLocation() }
         btnRetryPending.setOnClickListener { retryPending() }
         btnFindDisplay.setOnClickListener { findDisplay() }
         btnClearPairing.setOnClickListener { confirmClearPairing() }
+        btnMapsAutoShareAccessibility.setOnClickListener {
+            startActivity(MapsAutoShareStatus.accessibilitySettingsIntent())
+        }
+        btnMapsAutoShareNotification.setOnClickListener {
+            startActivity(MapsAutoShareStatus.notificationSettingsIntent())
+        }
     }
 
     private fun setupDrawer() {
@@ -349,6 +365,40 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         btnRetryPending.alpha = if (btnRetryPending.isEnabled) 1f else 0.52f
         btnFindDisplay.alpha = if (btnFindDisplay.isEnabled) 1f else 0.52f
         btnClearPairing.alpha = if (btnClearPairing.isEnabled) 1f else 0.52f
+        updateMapsAutoShareUI(ctx)
+    }
+
+    private fun updateMapsAutoShareUI(context: Context) {
+        val accessibilityEnabled = MapsAutoShareStatus.isAccessibilityEnabled(context)
+        val notificationEnabled = MapsAutoShareStatus.isNotificationAccessEnabled(context)
+
+        when {
+            accessibilityEnabled && notificationEnabled -> {
+                tvMapsAutoShareStatus.text = getString(R.string.maps_auto_share_status_active)
+                tvMapsAutoShareStatus.setTextColor(context.getColor(R.color.aurora_success))
+                tvMapsAutoShareStatus.setBackgroundResource(R.drawable.badge_success)
+                tvMapsAutoShareDetails.text = getString(R.string.maps_auto_share_details_active)
+            }
+            accessibilityEnabled -> {
+                tvMapsAutoShareStatus.text = getString(R.string.maps_auto_share_status_limited)
+                tvMapsAutoShareStatus.setTextColor(context.getColor(R.color.aurora_warning))
+                tvMapsAutoShareStatus.setBackgroundResource(R.drawable.badge_warning)
+                tvMapsAutoShareDetails.text = getString(R.string.maps_auto_share_details_limited)
+            }
+            else -> {
+                tvMapsAutoShareStatus.text = getString(R.string.maps_auto_share_status_inactive)
+                tvMapsAutoShareStatus.setTextColor(context.getColor(R.color.aurora_waiting))
+                tvMapsAutoShareStatus.setBackgroundResource(R.drawable.badge_neutral)
+                tvMapsAutoShareDetails.text = getString(R.string.maps_auto_share_details_inactive)
+            }
+        }
+
+        btnMapsAutoShareAccessibility.text = if (accessibilityEnabled) {
+            getString(R.string.maps_auto_share_manage_accessibility)
+        } else {
+            getString(R.string.maps_auto_share_enable_accessibility)
+        }
+        btnMapsAutoShareNotification.visibility = if (notificationEnabled) View.GONE else View.VISIBLE
     }
 
     override fun onResume() {

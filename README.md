@@ -9,6 +9,7 @@ The same pairing system also works with the browser Web App, so iOS and devices 
 - QR pairing without account registration
 - Cloud route relay with local Wi-Fi fallback
 - Share Target and Map Link Hub for Google Maps links
+- Optional scoped Google Maps Auto Share for paired Main devices
 - Display Mode with automatic Google Maps opening
 - Browser Web App interoperability
 - Display speedometer using location data

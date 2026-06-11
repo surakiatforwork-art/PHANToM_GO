@@ -204,6 +204,29 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <service
+            android:name=".MapsAutoShareAccessibilityService"
+            android:exported="true"
+            android:label="@string/maps_auto_share_service_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/maps_auto_share_accessibility_service" />
+        </service>
+
+        <service
+            android:name=".MapsAutoShareNotificationListenerService"
+            android:exported="true"
+            android:label="@string/maps_auto_share_notification_service_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <!-- Receiver for opening Maps from notification -->
         <receiver
             android:name=".receiver.OpenMapsReceiver"

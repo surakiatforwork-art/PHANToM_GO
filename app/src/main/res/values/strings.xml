@@ -75,4 +75,17 @@
 
   <!-- Accessibility Service -->
   <string name="a11y_desc">จับลิงก์/ปุ่มนำทางเพื่อส่งไปจอติดรถ (ผู้ใช้เปิด/ปิดได้)</string>
+  <string name="maps_auto_share_service_name">PHANToM GO Maps Auto Share</string>
+  <string name="maps_auto_share_accessibility_description">ช่วยส่งเส้นทางจาก Google Maps ไปยัง Display โดยทำงานเฉพาะ Google Maps และหน้าต่างแชร์ระหว่าง session</string>
+  <string name="maps_auto_share_notification_service_name">PHANToM GO Maps Navigation Signal</string>
+  <string name="maps_auto_share_title">Google Maps Auto Share</string>
+  <string name="maps_auto_share_status_active">Active</string>
+  <string name="maps_auto_share_status_limited">Limited</string>
+  <string name="maps_auto_share_status_inactive">Inactive</string>
+  <string name="maps_auto_share_details_active">Ready. Navigation notifications trigger fast, scoped automation inside Google Maps.</string>
+  <string name="maps_auto_share_details_limited">Accessibility assist is active. Allow notification access for the fastest route-start trigger.</string>
+  <string name="maps_auto_share_details_inactive">Enable PHANToM GO Maps Auto Share in Accessibility Settings. It only acts inside Maps and an active share sheet.</string>
+  <string name="maps_auto_share_enable_accessibility">Enable in Accessibility Settings</string>
+  <string name="maps_auto_share_manage_accessibility">Manage / Disable in Accessibility Settings</string>
+  <string name="maps_auto_share_allow_notification">Allow Maps notification signal</string>
 </resources>
