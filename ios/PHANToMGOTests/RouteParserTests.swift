@@ -22,12 +22,14 @@ final class RouteParserTests: XCTestCase {
         XCTAssertTrue(pairInfo?.hasLocalTransport ?? false)
     }
 
-    func testParseCoordinatePayload() {
+    func testParseCoordinatePayload() throws {
         let payload = RouteParser.parse("13.7563,100.5018", navMode: .driving)
+        let latitude = try XCTUnwrap(payload.latitude)
+        let longitude = try XCTUnwrap(payload.longitude)
 
         XCTAssertEqual(payload.parserSource, .coordinates)
-        XCTAssertEqual(payload.latitude, 13.7563, accuracy: 0.0001)
-        XCTAssertEqual(payload.longitude, 100.5018, accuracy: 0.0001)
+        XCTAssertEqual(latitude, 13.7563, accuracy: 0.0001)
+        XCTAssertEqual(longitude, 100.5018, accuracy: 0.0001)
         XCTAssertEqual(payload.navigationMode, .driving)
     }
 
