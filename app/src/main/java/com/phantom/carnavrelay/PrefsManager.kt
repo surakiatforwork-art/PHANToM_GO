@@ -113,6 +113,11 @@ class PrefsManager(context: Context) {
         private const val KEY_SPEED_LAST_PROVIDER = "speed_last_provider"
         private const val KEY_SPEED_LAST_HAS_FIX = "speed_last_has_fix"
 
+        // Display power automation
+        private const val KEY_DISPLAY_POWER_AUTOMATION_ENABLED = "display_power_automation_enabled"
+        private const val KEY_DISPLAY_WAKE_BEFORE_MAPS_ENABLED = "display_wake_before_maps_enabled"
+        private const val KEY_DISPLAY_LOCK_ON_POWER_DISCONNECT = "display_lock_on_power_disconnect"
+
         // Display anti-theft
         private const val KEY_ANTI_THEFT_ENABLED = "anti_theft_enabled"
         private const val KEY_ANTI_THEFT_ARMED = "anti_theft_armed"
@@ -614,6 +619,30 @@ class PrefsManager(context: Context) {
 
     fun hasSpeedFix(): Boolean {
         return prefs.getBoolean(KEY_SPEED_LAST_HAS_FIX, false)
+    }
+
+    fun isDisplayPowerAutomationEnabled(): Boolean {
+        return prefs.getBoolean(KEY_DISPLAY_POWER_AUTOMATION_ENABLED, false)
+    }
+
+    fun setDisplayPowerAutomationEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_DISPLAY_POWER_AUTOMATION_ENABLED, enabled).apply()
+    }
+
+    fun isDisplayWakeBeforeMapsEnabled(): Boolean {
+        return prefs.getBoolean(KEY_DISPLAY_WAKE_BEFORE_MAPS_ENABLED, true)
+    }
+
+    fun setDisplayWakeBeforeMapsEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_DISPLAY_WAKE_BEFORE_MAPS_ENABLED, enabled).apply()
+    }
+
+    fun isDisplayLockOnPowerDisconnectEnabled(): Boolean {
+        return prefs.getBoolean(KEY_DISPLAY_LOCK_ON_POWER_DISCONNECT, false)
+    }
+
+    fun setDisplayLockOnPowerDisconnectEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_DISPLAY_LOCK_ON_POWER_DISCONNECT, enabled).apply()
     }
 
     fun isAntiTheftEnabled(): Boolean {

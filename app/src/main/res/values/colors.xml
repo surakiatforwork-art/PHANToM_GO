@@ -91,4 +91,29 @@
 
     <color name="text_primary">@color/white_soft</color>
     <color name="text_secondary">@color/gray_soft</color>
+
+    <!-- Soft UI palette for stitch-inspired screens -->
+    <color name="soft_bg_start">#F6F8FF</color>
+    <color name="soft_bg_end">#EEF3FF</color>
+    <color name="soft_surface">#FFFFFFFF</color>
+    <color name="soft_surface_alt">#F1F4FB</color>
+    <color name="soft_border">#D7E0F2</color>
+    <color name="soft_shadow">#190C2B63</color>
+    <color name="soft_text_primary">#111827</color>
+    <color name="soft_text_secondary">#4B5563</color>
+    <color name="soft_text_muted">#6B7280</color>
+    <color name="soft_blue">#2D7EF7</color>
+    <color name="soft_blue_end">#1765D8</color>
+    <color name="soft_blue_dark">#1F5CBF</color>
+    <color name="soft_success">#1F9D5A</color>
+    <color name="soft_warning">#C98917</color>
+    <color name="soft_danger">#CC3D5A</color>
+
+    <!-- Display redesign palette -->
+    <color name="display_bg_top">#182536</color>
+    <color name="display_bg_bottom">#08182D</color>
+    <color name="display_panel">#0D1F35</color>
+    <color name="display_panel_border">#28496C</color>
+    <color name="display_button_start">#58A4FF</color>
+    <color name="display_button_end">#2E7BEF</color>
 </resources>

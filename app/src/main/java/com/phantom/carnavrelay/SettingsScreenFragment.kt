@@ -73,6 +73,17 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var speedometerStatusText: TextView
     private lateinit var speedometerPermissionText: TextView
     private lateinit var requestLocationPermissionButton: Button
+    private lateinit var displayPowerAutomationSwitch: Switch
+    private lateinit var displayPowerAutomationStatusText: TextView
+    private lateinit var displayPowerAutomationDetailText: TextView
+    private lateinit var displayWakeBeforeMapsSwitch: Switch
+    private lateinit var displayWakeBeforeMapsStatusText: TextView
+    private lateinit var lockOnDisconnectSwitch: Switch
+    private lateinit var lockOnDisconnectStatusText: TextView
+    private lateinit var systemSettingsStatusText: TextView
+    private lateinit var requestSystemSettingsButton: Button
+    private lateinit var deviceAdminStatusText: TextView
+    private lateinit var requestDeviceAdminButton: Button
     private lateinit var antiTheftEnabledSwitch: Switch
     private lateinit var antiTheftStatusText: TextView
     private lateinit var antiTheftDetailText: TextView
@@ -99,6 +110,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private var updatingDisplayNavModeUi = false
     private var updatingDisplayOpenModeUi = false
     private var updatingSpeedometerUi = false
+    private var updatingDisplayPowerUi = false
     private var updatingAntiTheftUi = false
     private var bluetoothPickPending = false
 
@@ -216,6 +228,17 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         speedometerStatusText = root.findViewById(R.id.speedometerStatusText)
         speedometerPermissionText = root.findViewById(R.id.speedometerPermissionText)
         requestLocationPermissionButton = root.findViewById(R.id.requestLocationPermissionButton)
+        displayPowerAutomationSwitch = root.findViewById(R.id.displayPowerAutomationSwitch)
+        displayPowerAutomationStatusText = root.findViewById(R.id.displayPowerAutomationStatusText)
+        displayPowerAutomationDetailText = root.findViewById(R.id.displayPowerAutomationDetailText)
+        displayWakeBeforeMapsSwitch = root.findViewById(R.id.displayWakeBeforeMapsSwitch)
+        displayWakeBeforeMapsStatusText = root.findViewById(R.id.displayWakeBeforeMapsStatusText)
+        lockOnDisconnectSwitch = root.findViewById(R.id.lockOnDisconnectSwitch)
+        lockOnDisconnectStatusText = root.findViewById(R.id.lockOnDisconnectStatusText)
+        systemSettingsStatusText = root.findViewById(R.id.systemSettingsStatusText)
+        requestSystemSettingsButton = root.findViewById(R.id.requestSystemSettingsButton)
+        deviceAdminStatusText = root.findViewById(R.id.deviceAdminStatusText)
+        requestDeviceAdminButton = root.findViewById(R.id.requestDeviceAdminButton)
         antiTheftEnabledSwitch = root.findViewById(R.id.antiTheftEnabledSwitch)
         antiTheftStatusText = root.findViewById(R.id.antiTheftStatusText)
         antiTheftDetailText = root.findViewById(R.id.antiTheftDetailText)
@@ -333,6 +356,37 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             speedometerSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
+        displayPowerAutomationSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingDisplayPowerUi) return@setOnCheckedChangeListener
+            DisplayPowerAutomationManager.setPowerAutomationEnabled(requireContext(), isChecked)
+            updateDisplayPowerAutomationStatus()
+            displayPowerAutomationSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        displayWakeBeforeMapsSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingDisplayPowerUi) return@setOnCheckedChangeListener
+            DisplayPowerAutomationManager.setWakeBeforeMapsEnabled(requireContext(), isChecked)
+            updateDisplayPowerAutomationStatus()
+            displayWakeBeforeMapsSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        lockOnDisconnectSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingDisplayPowerUi) return@setOnCheckedChangeListener
+            DisplayPowerAutomationManager.setLockOnPowerDisconnectEnabled(requireContext(), isChecked)
+            updateDisplayPowerAutomationStatus()
+            lockOnDisconnectSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        requestSystemSettingsButton.setOnClickListener {
+            requestWriteSettingsAccess()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        requestDeviceAdminButton.setOnClickListener {
+            requestDeviceAdminAccess()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
         antiTheftEnabledSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (updatingAntiTheftUi) return@setOnCheckedChangeListener
             DisplayAntiTheftManager.setFeatureEnabled(requireContext(), isChecked)
@@ -406,6 +460,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         updateDisplayNavModeStatus()
         updateDisplayOpenModeStatus()
         updateSpeedometerStatus()
+        updateDisplayPowerAutomationStatus()
         updateAntiTheftStatus()
         updateNotificationStatus()
         loadLogs()
@@ -695,6 +750,94 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         requestLocationPermissionButton.visibility = if (enabled || !hasLocation || !hasBackground) View.VISIBLE else View.GONE
     }
 
+    private fun updateDisplayPowerAutomationStatus() {
+        val powerAutomationEnabled = DisplayPowerAutomationManager.isPowerAutomationEnabled(requireContext())
+        val wakeBeforeMapsEnabled = DisplayPowerAutomationManager.isWakeBeforeMapsEnabled(requireContext())
+        val lockOnDisconnectEnabled = DisplayPowerAutomationManager.isLockOnPowerDisconnectEnabled(requireContext())
+        val canWriteSettings = DisplayPowerAutomationManager.canWriteSystemSettings(requireContext())
+        val deviceAdminEnabled = DisplayPowerAutomationManager.isDeviceAdminActive(requireContext())
+        val expectedBrightness = DisplayPowerAutomationManager.getExpectedBrightnessNow()
+        val readiness = DisplayPowerAutomationManager.evaluateReadiness(requireContext())
+
+        updatingDisplayPowerUi = true
+        displayPowerAutomationSwitch.isChecked = powerAutomationEnabled
+        displayWakeBeforeMapsSwitch.isChecked = wakeBeforeMapsEnabled
+        lockOnDisconnectSwitch.isChecked = lockOnDisconnectEnabled
+        updatingDisplayPowerUi = false
+
+        displayPowerAutomationStatusText.text = when {
+            powerAutomationEnabled -> "Connected / disconnect automation on"
+            wakeBeforeMapsEnabled -> "Wake-before-Maps only"
+            else -> "Off"
+        }
+        displayPowerAutomationStatusText.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                when {
+                    powerAutomationEnabled || wakeBeforeMapsEnabled -> R.color.aurora_success
+                    else -> R.color.aurora_warning
+                }
+            )
+        )
+
+        displayPowerAutomationDetailText.text = buildString {
+            append("Profile: ")
+            append(if (expectedBrightness >= 200) "Day brightness" else "Night brightness")
+            append(" • Expected brightness: ")
+            append(expectedBrightness)
+            append("\nReady now: ")
+            append(if (readiness.ready) "yes" else "no")
+            append(" • Screen: ")
+            append(if (readiness.interactive) "on" else "off")
+            append(" • Lock: ")
+            append(if (readiness.unlocked) "unlocked" else "locked")
+            append(" • Brightness: ")
+            append(readiness.currentBrightness ?: "unknown")
+        }
+
+        displayWakeBeforeMapsStatusText.text = if (wakeBeforeMapsEnabled) "Enabled" else "Disabled"
+        displayWakeBeforeMapsStatusText.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                if (wakeBeforeMapsEnabled) R.color.aurora_success else R.color.aurora_warning
+            )
+        )
+
+        lockOnDisconnectStatusText.text = when {
+            !lockOnDisconnectEnabled -> "Disabled"
+            deviceAdminEnabled -> "Armed with Device Admin"
+            else -> "Needs Device Admin"
+        }
+        lockOnDisconnectStatusText.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                when {
+                    !lockOnDisconnectEnabled -> R.color.aurora_warning
+                    deviceAdminEnabled -> R.color.aurora_success
+                    else -> R.color.aurora_warning
+                }
+            )
+        )
+
+        systemSettingsStatusText.text = if (canWriteSettings) "Modify system settings granted" else "Modify system settings required"
+        systemSettingsStatusText.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                if (canWriteSettings) R.color.aurora_success else R.color.aurora_warning
+            )
+        )
+        requestSystemSettingsButton.visibility = if (canWriteSettings) View.GONE else View.VISIBLE
+
+        deviceAdminStatusText.text = if (deviceAdminEnabled) "Device Admin enabled" else "Device Admin optional (required for lock on disconnect)"
+        deviceAdminStatusText.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                if (deviceAdminEnabled) R.color.aurora_success else R.color.aurora_warning
+            )
+        )
+        requestDeviceAdminButton.visibility = if (deviceAdminEnabled) View.GONE else View.VISIBLE
+    }
+
     private fun updateAntiTheftStatus() {
         val snapshot = DisplayAntiTheftManager.snapshot(requireContext())
         val currentSound = DisplayAntiTheftManager.getAlarmSoundUri(requireContext())
@@ -775,6 +918,15 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, DisplayAntiTheftManager.getAlarmSoundUri(requireContext()))
         }
         pickAntiTheftSoundLauncher.launch(intent)
+    }
+
+    private fun requestWriteSettingsAccess() {
+        startActivity(DisplayPowerAutomationManager.buildWriteSettingsIntent(requireContext()))
+        Toast.makeText(requireContext(), "Allow Modify system settings and return", Toast.LENGTH_LONG).show()
+    }
+
+    private fun requestDeviceAdminAccess() {
+        startActivity(DisplayPowerAutomationManager.buildDeviceAdminIntent(requireContext()))
     }
 
     private fun setMapLinkHandlerEnabled(enabled: Boolean) {

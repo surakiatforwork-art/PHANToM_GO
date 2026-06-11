@@ -293,6 +293,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             btnResetPairing.text = "Disconnect Main Device"
             layoutQR.visibility = View.GONE
             layoutConnected.visibility = View.VISIBLE
+            ivConnectedIcon.visibility = View.VISIBLE
             layoutConnectedActions.visibility = View.VISIBLE
         } else {
             appIcon.visibility = View.VISIBLE
@@ -306,7 +307,8 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             tvConnectedInstruction.text = "Once paired, this screen will switch to connected mode automatically."
             btnResetPairing.text = "Disconnect / Reset"
             layoutQR.visibility = View.VISIBLE
-            layoutConnected.visibility = View.GONE
+            layoutConnected.visibility = View.VISIBLE
+            ivConnectedIcon.visibility = View.GONE
             layoutConnectedActions.visibility = View.GONE
         }
 

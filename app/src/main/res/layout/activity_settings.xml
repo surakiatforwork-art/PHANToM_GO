@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/aurora_bg">
+    android:background="@drawable/soft_screen_bg">
 
     <ScrollView
         android:id="@+id/settingsScrollView"
@@ -11,85 +11,70 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingBottom="110dp">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingBottom="122dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:layout_marginBottom="20dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/backButton"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:minWidth="0dp"
-                android:paddingHorizontal="0dp"
-                android:text="← Back"
-                android:textColor="@color/aurora_cyan"
-                android:textStyle="bold"
-                app:icon="@drawable/ic_arrow_back"
-                app:iconPadding="8dp"
-                app:iconTint="@color/aurora_cyan" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Settings"
-                    android:textColor="@color/aurora_cyan"
-                    android:textSize="30sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="จัดการสิทธิ์แจ้งเตือน, เครื่องจอ, เครื่องหลัก และระบบ log"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardBackgroundColor="@color/aurora_glass"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="4dp"
-            app:strokeColor="@color/aurora_cyan"
-            app:strokeWidth="1dp">
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="18dp"
+            android:paddingBottom="28dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/backButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="0dp"
+                    android:text="Back"
+                    android:textAllCaps="false"
+                    android:textColor="@color/soft_text_secondary"
+                    android:textSize="16sp"
+                    app:icon="@drawable/ic_arrow_back"
+                    app:iconPadding="8dp"
+                    app:iconTint="@color/soft_text_secondary" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="PHANToM GO Settings"
+                    android:textColor="@color/soft_text_primary"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="จัดการการแจ้งเตือน, เครื่องจอ, เครื่องหลัก และระบบ log ในหน้าเดียว"
+                android:textColor="@color/soft_text_muted"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/soft_card_background"
+                android:elevation="3dp"
                 android:orientation="vertical"
                 android:padding="20dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="1) การแจ้งเตือน"
-                    android:textColor="@color/aurora_cyan"
+                    android:text="Notifications"
+                    android:textColor="@color/soft_text_primary"
                     android:textSize="20sp"
                     android:textStyle="bold" />
 
@@ -97,8 +82,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="ต้องเปิดไว้เพื่อให้ foreground service และการรับเส้นทางทำงานเสถียร"
-                    android:textColor="@color/aurora_silver"
+                    android:text="เปิดไว้เพื่อให้ foreground service, cloud alerts และการส่งเส้นทางทำงานได้เสถียร"
+                    android:textColor="@color/soft_text_secondary"
                     android:textSize="14sp" />
 
                 <TextView
@@ -107,42 +92,35 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
                     android:text="Checking..."
-                    android:textColor="@color/aurora_silver"
+                    android:textColor="@color/soft_text_secondary"
                     android:textSize="14sp" />
 
                 <Button
                     android:id="@+id/requestNotificationButton"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="54dp"
                     android:layout_marginTop="14dp"
-                    android:background="@drawable/aurora_button_ripple"
+                    android:background="@drawable/soft_primary_button"
                     android:text="Enable Notifications"
-                    android:textColor="@color/white"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
                     android:visibility="gone" />
-
             </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardBackgroundColor="@color/aurora_glass"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/soft_card_background"
+                android:elevation="3dp"
                 android:orientation="vertical"
                 android:padding="20dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="3) การตั้งค่าเครื่องหลัก (Main)"
-                    android:textColor="@color/aurora_cyan"
+                    android:text="Display Device"
+                    android:textColor="@color/soft_text_primary"
                     android:textSize="20sp"
                     android:textStyle="bold" />
 
@@ -150,204 +128,448 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="ตั้งค่าส่วนนี้บนเครื่องที่ใช้แชร์ลิงก์และส่งปลายทางไปยังจอ"
-                    android:textColor="@color/aurora_silver"
+                    android:text="ตั้งค่าส่วนนี้บนเครื่องที่ใช้เป็นจอติดรถและรับปลายทางจากเครื่องหลัก"
+                    android:textColor="@color/soft_text_secondary"
                     android:textSize="14sp" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="18dp"
-                    android:layout_marginBottom="18dp"
-                    android:alpha="0.45"
-                    android:background="@color/aurora_gray" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Link Hub &amp; Sending"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="เมื่อเปิด PHANToM GO จะรับลิงก์แผนที่แทน Google Maps แล้วส่งไปเครื่องจอทันที"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <Switch
-                        android:id="@+id/mapLinkHubSwitch"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:thumbTint="@color/aurora_cyan"
-                        android:trackTint="@color/aurora_gray" />
+                    android:layout_marginTop="18dp"
+                    android:background="@drawable/soft_inline_card_background"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
                     <TextView
-                        android:id="@+id/mapLinkHubStatusText"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:text="Off"
-                        android:textColor="@color/aurora_warning"
-                        android:textSize="14sp" />
+                        android:text="Display Power Automation"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Switch
+                            android:id="@+id/displayPowerAutomationSwitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/displayPowerAutomationStatusText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Off"
+                            android:textColor="@color/soft_warning"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/displayPowerAutomationDetailText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="Profile details"
+                        android:textColor="@color/soft_text_secondary"
+                        android:textSize="13sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Switch
+                            android:id="@+id/displayWakeBeforeMapsSwitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Wake and brighten before opening Maps"
+                            android:textColor="@color/soft_text_primary" />
+
+                        <TextView
+                            android:id="@+id/displayWakeBeforeMapsStatusText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Enabled"
+                            android:textColor="@color/soft_success"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Switch
+                            android:id="@+id/lockOnDisconnectSwitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Lock device when external power disconnects"
+                            android:textColor="@color/soft_text_primary" />
+
+                        <TextView
+                            android:id="@+id/lockOnDisconnectStatusText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Disabled"
+                            android:textColor="@color/soft_text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/systemSettingsStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Modify system settings required"
+                        android:textColor="@color/soft_warning"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/requestSystemSettingsButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="Grant Modify System Settings"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
+
+                    <TextView
+                        android:id="@+id/deviceAdminStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Device Admin optional"
+                        android:textColor="@color/soft_text_secondary"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/requestDeviceAdminButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="Enable Device Admin"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/deviceModeStatusText"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="Device mode: MAIN"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/soft_inline_card_background"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <TextView
-                    android:id="@+id/mapLinkHubInstructionText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="หากต้องการให้เด้งเข้า PHANToM GO อัตโนมัติ ให้ตั้งค่า Open by default ในระบบ"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/mapLinkHubDefaultStatusText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="System default: โปรดตั้งค่าในระบบ"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="12sp" />
-
-                <Button
-                    android:id="@+id/openByDefaultButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/aurora_button_ripple"
-                    android:text="ตั้งค่า Open by default"
-                    android:textColor="@color/white" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="18dp"
-                    android:layout_marginBottom="18dp"
-                    android:alpha="0.45"
-                    android:background="@color/aurora_gray" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Connection Transport"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/transportModeStatusText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Current transport: AUTO"
-                    android:textColor="@color/aurora_cyan"
-                    android:textSize="13sp" />
-
-                <RadioGroup
-                    android:id="@+id/transportModeGroup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <RadioButton
-                        android:id="@+id/transportModeAuto"
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="AUTO (Wi-Fi ก่อน, Bluetooth สำรอง)" />
+                        android:text="Overlay Widget"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
 
-                    <RadioButton
-                        android:id="@+id/transportModeWifi"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="Wi-Fi Local (HTTP)" />
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                    <RadioButton
-                        android:id="@+id/transportModeBluetooth"
+                        <Switch
+                            android:id="@+id/overlaySwitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/overlayStatusText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Checking..."
+                            android:textColor="@color/soft_text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/grantPermissionButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="Grant Overlay Permission"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/soft_inline_card_background"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="Bluetooth (RFCOMM)" />
+                        android:text="Display Open Behavior"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
 
-                </RadioGroup>
+                    <TextView
+                        android:id="@+id/displayOpenModeStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Preview Route"
+                        android:textColor="@color/soft_blue_dark"
+                        android:textSize="13sp" />
 
-                <TextView
-                    android:id="@+id/bluetoothTargetStatusText"
+                    <RadioGroup
+                        android:id="@+id/displayOpenModeGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/displayOpenModePreview"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Preview Route" />
+
+                        <RadioButton
+                            android:id="@+id/displayOpenModeNavigate"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Start Navigation" />
+                    </RadioGroup>
+
+                    <TextView
+                        android:id="@+id/displayNavModeStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Car"
+                        android:textColor="@color/soft_blue_dark"
+                        android:textSize="13sp" />
+
+                    <RadioGroup
+                        android:id="@+id/displayNavModeGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/displayNavModeCar"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Car" />
+
+                        <RadioButton
+                            android:id="@+id/displayNavModeMotorcycle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Motorcycle" />
+                    </RadioGroup>
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="BT target: not selected"
-                    android:textColor="@color/aurora_warning"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/soft_inline_card_background"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <Button
-                    android:id="@+id/pickBluetoothDeviceButton"
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Display Speedometer"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Switch
+                            android:id="@+id/speedometerSwitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/speedometerStatusText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Off"
+                            android:textColor="@color/soft_warning"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/speedometerPermissionText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="Location permission: not granted"
+                        android:textColor="@color/soft_text_secondary"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/requestLocationPermissionButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="Allow location and all-time access"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:background="@drawable/aurora_button_ripple"
-                    android:text="เลือกอุปกรณ์ Bluetooth"
-                    android:textColor="@color/white" />
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/soft_inline_card_background"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <Button
-                    android:id="@+id/clearBluetoothDeviceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:background="@drawable/aurora_button_ripple"
-                    android:text="ล้างอุปกรณ์ Bluetooth"
-                    android:textColor="@color/white"
-                    android:visibility="gone" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Display Anti-Theft"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Switch
+                            android:id="@+id/antiTheftEnabledSwitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/antiTheftStatusText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Off"
+                            android:textColor="@color/soft_warning"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/antiTheftDetailText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="Waiting for a 3.5 mm trigger"
+                        android:textColor="@color/soft_text_secondary"
+                        android:textSize="13sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Switch
+                            android:id="@+id/antiTheftAttachLocationSwitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Attach location in theft alerts"
+                            android:textColor="@color/soft_text_primary" />
+
+                        <TextView
+                            android:id="@+id/antiTheftAttachLocationStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="On"
+                            android:textColor="@color/soft_success"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/antiTheftPinButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="Set / Change Anti-Theft PIN"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
+
+                    <Button
+                        android:id="@+id/antiTheftSoundButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="Choose Alarm Sound"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
+
+                    <Button
+                        android:id="@+id/antiTheftTestButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="Test Anti-Theft Alarm"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
+                </LinearLayout>
             </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardBackgroundColor="@color/aurora_glass"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/soft_card_background"
+                android:elevation="3dp"
                 android:orientation="vertical"
                 android:padding="20dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="2) การตั้งค่าเครื่องจอ (Display)"
-                    android:textColor="@color/aurora_cyan"
+                    android:text="Main Device"
+                    android:textColor="@color/soft_text_primary"
                     android:textSize="20sp"
                     android:textStyle="bold" />
 
@@ -355,513 +577,271 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="ตั้งค่าส่วนนี้บนเครื่องที่ใช้เป็นจอติดรถ"
-                    android:textColor="@color/aurora_silver"
+                    android:text="ตั้งค่าส่วนนี้บนเครื่องที่ใช้รับลิงก์และส่งปลายทางไปยังจอ"
+                    android:textColor="@color/soft_text_secondary"
                     android:textSize="14sp" />
 
-                <View
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="18dp"
-                    android:layout_marginBottom="18dp"
-                    android:alpha="0.45"
-                    android:background="@color/aurora_gray" />
+                    android:background="@drawable/soft_inline_card_background"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Overlay Widget"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Map Link Hub"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Show overlay widget when navigation is received and app is in background"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Switch
+                            android:id="@+id/mapLinkHubSwitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/mapLinkHubStatusText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Off"
+                            android:textColor="@color/soft_warning"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/deviceModeStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="Device mode: MAIN"
+                        android:textColor="@color/soft_text_secondary"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/mapLinkHubInstructionText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="หากต้องการให้เด้งเข้า PHANToM GO อัตโนมัติ ให้ตั้งค่า Open by default ในระบบ"
+                        android:textColor="@color/soft_text_secondary"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/mapLinkHubDefaultStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="System default: โปรดตั้งค่าในระบบ"
+                        android:textColor="@color/soft_text_muted"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/openByDefaultButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="Open by default settings"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
+                </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <Switch
-                        android:id="@+id/overlaySwitch"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:thumbTint="@color/aurora_cyan"
-                        android:trackTint="@color/aurora_gray" />
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/soft_inline_card_background"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
                     <TextView
-                        android:id="@+id/overlayStatusText"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:text="Checking..."
-                        android:textColor="@color/aurora_silver"
-                        android:textSize="14sp" />
+                        android:text="Connection Transport"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
 
+                    <TextView
+                        android:id="@+id/transportModeStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Current transport: WIFI"
+                        android:textColor="@color/soft_blue_dark"
+                        android:textSize="13sp" />
+
+                    <RadioGroup
+                        android:id="@+id/transportModeGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp">
+
+                        <RadioButton
+                            android:id="@+id/transportModeAuto"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="AUTO" />
+
+                        <RadioButton
+                            android:id="@+id/transportModeWifi"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Wi‑Fi Local (HTTP)" />
+
+                        <RadioButton
+                            android:id="@+id/transportModeBluetooth"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Bluetooth (RFCOMM)" />
+                    </RadioGroup>
+
+                    <TextView
+                        android:id="@+id/bluetoothTargetStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="Bluetooth transport disabled"
+                        android:textColor="@color/soft_text_secondary"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/pickBluetoothDeviceButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="เลือกอุปกรณ์ Bluetooth"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
+
+                    <Button
+                        android:id="@+id/clearBluetoothDeviceButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/soft_secondary_button"
+                        android:text="ล้างอุปกรณ์ Bluetooth"
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark"
+                        android:visibility="gone" />
                 </LinearLayout>
-
-                <Button
-                    android:id="@+id/grantPermissionButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/aurora_button_ripple"
-                    android:text="Grant Overlay Permission"
-                    android:textColor="@color/white"
-                    android:visibility="gone" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="18dp"
-                    android:layout_marginBottom="18dp"
-                    android:alpha="0.45"
-                    android:background="@color/aurora_gray" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Display Navigation Mode"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/displayNavModeStatusText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Car"
-                    android:textColor="@color/aurora_cyan"
-                    android:textSize="13sp" />
-
-                <RadioGroup
-                    android:id="@+id/displayNavModeGroup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <RadioButton
-                        android:id="@+id/displayNavModeCar"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="รถยนต์ (Car)" />
-
-                    <RadioButton
-                        android:id="@+id/displayNavModeMotorcycle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="มอเตอร์ไซค์ (Motorcycle)" />
-
-                </RadioGroup>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="18dp"
-                    android:layout_marginBottom="18dp"
-                    android:alpha="0.45"
-                    android:background="@color/aurora_gray" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Display Open Mode"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/displayOpenModeStatusText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Show route preview"
-                    android:textColor="@color/aurora_cyan"
-                    android:textSize="13sp" />
-
-                <RadioGroup
-                    android:id="@+id/displayOpenModeGroup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <RadioButton
-                        android:id="@+id/displayOpenModePreview"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="แสดงเส้นทางก่อน (กดเริ่มเอง)" />
-
-                    <RadioButton
-                        android:id="@+id/displayOpenModeNavigate"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="เริ่มนำทางทันที" />
-
-                </RadioGroup>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="18dp"
-                    android:layout_marginBottom="18dp"
-                    android:alpha="0.45"
-                    android:background="@color/aurora_gray" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Display Speedometer"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="ใช้ GPS และสิทธิ์เข้าถึงตำแหน่งเพื่อแสดงความเร็วปัจจุบันเป็น km/h ระหว่างใช้งาน Display mode"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <Switch
-                        android:id="@+id/speedometerSwitch"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:thumbTint="@color/aurora_cyan"
-                        android:trackTint="@color/aurora_gray" />
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/soft_inline_card_background"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
                     <TextView
-                        android:id="@+id/speedometerStatusText"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:text="Off"
-                        android:textColor="@color/aurora_warning"
-                        android:textSize="14sp" />
+                        android:text="Smart Mode"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
 
-                </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/speedometerPermissionText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="Location permission: not granted"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
+                        <Switch
+                            android:id="@+id/smartModeSwitch"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
 
-                <Button
-                    android:id="@+id/requestLocationPermissionButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/aurora_button_ripple"
-                    android:text="อนุญาตตำแหน่งและ All-time access"
-                    android:textColor="@color/white" />
+                        <TextView
+                            android:id="@+id/smartModeStatusText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Off"
+                            android:textColor="@color/soft_warning"
+                            android:textSize="14sp" />
+                    </LinearLayout>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="18dp"
-                    android:layout_marginBottom="18dp"
-                    android:alpha="0.45"
-                    android:background="@color/aurora_gray" />
+                    <RadioGroup
+                        android:id="@+id/smartPolicyGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Display Anti-Theft"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                        <RadioButton
+                            android:id="@+id/policyAutoSendNavOnly"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Auto Send (Nav Only)" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="ใช้งานเฉพาะกับสาย trigger ที่เสียบผ่านช่อง 3.5 mm บนเครื่องจอ เมื่อถอดสายจะให้ใส่ PIN และสามารถส่งแจ้งเตือนไปยังเครื่องหลักที่จับคู่ไว้"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
+                        <RadioButton
+                            android:id="@+id/policyAlwaysAsk"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Always Ask" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                        <RadioButton
+                            android:id="@+id/policyAlwaysSend"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Always Send" />
+
+                        <RadioButton
+                            android:id="@+id/policyAlwaysOpenOnPhone"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Always Open On Phone" />
+                    </RadioGroup>
+
+                    <RadioGroup
+                        android:id="@+id/afterSendGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp">
+
+                        <RadioButton
+                            android:id="@+id/afterSendExit"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Exit after send" />
+
+                        <RadioButton
+                            android:id="@+id/afterSendStay"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Stay in app" />
+                    </RadioGroup>
 
                     <Switch
-                        android:id="@+id/antiTheftEnabledSwitch"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:thumbTint="@color/aurora_cyan"
-                        android:trackTint="@color/aurora_gray" />
-
-                    <TextView
-                        android:id="@+id/antiTheftStatusText"
+                        android:id="@+id/openMapsAfterSendSwitch"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:text="Off"
-                        android:textColor="@color/aurora_warning"
-                        android:textSize="14sp" />
-
+                        android:layout_marginTop="12dp"
+                        android:text="Open Google Maps on Main after send"
+                        android:textColor="@color/soft_text_primary" />
                 </LinearLayout>
-
-                <TextView
-                    android:id="@+id/antiTheftDetailText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="Waiting for a 3.5 mm trigger"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <Switch
-                        android:id="@+id/antiTheftAttachLocationSwitch"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Attach location in theft alerts"
-                        android:textColor="@color/text_primary"
-                        android:thumbTint="@color/aurora_cyan"
-                        android:trackTint="@color/aurora_gray" />
-
-                    <TextView
-                        android:id="@+id/antiTheftAttachLocationStatus"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:text="On"
-                        android:textColor="@color/aurora_cyan"
-                        android:textSize="14sp" />
-
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/antiTheftPinButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/aurora_button_ripple"
-                    android:text="Set / Change Anti-Theft PIN"
-                    android:textColor="@color/white" />
-
-                <Button
-                    android:id="@+id/antiTheftSoundButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/aurora_button_ripple"
-                    android:text="Choose Alarm Sound"
-                    android:textColor="@color/white" />
-
-                <Button
-                    android:id="@+id/antiTheftTestButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/aurora_button_ripple"
-                    android:text="Test Anti-Theft Alarm"
-                    android:textColor="@color/white" />
-
             </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardBackgroundColor="@color/aurora_glass"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Smart Mode"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <Switch
-                        android:id="@+id/smartModeSwitch"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:thumbTint="@color/aurora_cyan"
-                        android:trackTint="@color/aurora_gray" />
-
-                    <TextView
-                        android:id="@+id/smartModeStatusText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:text="Off"
-                        android:textColor="@color/aurora_warning"
-                        android:textSize="14sp" />
-
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="นโยบายโหมดฉลาด"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
-
-                <RadioGroup
-                    android:id="@+id/smartPolicyGroup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <RadioButton
-                        android:id="@+id/policyAutoSendNavOnly"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="ส่งไปจอเฉพาะกรณีเป็นนำทาง" />
-
-                    <RadioButton
-                        android:id="@+id/policyAlwaysAsk"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="ถามผู้ใช้ทุกครั้ง" />
-
-                    <RadioButton
-                        android:id="@+id/policyAlwaysSend"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="ส่งไปจอทุกครั้ง" />
-
-                    <RadioButton
-                        android:id="@+id/policyAlwaysOpenOnPhone"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="เปิด Maps บนเครื่องหลักทุกครั้ง" />
-
-                </RadioGroup>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="หลังส่งสำเร็จ"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
-
-                <RadioGroup
-                    android:id="@+id/afterSendGroup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <RadioButton
-                        android:id="@+id/afterSendExit"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="ปิดตัวเองและไม่อยู่ Recent" />
-
-                    <RadioButton
-                        android:id="@+id/afterSendStay"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp"
-                        android:paddingVertical="12dp"
-                        android:text="ค้างใน PHANToM GO" />
-
-                </RadioGroup>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="หลังส่งสำเร็จ: เปิด Google Maps บนเครื่องหลัก"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
-
-                <Switch
-                    android:id="@+id/openMapsAfterSendSwitch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:thumbTint="@color/aurora_cyan"
-                    android:trackTint="@color/aurora_gray" />
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardBackgroundColor="@color/aurora_glass"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="4dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/soft_card_background"
+                android:elevation="3dp"
                 android:orientation="vertical"
                 android:padding="20dp">
 
@@ -875,53 +855,38 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="4) Logcat / System Logs"
-                        android:textColor="@color/aurora_cyan"
+                        android:text="Logcat / System Logs"
+                        android:textColor="@color/soft_text_primary"
                         android:textSize="20sp"
                         android:textStyle="bold" />
 
                     <Button
                         android:id="@+id/copyLogButton"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:background="@drawable/aurora_button_ripple"
-                        android:minWidth="0dp"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="8dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/soft_secondary_button"
                         android:text="Copy"
-                        android:textColor="@color/white"
-                        android:textSize="12sp" />
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
 
                     <Button
                         android:id="@+id/clearLogButton"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/aurora_button_ripple"
-                        android:minWidth="0dp"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="8dp"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/soft_secondary_button"
                         android:text="Clear"
-                        android:textColor="@color/white"
-                        android:textSize="12sp" />
-
+                        android:textAllCaps="false"
+                        android:textColor="@color/soft_blue_dark" />
                 </LinearLayout>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="ดูสถานะล่าสุดของแอปและคัดลอก log ออกไปตรวจสอบได้จากส่วนนี้"
-                    android:textColor="@color/aurora_silver"
-                    android:textSize="13sp" />
 
                 <ScrollView
                     android:id="@+id/logScrollView"
                     android:layout_width="match_parent"
                     android:layout_height="260dp"
                     android:layout_marginTop="14dp"
-                    android:background="@color/aurora_black"
-                    android:padding="12dp">
+                    android:background="@drawable/soft_inline_card_background"
+                    android:padding="14dp">
 
                     <TextView
                         android:id="@+id/logText"
@@ -929,15 +894,10 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="monospace"
                         android:text="Loading logs..."
-                        android:textColor="@color/aurora_silver"
+                        android:textColor="@color/soft_text_secondary"
                         android:textSize="12sp" />
-
                 </ScrollView>
-
             </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-    </LinearLayout>
+        </LinearLayout>
     </ScrollView>
 </FrameLayout>

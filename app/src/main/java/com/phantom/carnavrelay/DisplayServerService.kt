@@ -22,6 +22,12 @@ import kotlin.math.abs
 
 class DisplayServerService : Service() {
 
+    private data class PendingNavigationLaunch(
+        val url: String,
+        val commandId: String?,
+        val isRouteUpdate: Boolean
+    )
+
     companion object {
         private const val TAG = "PHANTOM_GO"
         private const val NOTIFICATION_ID = 2001
@@ -68,7 +74,9 @@ class DisplayServerService : Service() {
     private var lastDisplayLocationSyncAt = 0L
     private var lastDisplayLocationLat: Double? = null
     private var lastDisplayLocationLng: Double? = null
+    private var pendingNavigationLaunch: PendingNavigationLaunch? = null
     @Volatile private var resolveToken: Long = 0
+    @Volatile private var navigationLaunchToken: Long = 0
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val appStateReceiver = object : android.content.BroadcastReceiver() {
@@ -86,6 +94,18 @@ class DisplayServerService : Service() {
         }
     }
 
+    private val antiTheftStateReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != DisplayAntiTheftManager.ACTION_STATE_CHANGED) return
+            val pending = pendingNavigationLaunch ?: return
+            if (!isNavigationBlockedByAntiTheft()) {
+                Log.d(TAG, "🔓 Anti-theft released - launching queued navigation")
+                pendingNavigationLaunch = null
+                launchNavigationPipeline(pending.url, pending.commandId, pending.isRouteUpdate)
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "▶️ DisplayServerService.onCreate()")
@@ -98,6 +118,7 @@ class DisplayServerService : Service() {
         prefsManager.setDeviceMode(PrefsManager.MODE_DISPLAY)
         FirebaseManager.ensureSignedInAndSync(this, "display-service-create")
         DisplayAntiTheftManager.onDisplayServiceStarted(this)
+        DisplayPowerAutomationManager.onDisplayServiceStarted(this)
         overlayController = OverlayController(this)
         acquireWakeLock()
         refreshSpeedometerTracking()
@@ -110,6 +131,12 @@ class DisplayServerService : Service() {
                     addAction(ACTION_APP_FOREGROUND)
                     addAction(HttpServer.ACTION_PAIRING_CHANGED)
                 },
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                antiTheftStateReceiver,
+                android.content.IntentFilter(DisplayAntiTheftManager.ACTION_STATE_CHANGED),
                 androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
             )
         } catch (e: Exception) {
@@ -178,6 +205,7 @@ class DisplayServerService : Service() {
         FirebaseManager.syncDeviceRecord(this, "display-service-destroy")
         FirebaseManager.stopDisplayCommandListener()
         DisplayAntiTheftManager.onDisplayServiceStopped()
+        DisplayPowerAutomationManager.onDisplayServiceStopped()
         stopSpeedometerTracking()
         
         // Cleanup overlay
@@ -186,6 +214,11 @@ class DisplayServerService : Service() {
             unregisterReceiver(appStateReceiver)
         } catch (e: Exception) {
             Log.w(TAG, "⚠️ Failed to unregister app state receiver", e)
+        }
+        try {
+            unregisterReceiver(antiTheftStateReceiver)
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Failed to unregister anti-theft receiver", e)
         }
         
         // Cleanup HTTP server
@@ -487,9 +520,6 @@ class DisplayServerService : Service() {
 
         lastUrl = finalUrl
         lastCmdAt = now
-        if (!commandId.isNullOrBlank()) {
-            FirebaseManager.markCloudCommandOpened(this, commandId, finalUrl)
-        }
 
         // Save to prefs for diagnostics
         val prefs = getSharedPreferences("phantom_go_prefs", Context.MODE_PRIVATE)
@@ -499,29 +529,59 @@ class DisplayServerService : Service() {
             apply()
         }
 
-        // Show navigation notification with Open Navigation action
-        showNavigationNotification(finalUrl, allowFullScreenIntent = false)
+        if (isNavigationBlockedByAntiTheft()) {
+            Log.d(TAG, "🔐 Navigation queued because anti-theft currently blocks route launch")
+            pendingNavigationLaunch = PendingNavigationLaunch(
+                url = finalUrl,
+                commandId = commandId,
+                isRouteUpdate = isRouteUpdate
+            )
+            return
+        }
 
-        // Check if app is in foreground
-        if (PhantomGoApplication.isInForeground()) {
-            Log.d(TAG, "📱 App in foreground, opening Maps directly")
-            openMapsDirectly(finalUrl)
-        } else {
+        launchNavigationPipeline(finalUrl, commandId, isRouteUpdate)
+    }
+
+    private fun isLikelyRouteUpdate(previousUrl: String?, previousCmdAtMs: Long, nextUrl: String, nowMs: Long): Boolean {
+        if (previousUrl.isNullOrBlank()) return false
+        if (previousCmdAtMs <= 0L) return false
+        if ((nowMs - previousCmdAtMs) > ROUTE_UPDATE_WINDOW_MS) return false
+        return previousUrl != nextUrl
+    }
+
+    private fun launchNavigationPipeline(url: String, commandId: String?, isRouteUpdate: Boolean) {
+        navigationLaunchToken = System.currentTimeMillis()
+        val currentToken = navigationLaunchToken
+
+        val openMapsFlow = openMapsFlow@{
+            if (navigationLaunchToken != currentToken) {
+                Log.d(TAG, "⏭️ Skipping stale navigation launch")
+                return@openMapsFlow
+            }
+            showNavigationNotification(url, allowFullScreenIntent = false)
+            if (!commandId.isNullOrBlank()) {
+                FirebaseManager.markCloudCommandOpened(this, commandId, url)
+            }
+
+            if (PhantomGoApplication.isInForeground()) {
+                Log.d(TAG, "📱 App in foreground, opening Maps directly")
+                openMapsDirectly(url)
+                return@openMapsFlow
+            }
+
             Log.d(TAG, "📱 App in background, opening Maps directly")
-            openMapsDirectly(finalUrl)
+            openMapsDirectly(url)
 
-            // In active navigation updates, avoid overlay focus churn so Google Maps reroute popup stays visible.
             if (isRouteUpdate) {
                 Log.d(TAG, "🛣️ Route update detected - skipping overlay to preserve Google Maps confirmation popup")
                 PhantomLog.i("NAV routeUpdate overlaySkipped")
-                return
+                return@openMapsFlow
             }
 
-            // Try to show overlay if enabled and permission granted
             overlayController?.let { controller ->
                 if (controller.isOverlayEnabled() && controller.hasOverlayPermission()) {
                     Log.d(TAG, "🎯 Showing overlay widget")
-                    controller.showNavigationOverlay(finalUrl)
+                    controller.showNavigationOverlay(url)
                 } else {
                     Log.d(TAG, "🚫 Overlay disabled or no permission, using notification only")
                     if (!controller.hasOverlayPermission()) {
@@ -535,13 +595,39 @@ class DisplayServerService : Service() {
                 Log.w(TAG, "⚠️ Overlay controller not initialized")
             }
         }
+
+        if (!DisplayPowerAutomationManager.isNavigationPreparationEnabled(this)) {
+            openMapsFlow()
+            return
+        }
+
+        val readiness = DisplayPowerAutomationManager.evaluateReadiness(this)
+        if (readiness.ready) {
+            Log.d(TAG, "⚡ Display already ready - opening Maps immediately")
+            openMapsFlow()
+            return
+        }
+
+        Log.d(
+            TAG,
+            "🌙 Preparing display before opening Maps (interactive=${readiness.interactive}, unlocked=${readiness.unlocked}, brightnessMatches=${readiness.brightnessMatchesProfile}, currentBrightness=${readiness.currentBrightness}, expectedBrightness=${readiness.expectedBrightness})"
+        )
+        DisplayPowerAutomationManager.prepareForNavigationLaunch(this) {
+            if (navigationLaunchToken == currentToken && !isNavigationBlockedByAntiTheft()) {
+                openMapsFlow()
+            }
+        }
     }
 
-    private fun isLikelyRouteUpdate(previousUrl: String?, previousCmdAtMs: Long, nextUrl: String, nowMs: Long): Boolean {
-        if (previousUrl.isNullOrBlank()) return false
-        if (previousCmdAtMs <= 0L) return false
-        if ((nowMs - previousCmdAtMs) > ROUTE_UPDATE_WINDOW_MS) return false
-        return previousUrl != nextUrl
+    private fun isNavigationBlockedByAntiTheft(): Boolean {
+        return when (DisplayAntiTheftManager.getCurrentState(this)) {
+            AntiTheftState.CHALLENGE_1,
+            AntiTheftState.CHALLENGE_2,
+            AntiTheftState.POST_ALERT_COUNTDOWN,
+            AntiTheftState.ALARM_ACTIVE,
+            AntiTheftState.FULLSCREEN_LOCK -> true
+            else -> false
+        }
     }
     
     private fun openMapsDirectly(url: String) {

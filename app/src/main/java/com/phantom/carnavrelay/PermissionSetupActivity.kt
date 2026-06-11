@@ -28,6 +28,8 @@ class PermissionSetupActivity : AppCompatActivity() {
     private lateinit var tvLocationStatus: TextView
     private lateinit var tvBackgroundLocationStatus: TextView
     private lateinit var tvOverlayStatus: TextView
+    private lateinit var tvSystemSettingsStatus: TextView
+    private lateinit var tvDeviceAdminStatus: TextView
     private lateinit var tvBatteryStatus: TextView
     private lateinit var tvPermissionSummary: TextView
     private lateinit var btnGrantPermissions: MaterialButton
@@ -51,8 +53,22 @@ class PermissionSetupActivity : AppCompatActivity() {
         updatePermissionState()
         if (continueFlowAfterOverlay) {
             continueFlowAfterOverlay = false
-            requestBatteryOptimizationIfNeeded()
+            requestWriteSettingsIfNeeded()
         }
+    }
+
+    private val writeSettingsLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        updatePermissionState()
+        requestDeviceAdminIfNeeded()
+    }
+
+    private val deviceAdminLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        updatePermissionState()
+        requestBatteryOptimizationIfNeeded()
     }
 
     private val backgroundLocationPermissionLauncher = registerForActivityResult(
@@ -80,6 +96,8 @@ class PermissionSetupActivity : AppCompatActivity() {
         tvLocationStatus = findViewById(R.id.tvLocationStatus)
         tvBackgroundLocationStatus = findViewById(R.id.tvBackgroundLocationStatus)
         tvOverlayStatus = findViewById(R.id.tvOverlayStatus)
+        tvSystemSettingsStatus = findViewById(R.id.tvSystemSettingsStatus)
+        tvDeviceAdminStatus = findViewById(R.id.tvDeviceAdminStatus)
         tvBatteryStatus = findViewById(R.id.tvBatteryStatus)
         tvPermissionSummary = findViewById(R.id.tvPermissionSummary)
         btnGrantPermissions = findViewById(R.id.btnGrantPermissions)
@@ -112,7 +130,7 @@ class PermissionSetupActivity : AppCompatActivity() {
 
     private fun requestOverlayAccessIfNeeded() {
         if (overlayController.hasOverlayPermission()) {
-            requestBatteryOptimizationIfNeeded()
+            requestWriteSettingsIfNeeded()
             return
         }
 
@@ -126,6 +144,42 @@ class PermissionSetupActivity : AppCompatActivity() {
                     Uri.parse("package:$packageName")
                 )
                 overlaySettingsLauncher.launch(intent)
+            }
+            .setNegativeButton("Skip") { _, _ ->
+                requestBatteryOptimizationIfNeeded()
+            }
+            .show()
+    }
+
+    private fun requestWriteSettingsIfNeeded() {
+        if (DisplayPowerAutomationManager.canWriteSystemSettings(this)) {
+            requestDeviceAdminIfNeeded()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Allow Modify System Settings")
+            .setMessage("PHANToM GO can brighten and dim the display automatically before opening Google Maps and when power changes. Open the system page now?")
+            .setPositiveButton("Open Settings") { _, _ ->
+                writeSettingsLauncher.launch(DisplayPowerAutomationManager.buildWriteSettingsIntent(this))
+            }
+            .setNegativeButton("Skip") { _, _ ->
+                requestDeviceAdminIfNeeded()
+            }
+            .show()
+    }
+
+    private fun requestDeviceAdminIfNeeded() {
+        if (DisplayPowerAutomationManager.isDeviceAdminActive(this)) {
+            requestBatteryOptimizationIfNeeded()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Optional: Device Admin for Power Disconnect Lock")
+            .setMessage("Enable this only if you want PHANToM GO to lock the display device automatically when external power is disconnected.")
+            .setPositiveButton("Enable") { _, _ ->
+                deviceAdminLauncher.launch(DisplayPowerAutomationManager.buildDeviceAdminIntent(this))
             }
             .setNegativeButton("Skip") { _, _ ->
                 requestBatteryOptimizationIfNeeded()
@@ -158,6 +212,8 @@ class PermissionSetupActivity : AppCompatActivity() {
         val locationGranted = DisplaySpeedMonitor.hasLocationPermission(this)
         val backgroundLocationGranted = DisplaySpeedMonitor.hasBackgroundLocationPermission(this)
         val overlayGranted = overlayController.hasOverlayPermission()
+        val systemSettingsGranted = DisplayPowerAutomationManager.canWriteSystemSettings(this)
+        val deviceAdminGranted = DisplayPowerAutomationManager.isDeviceAdminActive(this)
         val batteryGranted = isIgnoringBatteryOptimizations()
 
         updateStatusLine(tvCameraStatus, cameraGranted, "Granted", "Needs action")
@@ -165,6 +221,8 @@ class PermissionSetupActivity : AppCompatActivity() {
         updateStatusLine(tvLocationStatus, locationGranted, "Granted", "Recommended")
         updateStatusLine(tvBackgroundLocationStatus, backgroundLocationGranted, "Granted", "Recommended")
         updateStatusLine(tvOverlayStatus, overlayGranted, "Granted", "Recommended")
+        updateStatusLine(tvSystemSettingsStatus, systemSettingsGranted, "Granted", "Recommended")
+        updateStatusLine(tvDeviceAdminStatus, deviceAdminGranted, "Enabled", "Optional")
         updateStatusLine(tvBatteryStatus, batteryGranted, "Granted", "Recommended")
 
         val missingCount = listOf(
@@ -173,6 +231,7 @@ class PermissionSetupActivity : AppCompatActivity() {
             locationGranted,
             backgroundLocationGranted,
             overlayGranted,
+            systemSettingsGranted,
             batteryGranted
         ).count { !it }
         tvPermissionSummary.text = if (missingCount == 0) {
