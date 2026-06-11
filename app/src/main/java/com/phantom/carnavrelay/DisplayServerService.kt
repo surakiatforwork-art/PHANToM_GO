@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
@@ -118,6 +120,21 @@ class DisplayServerService : Service() {
         }
     }
 
+    private val displayPowerEventReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_POWER_CONNECTED,
+                Intent.ACTION_POWER_DISCONNECTED -> {
+                    DisplayPowerAutomationManager.handlePowerEvent(
+                        context = context,
+                        action = intent.action.orEmpty(),
+                        source = "display-service-runtime-receiver"
+                    )
+                }
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "▶️ DisplayServerService.onCreate()")
@@ -152,7 +169,25 @@ class DisplayServerService : Service() {
                 androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
             )
         } catch (e: Exception) {
-            Log.e(TAG, "💥 Failed to register app state receiver", e)
+            Log.e(TAG, "💥 Failed to register app state receivers", e)
+        }
+
+        try {
+            ContextCompat.registerReceiver(
+                this,
+                displayPowerEventReceiver,
+                IntentFilter().apply {
+                    addAction(Intent.ACTION_POWER_CONNECTED)
+                    addAction(Intent.ACTION_POWER_DISCONNECTED)
+                },
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            DisplayPowerAutomationManager.reconcileCurrentPowerState(
+                this,
+                "display-service-start"
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "💥 Failed to register Display power receiver", e)
         }
     }
 
@@ -231,6 +266,11 @@ class DisplayServerService : Service() {
             unregisterReceiver(antiTheftStateReceiver)
         } catch (e: Exception) {
             Log.w(TAG, "⚠️ Failed to unregister anti-theft receiver", e)
+        }
+        try {
+            unregisterReceiver(displayPowerEventReceiver)
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ Failed to unregister display power receiver", e)
         }
         
         // Cleanup HTTP server

@@ -2,13 +2,16 @@ package com.phantom.carnavrelay
 
 import android.app.KeyguardManager
 import android.app.admin.DevicePolicyManager
+import android.os.BatteryManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import java.util.Calendar
@@ -35,6 +38,7 @@ object DisplayPowerAutomationManager {
     private const val NIGHT_START_MINUTE = 30
     private const val NIGHT_END_HOUR = 5
     private const val NIGHT_END_MINUTE = 0
+    private const val POWER_EVENT_DEBOUNCE_MS = 1_000L
 
     private lateinit var appContext: Context
     private lateinit var prefs: PrefsManager
@@ -42,6 +46,8 @@ object DisplayPowerAutomationManager {
     private var initialized = false
     private var pendingPreparationToken = 0L
     private var screenWakeLock: PowerManager.WakeLock? = null
+    private var lastPowerEventAction: String? = null
+    private var lastPowerEventAtElapsed = 0L
 
     fun initialize(context: Context) {
         if (initialized) return
@@ -60,8 +66,44 @@ object DisplayPowerAutomationManager {
         releaseScreenWakeLock()
     }
 
+    fun reconcileCurrentPowerState(context: Context, source: String) {
+        initialize(context)
+        val batteryIntent = appContext.registerReceiver(
+            null,
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        )
+        if (batteryIntent == null) {
+            PhantomLog.w("DISPLAY POWER reconcile skipped: battery state unavailable source=$source")
+            return
+        }
+        val plugged = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+        val action = if (plugged) {
+            Intent.ACTION_POWER_CONNECTED
+        } else {
+            Intent.ACTION_POWER_DISCONNECTED
+        }
+        handlePowerEvent(appContext, action, "$source-reconcile")
+    }
+
     fun handlePowerEvent(context: Context, action: String, source: String) {
         initialize(context)
+        if (action != Intent.ACTION_POWER_CONNECTED && action != Intent.ACTION_POWER_DISCONNECTED) {
+            return
+        }
+        val now = SystemClock.elapsedRealtime()
+        val duplicate = synchronized(this) {
+            val isDuplicate = action == lastPowerEventAction &&
+                now - lastPowerEventAtElapsed < POWER_EVENT_DEBOUNCE_MS
+            if (!isDuplicate) {
+                lastPowerEventAction = action
+                lastPowerEventAtElapsed = now
+            }
+            isDuplicate
+        }
+        if (duplicate) {
+            Log.d(TAG, "Display power event skipped because it was duplicated: $action source=$source")
+            return
+        }
         val automationEnabled = prefs.isDisplayPowerAutomationEnabled()
         val lockEnabled = prefs.isDisplayLockOnPowerDisconnectEnabled()
         val adminActive = isDeviceAdminActive(appContext)
