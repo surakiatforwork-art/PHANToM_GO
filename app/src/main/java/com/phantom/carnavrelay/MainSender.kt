@@ -535,7 +535,7 @@ class MainSender(
     }
 
     fun retryPending(callback: SendCallback? = null) {
-        val pending = prefsManager.getPendingQueue()
+        val pending = prefsManager.getPendingQueue().distinct()
         
         if (pending.isEmpty()) {
             showToast("No pending commands")
@@ -546,15 +546,30 @@ class MainSender(
         Log.d(TAG, "🔄 Retrying ${pending.size} pending commands")
         showToast("Retrying ${pending.size} pending commands...")
 
-        var successCount = 0
-        var failCount = 0
+        val successCount = AtomicInteger(0)
+        val failCount = AtomicInteger(0)
+        val completedCount = AtomicInteger(0)
         val total = pending.size
+
+        fun checkComplete() {
+            if (completedCount.incrementAndGet() != total) return
+            val success = successCount.get()
+            val failed = failCount.get()
+            val msg = "Retry complete: $success success, $failed failed"
+            Log.d(TAG, msg)
+            showToast(msg)
+            if (failed == 0) {
+                callback?.onSuccess()
+            } else {
+                callback?.onFailure("$failed commands still failed", prefsManager.getPendingCount() > 0)
+            }
+        }
 
         pending.forEach { url ->
             sendOpenUrl(url, object : SendCallback {
                 override fun onSuccess() {
                     prefsManager.removeFromPendingQueue(url)
-                    successCount++
+                    successCount.incrementAndGet()
                     checkComplete()
                 }
 
@@ -562,21 +577,8 @@ class MainSender(
                     if (!queued || authFailed) {
                         prefsManager.removeFromPendingQueue(url)
                     }
-                    failCount++
+                    failCount.incrementAndGet()
                     checkComplete()
-                }
-
-                private fun checkComplete() {
-                    if (successCount + failCount == total) {
-                        val msg = "Retry complete: $successCount success, $failCount failed"
-                        Log.d(TAG, msg)
-                        showToast(msg)
-                        if (failCount == 0) {
-                            callback?.onSuccess()
-                        } else {
-                            callback?.onFailure("$failCount commands still failed", pending.size > 0)
-                        }
-                    }
                 }
             })
         }

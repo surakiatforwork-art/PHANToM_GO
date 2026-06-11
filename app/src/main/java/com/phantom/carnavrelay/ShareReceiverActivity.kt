@@ -16,8 +16,13 @@ class ShareReceiverActivity : AppCompatActivity() {
 
         val forward = Intent(this, RelayActivity::class.java).apply {
             action = incoming.action
-            type = incoming.type
-            data = incoming.data
+            when {
+                incoming.data != null && incoming.type != null -> {
+                    setDataAndType(incoming.data, incoming.type)
+                }
+                incoming.data != null -> data = incoming.data
+                incoming.type != null -> type = incoming.type
+            }
             clipData = incoming.clipData
             putExtras(incoming)
         }

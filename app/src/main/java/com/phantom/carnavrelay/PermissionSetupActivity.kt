@@ -35,6 +35,7 @@ class PermissionSetupActivity : AppCompatActivity() {
     private lateinit var btnGrantPermissions: MaterialButton
     private lateinit var btnContinueToApp: MaterialButton
     private var continueFlowAfterOverlay = false
+    private var continueFlowAfterBackgroundLocationSettings = false
 
     private val runtimePermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -108,6 +109,7 @@ class PermissionSetupActivity : AppCompatActivity() {
         }
 
         btnContinueToApp.setOnClickListener {
+            prefsManager.markInitialPermissionSetupShown()
             finish()
         }
 
@@ -117,6 +119,10 @@ class PermissionSetupActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updatePermissionState()
+        if (continueFlowAfterBackgroundLocationSettings) {
+            continueFlowAfterBackgroundLocationSettings = false
+            requestOverlayAccessIfNeeded()
+        }
     }
 
     private fun startPermissionFlow() {
@@ -146,7 +152,7 @@ class PermissionSetupActivity : AppCompatActivity() {
                 overlaySettingsLauncher.launch(intent)
             }
             .setNegativeButton("Skip") { _, _ ->
-                requestBatteryOptimizationIfNeeded()
+                requestWriteSettingsIfNeeded()
             }
             .show()
     }
@@ -308,6 +314,7 @@ class PermissionSetupActivity : AppCompatActivity() {
             .setTitle("Open App Settings")
             .setMessage("Some Android permissions were denied permanently. Open App Settings to allow them manually.")
             .setPositiveButton("Open Settings") { _, _ ->
+                continueFlowAfterBackgroundLocationSettings = true
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.parse("package:$packageName")
                 }

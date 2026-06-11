@@ -159,11 +159,15 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
                     v.animate().scaleX(0.98f).scaleY(0.98f).setDuration(100).start()
                     v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                MotionEvent.ACTION_UP -> {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
+                    v.performClick()
+                }
+                MotionEvent.ACTION_CANCEL -> {
                     v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
                 }
             }
-            false
+            true
         }
     }
 
@@ -352,6 +356,7 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         setMapLinkHandlerEnabled(!isDisplayServiceRunning(), "HomeFragment.onResume")
         MainSender.triggerAutoReconnect(requireContext(), "main-resume")
         updateUI()
+        handler.removeCallbacks(statusCheckRunnable)
         handler.post(statusCheckRunnable)
     }
 

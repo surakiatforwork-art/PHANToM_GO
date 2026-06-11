@@ -31,6 +31,7 @@
                     android:id="@+id/appIcon"
                     android:layout_width="34dp"
                     android:layout_height="34dp"
+                    android:contentDescription="@null"
                     android:src="@drawable/ic_display_mode"
                     app:tint="@android:color/white" />
 
@@ -127,6 +128,7 @@
                                 android:id="@+id/ivQrCode"
                                 android:layout_width="276dp"
                                 android:layout_height="276dp"
+                                android:contentDescription="@string/pairing_qr_content_description"
                                 android:background="@android:color/white" />
                         </FrameLayout>
 
@@ -185,6 +187,7 @@
                             android:id="@+id/ivConnectedIcon"
                             android:layout_width="80dp"
                             android:layout_height="80dp"
+                            android:contentDescription="@null"
                             android:src="@drawable/ic_check_circle"
                             app:tint="#86D8A4" />
 

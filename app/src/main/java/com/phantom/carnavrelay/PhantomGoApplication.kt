@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.content.ContextCompat
 
 /**
  * PhantomGoApplication - Application class สำหรับ initialize CrashReporter
@@ -35,11 +36,27 @@ class PhantomGoApplication : Application(), Application.ActivityLifecycleCallbac
         CrashReporter.init(this)
         PhantomLog.init(this)
         FirebaseManager.initialize(this)
+        restoreDisplayServiceIfNeeded()
 
         registerActivityLifecycleCallbacks(this)
         registerNetworkReconnectCallback()
         
         Log.d(TAG, "✅ Application initialization complete")
+    }
+
+    private fun restoreDisplayServiceIfNeeded() {
+        val prefs = PrefsManager(this)
+        if (prefs.getDeviceMode() != PrefsManager.MODE_DISPLAY) return
+        runCatching {
+            ContextCompat.startForegroundService(
+                this,
+                android.content.Intent(this, DisplayServerService::class.java)
+            )
+            PhantomLog.i("Display service restore requested after process start")
+        }.onFailure { error ->
+            Log.w(TAG, "⚠️ Failed to restore Display service", error)
+            PhantomLog.e("Display service restore failed", error)
+        }
     }
 
     private fun registerNetworkReconnectCallback() {

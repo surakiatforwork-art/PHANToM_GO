@@ -193,8 +193,12 @@ object DisplayAntiTheftManager {
         broadcastState()
     }
 
-    fun onDisplayServiceStopped() {
+    fun onDisplayServiceStopped(explicitStop: Boolean) {
         if (!initialized) return
+        if (!explicitStop) {
+            PhantomLog.w("Anti-theft kept armed after unexpected Display service stop")
+            return
+        }
         unregisterHeadsetReceiverIfNeeded()
         stopAlarmOutputs()
         cancelAllTimers()

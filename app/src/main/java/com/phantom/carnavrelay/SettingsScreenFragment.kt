@@ -373,6 +373,12 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         lockOnDisconnectSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (updatingDisplayPowerUi) return@setOnCheckedChangeListener
             DisplayPowerAutomationManager.setLockOnPowerDisconnectEnabled(requireContext(), isChecked)
+            if (isChecked) {
+                DisplayPowerAutomationManager.setPowerAutomationEnabled(requireContext(), true)
+                if (!DisplayPowerAutomationManager.isDeviceAdminActive(requireContext())) {
+                    requestDeviceAdminAccess()
+                }
+            }
             updateDisplayPowerAutomationStatus()
             lockOnDisconnectSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }

@@ -75,7 +75,11 @@ object JsonUtils {
             val json = JSONObject(body)
             val token = json.getString("token")
             val mainId = json.optString("mainId", "")
-            val mainName = json.optString("mainName", null)
+            val mainName = if (json.has("mainName") && !json.isNull("mainName")) {
+                json.optString("mainName")
+            } else {
+                null
+            }
             PairRequest(token, mainId, mainName)
         } catch (e: Exception) {
             null

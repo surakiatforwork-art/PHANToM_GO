@@ -3,6 +3,7 @@
   <string name="app_name">PHANToM GO</string>
   <string name="app_name_main">PHANToM GO - Main</string>
   <string name="app_name_display">PHANToM GO - Display</string>
+  <string name="pairing_qr_content_description">QR code for pairing this Display device</string>
 
   <!-- Main Screen -->
   <string name="select_mode">Select Mode</string>

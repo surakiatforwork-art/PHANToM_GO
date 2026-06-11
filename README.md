@@ -1,106 +1,83 @@
 # PHANToM GO
 
-ส่งลิงก์แผนที่/ตำแหน่งจาก **เครื่องหลัก (Main)** ไปยัง **เครื่องจอในรถ (Display)** ผ่าน Wi‑Fi ในเครือข่ายเดียวกัน (HTTP Server) พร้อมระบบจับคู่ด้วย QR และโหมดจัดการลิงก์แผนที่แบบ “Map Link Hub”.
+PHANToM GO turns an Android phone or tablet into a paired in-car display. Send Google Maps destinations from a Main Device to a Display Device through Firebase Cloud Relay, with local Wi-Fi fallback when available.
 
-## ภาพรวมการทำงาน
-- **Display** เปิด HTTP Server บนพอร์ต `8765` และสร้าง QR (มี `ip/port/token`)
-- **Main** สแกน QR เพื่อจับคู่ จากนั้นส่งลิงก์ไปที่ `http://<ip>:8765/open-url`
-- Display เปิด Google Maps ตามการตั้งค่าที่เลือก (ดูแผนที่/เริ่มนำทาง)
+The same pairing system also works with the browser Web App, so iOS and devices that cannot install the APK can still send or receive route links.
 
-> ต้องอยู่ใน Wi‑Fi/Hotspot เดียวกันเพื่อส่งข้อมูลได้
+## Core Features
 
----
+- QR pairing without account registration
+- Cloud route relay with local Wi-Fi fallback
+- Share Target and Map Link Hub for Google Maps links
+- Display Mode with automatic Google Maps opening
+- Browser Web App interoperability
+- Display speedometer using location data
+- Display-ready automation for wake and brightness
+- Optional lock-on-power-disconnect automation
+- Jack 3.5 mm anti-theft alarm with Main Device alerts and last known location
+- Find Display from the paired Main Device
 
-## วิธีใช้งาน (เริ่มต้น)
+## Basic Workflow
 
-### 1) เครื่องจอ (Display)
-1. เปิดแอป → เข้า **Display Mode**
-2. เปิดบริการ (Foreground Service) และค้างหน้าจอไว้
-3. แสดง QR สำหรับจับคู่
+1. Open **Display** on the device used as the in-car screen.
+2. Scan its QR code from **Home** on the Main Device.
+3. Share a Google Maps destination to PHANToM GO.
+4. The route is relayed to the paired Display and opened according to its navigation settings.
 
-### 2) เครื่องหลัก (Main)
-1. เปิดแอป → **Main Mode**
-2. สแกน QR จากเครื่องจอ
-3. สถานะขึ้นว่า **Paired / Connected**
+Only one Main and one Display are paired at a time. Pairing a new device replaces the previous peer.
 
-### 3) ส่งลิงก์แผนที่
-1. จาก Google Maps / Chrome / LINE / ฯลฯ กด **Share**
-2. เลือก **PHANToM GO**
-3. ระบบจะ Normalize/Resolve ลิงก์ แล้วส่งไปเครื่องจอ
+## Display Priority
 
----
+The Display screen adapts to the current state:
 
-## Map Link Hub (รับลิงก์แทน Google Maps)
+- Before pairing, the QR card is large and the speedometer is compact.
+- After pairing, the speedometer becomes the main visual focus and the connection card becomes compact.
+- When a route arrives, display-readiness automation runs before Google Maps opens.
+- Anti-theft challenges and alarms have the highest priority and do not get replaced by route actions.
 
-ใน **Settings**:
-- **Map Link Hub**: เปิด/ปิดการเป็นตัวรับลิงก์แผนที่ (VIEW intents)
-- **Smart Mode**: เลือกนโยบาย
-  - `AUTO_SEND_NAV_ONLY` ส่งเฉพาะลิงก์นำทาง
-  - `ALWAYS_ASK` ถามทุกครั้ง
-  - `ALWAYS_SEND` ส่งทุกลิงก์
-  - `ALWAYS_OPEN_ON_PHONE` เปิด Maps บนมือถือหลักทุกครั้ง
+## Permissions
 
-> ถ้าเปิด Map Link Hub ให้ตั้งค่า “Open by default” ในระบบ:
-> Settings ระบบ → Apps → PHANToM GO → Open by default → Always
+PHANToM GO requests only the permissions needed by enabled features:
 
----
+- Camera for QR scanning
+- Notifications for foreground services and alerts
+- Location for speed, Find Display, and anti-theft location reporting
+- Background location for continuous Display location updates
+- Overlay for optional floating controls and security verification
+- Modify system settings for optional brightness automation
+- Device Admin for optional lock-on-power-disconnect
 
-## การตั้งค่าเครื่องจอ (Display)
+Optional permissions can be skipped, but their related features will remain unavailable.
 
-ใน Display Mode:
-- **Navigation Mode**: รถยนต์ / มอเตอร์ไซค์
-- **Open Behavior**:
-  - `PREVIEW_ROUTE` เปิดเส้นทางแบบดูแผนที่
-  - `START_NAVIGATION` พยายามเริ่มนำทางทันที
-- **Overlay Widget**: เปิด/ปิดวิดเจ็ตลอย
-- **Battery Optimization**: แนะนำปิดเพื่อความเสถียร
+## Downloads and Web App
 
----
-
-## การเชื่อมต่ออัตโนมัติ (Auto Reconnect)
-- ถ้า Wi‑Fi เปลี่ยน IP, Main จะพยายามค้นหา Display ใหม่ใน subnet เดียวกัน
-- จะอัปเดต IP ให้เองหากพบ token ที่ตรงกัน
-- หากมีการ **Refresh token** ที่จอ ต้องสแกน QR ใหม่
-
----
-
-## Permissions ที่ใช้
-- Camera (สแกน QR)
-- Internet / Network State
-- Notifications (เลือกเปิดใน Settings เท่านั้น)
-- Overlay (ตัวเลือก)
-
----
+- Stable APK: [Download PHANToM GO v1.0.13](https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.13/PHANToM_GO-v1.0.13.apk)
+- Landing page: [`docs/web/index.html`](docs/web/index.html)
+- Browser Web App: [`docs/web/webapp/index.html`](docs/web/webapp/index.html)
 
 ## Build
+
 ```bash
 ./gradlew clean assembleDebug
 ```
-APK: `app/build/outputs/apk/debug/app-debug.apk`
 
----
+Installable debug-signed APK:
 
-## ADB Test (สำคัญ)
-
-### ✅ Share Sheet (ACTION_SEND)
-```bash
-adb shell cmd package query-intent-activities -a android.intent.action.SEND -t text/plain | grep -i phantom -n
+```text
+app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### ✅ Map Link Handler (ACTION_VIEW)
-```bash
-adb shell cmd package query-intent-activities -a android.intent.action.VIEW -d "geo:13.7563,100.5018" | grep -i phantom -n
-adb shell cmd package query-intent-activities -a android.intent.action.VIEW -d "https://www.google.com/maps?q=13.7563,100.5018" | grep -i phantom -n
-```
+## Project Documentation
 
-### ✅ ส่งลิงก์แบบทดสอบ
-```bash
-adb shell am start -a android.intent.action.SEND -t "text/plain" --es android.intent.extra.TEXT "https://www.google.com/maps?q=13.7563,100.5018"
-```
+- [Current app overview](docs/PHANTOM_GO_APP_OVERVIEW.md)
+- [Interactive workflow review](docs/PHANTOM_GO_WORKFLOW.html)
+- [Stable release review](docs/STABLE_RELEASE_REVIEW_v1.0.13.md)
+- [Firebase Realtime Database rules](docs/firebase-realtime-database.rules.json)
 
----
+## Important Limitations
 
-## หมายเหตุสำคัญ
-- หากต้องการให้ PHANToM GO รับลิงก์แทน Maps ต้องเปิด Map Link Hub และตั้งค่า Always ในระบบ
-- หาก Maps ไม่เปิดอัตโนมัติ ให้ตรวจการตั้งค่า Display Open Behavior
-- หากแอปไม่แสดงใน Share Sheet ให้ตรวจว่า ShareReceiverActivity ยังถูก enabled
+- Android may restrict automatic background activity launches depending on device vendor settings.
+- Device Admin can lock the Display after power removal, but it cannot prevent uninstall by a device owner.
+- Google Maps behavior varies by installed Maps version, URL format, and selected navigation mode.
+- Browser Display cannot provide the same background reliability, notification access, or automatic Maps opening as the Android APK.
+- Firebase Realtime Database data cleanup requires a backend retention process before operating at large scale.

@@ -354,8 +354,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
 
     private fun stopDisplayService() {
         try {
-            val intent = Intent(requireContext(), DisplayServerService::class.java)
-            requireContext().stopService(intent)
+            DisplayServerService.requestStop(requireContext(), "display-mode-toggle")
             prefsManager.clearSpeedSnapshot()
             updateUI()
         } catch (e: Exception) {

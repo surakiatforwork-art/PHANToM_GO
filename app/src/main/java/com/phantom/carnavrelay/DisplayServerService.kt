@@ -33,7 +33,7 @@ class DisplayServerService : Service() {
         private const val NOTIFICATION_ID = 2001
         private const val CHANNEL_ID = "phantom_go_display"
         private const val ACTION_OPEN_MAPS = "com.phantom.carnavrelay.OPEN_MAPS"
-        private const val ACTION_STOP_SERVER = "com.phantom.carnavrelay.STOP_SERVER"
+        const val ACTION_STOP_SERVER = "com.phantom.carnavrelay.STOP_SERVER"
         private const val ACTION_REFRESH_SPEEDOMETER = "com.phantom.carnavrelay.REFRESH_SPEEDOMETER"
         const val ACTION_NAVIGATION_RECEIVED = "com.phantom.carnavrelay.NAVIGATION_RECEIVED"
         const val ACTION_APP_FOREGROUND = "com.phantom.carnavrelay.APP_FOREGROUND"
@@ -47,6 +47,7 @@ class DisplayServerService : Service() {
         private const val ROUTE_UPDATE_WINDOW_MS = 2 * 60 * 60 * 1000L
         private const val DISPLAY_LOCATION_SYNC_INTERVAL_MS = 15_000L
         private const val DISPLAY_LOCATION_MIN_DISTANCE_METERS = 35f
+        @Volatile private var explicitStopRequested = false
         
         // Wake lock
         private const val WAKE_LOCK_TAG = "PHANTOM_GO:DisplayServer"
@@ -60,6 +61,17 @@ class DisplayServerService : Service() {
                 context.startForegroundService(intent)
             } else {
                 context.startService(intent)
+            }
+        }
+
+        fun requestStop(context: Context, reason: String) {
+            val appContext = context.applicationContext
+            explicitStopRequested = true
+            PrefsManager(appContext).setDeviceMode(PrefsManager.MODE_MAIN)
+            FirebaseManager.syncDeviceRecord(appContext, "display-stop:$reason")
+            val stopped = appContext.stopService(Intent(appContext, DisplayServerService::class.java))
+            if (!stopped) {
+                explicitStopRequested = false
             }
         }
     }
@@ -152,7 +164,7 @@ class DisplayServerService : Service() {
         // Handle stop action
         if (intent?.action == ACTION_STOP_SERVER) {
             Log.d(TAG, "🛑 Stop server action received")
-            stopSelf()
+            requestStop(this, "notification-action")
             return START_NOT_STICKY
         }
 
@@ -201,10 +213,10 @@ class DisplayServerService : Service() {
 
     override fun onDestroy() {
         Log.d(TAG, "💀 DisplayServerService.onDestroy()")
-        prefsManager.setDeviceMode(PrefsManager.MODE_MAIN)
-        FirebaseManager.syncDeviceRecord(this, "display-service-destroy")
+        val wasExplicitStop = explicitStopRequested
+        explicitStopRequested = false
         FirebaseManager.stopDisplayCommandListener()
-        DisplayAntiTheftManager.onDisplayServiceStopped()
+        DisplayAntiTheftManager.onDisplayServiceStopped(wasExplicitStop)
         DisplayPowerAutomationManager.onDisplayServiceStopped()
         stopSpeedometerTracking()
         

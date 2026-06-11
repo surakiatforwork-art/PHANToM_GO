@@ -36,7 +36,11 @@ class MainActivity : AppCompatActivity() {
             BottomNavHelper.Tab.fromName(it)
         } ?: intent?.getStringExtra(EXTRA_INITIAL_TAB)?.let {
             BottomNavHelper.Tab.fromName(it)
-        } ?: BottomNavHelper.Tab.HOME
+        } ?: if (PrefsManager(this).getDeviceMode() == PrefsManager.MODE_DISPLAY) {
+            BottomNavHelper.Tab.DISPLAY
+        } else {
+            BottomNavHelper.Tab.HOME
+        }
         previousTab = BottomNavHelper.Tab.HOME
 
         bindBottomNavigation()
@@ -124,7 +128,6 @@ class MainActivity : AppCompatActivity() {
     private fun maybeLaunchInitialPermissionSetup() {
         val prefsManager = PrefsManager(this)
         if (prefsManager.hasShownInitialPermissionSetup()) return
-        prefsManager.markInitialPermissionSetupShown()
         startActivity(Intent(this, PermissionSetupActivity::class.java))
     }
 

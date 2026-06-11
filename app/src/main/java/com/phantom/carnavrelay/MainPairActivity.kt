@@ -59,13 +59,11 @@ class MainPairActivity : AppCompatActivity() {
     private fun initViews() {
         Log.d(TAG, "🔧 MainPairActivity.initViews() called")
         codeInput = findViewById<TextInputEditText>(R.id.codeInput)
+            ?: error("codeInput not found in activity_main_pair")
         codeLayout = findViewById<TextInputLayout>(R.id.codeLayout)
+            ?: error("codeLayout not found in activity_main_pair")
         connectButton = findViewById<MaterialButton>(R.id.connectButton)
-
-        // Validate views found
-        if (codeInput == null || codeLayout == null || connectButton == null) {
-            throw IllegalStateException("Required views not found in layout")
-        }
+            ?: error("connectButton not found in activity_main_pair")
 
         // Set device name in subtitle
         findViewById<TextView>(R.id.deviceNameText)?.text = deviceName

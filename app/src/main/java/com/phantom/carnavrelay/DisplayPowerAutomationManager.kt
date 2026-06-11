@@ -2,18 +2,15 @@ package com.phantom.carnavrelay
 
 import android.app.KeyguardManager
 import android.app.admin.DevicePolicyManager
-import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
-import androidx.core.content.ContextCompat
 import java.util.Calendar
 import kotlin.math.abs
 
@@ -43,36 +40,8 @@ object DisplayPowerAutomationManager {
     private lateinit var prefs: PrefsManager
     private val handler = Handler(Looper.getMainLooper())
     private var initialized = false
-    private var receiverRegistered = false
     private var pendingPreparationToken = 0L
     private var screenWakeLock: PowerManager.WakeLock? = null
-
-    private val powerReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action) {
-                Intent.ACTION_POWER_CONNECTED -> {
-                    if (prefs.isDisplayPowerAutomationEnabled()) {
-                        if (isAntiTheftBlocking()) {
-                            Log.d(TAG, "⚡ Power connected skipped because anti-theft is blocking UI")
-                            return
-                        }
-                        Log.d(TAG, "⚡ Power connected - applying display profile")
-                        applyConnectedProfile("power-connected", wakeScreen = true)
-                    }
-                }
-                Intent.ACTION_POWER_DISCONNECTED -> {
-                    if (prefs.isDisplayPowerAutomationEnabled()) {
-                        if (isAntiTheftBlocking()) {
-                            Log.d(TAG, "🔌 Power disconnected skipped because anti-theft is blocking UI")
-                            return
-                        }
-                        Log.d(TAG, "🔌 Power disconnected - applying display dim/lock profile")
-                        applyDisconnectedProfile("power-disconnected")
-                    }
-                }
-            }
-        }
-    }
 
     fun initialize(context: Context) {
         if (initialized) return
@@ -83,14 +52,48 @@ object DisplayPowerAutomationManager {
 
     fun onDisplayServiceStarted(context: Context) {
         initialize(context)
-        registerReceiverIfNeeded()
     }
 
     fun onDisplayServiceStopped() {
         if (!initialized) return
-        unregisterReceiverIfNeeded()
         cancelPendingNavigationPreparation()
         releaseScreenWakeLock()
+    }
+
+    fun handlePowerEvent(context: Context, action: String, source: String) {
+        initialize(context)
+        val automationEnabled = prefs.isDisplayPowerAutomationEnabled()
+        val lockEnabled = prefs.isDisplayLockOnPowerDisconnectEnabled()
+        val adminActive = isDeviceAdminActive(appContext)
+        val deviceMode = prefs.getDeviceMode()
+        PhantomLog.i(
+            "DISPLAY POWER event=$action source=$source automation=$automationEnabled " +
+                "lockOnDisconnect=$lockEnabled deviceAdmin=$adminActive mode=$deviceMode"
+        )
+        if (deviceMode != PrefsManager.MODE_DISPLAY) {
+            Log.d(TAG, "Display power event skipped because this device is not in Display mode")
+            return
+        }
+        if (!automationEnabled) {
+            Log.d(TAG, "Display power event skipped because automation is disabled")
+            return
+        }
+        if (isAntiTheftBlocking()) {
+            Log.d(TAG, "Display power event skipped because anti-theft has priority")
+            PhantomLog.w("DISPLAY POWER skipped: anti-theft has priority")
+            return
+        }
+
+        when (action) {
+            Intent.ACTION_POWER_CONNECTED -> {
+                Log.d(TAG, "Power connected - applying display profile")
+                applyConnectedProfile("$source-power-connected", wakeScreen = true)
+            }
+            Intent.ACTION_POWER_DISCONNECTED -> {
+                Log.d(TAG, "Power disconnected - applying display dim/lock profile")
+                applyDisconnectedProfile("$source-power-disconnected")
+            }
+        }
     }
 
     fun isNavigationPreparationEnabled(context: Context): Boolean {
@@ -228,35 +231,21 @@ object DisplayPowerAutomationManager {
     fun applyDisconnectedProfile(reason: String) {
         if (isAntiTheftBlocking()) {
             Log.d(TAG, "🔐 Disconnected profile [$reason] skipped because anti-theft has priority")
+            PhantomLog.w("DISPLAY POWER disconnect skipped: anti-theft has priority")
             return
         }
         val brightnessResult = setBrightness(DISCONNECTED_BRIGHTNESS)
         Log.d(TAG, "💡 Disconnected profile [$reason]: $brightnessResult")
+        PhantomLog.i("DISPLAY POWER disconnect brightness: $brightnessResult")
         if (prefs.isDisplayLockOnPowerDisconnectEnabled()) {
             val lockResult = lockDevice()
             Log.d(TAG, "🔐 Disconnect lock [$reason]: $lockResult")
+            if (lockResult == "device locked") {
+                PhantomLog.i("DISPLAY POWER disconnect lock: $lockResult")
+            } else {
+                PhantomLog.w("DISPLAY POWER disconnect lock: $lockResult")
+            }
         }
-    }
-
-    private fun registerReceiverIfNeeded() {
-        if (receiverRegistered) return
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_POWER_CONNECTED)
-            addAction(Intent.ACTION_POWER_DISCONNECTED)
-        }
-        ContextCompat.registerReceiver(
-            appContext,
-            powerReceiver,
-            filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-        receiverRegistered = true
-    }
-
-    private fun unregisterReceiverIfNeeded() {
-        if (!receiverRegistered) return
-        runCatching { appContext.unregisterReceiver(powerReceiver) }
-        receiverRegistered = false
     }
 
     private fun getCurrentBrightness(): Int? {

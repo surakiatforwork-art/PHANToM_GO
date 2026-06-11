@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PHANToM GO - Workflow v1.0.13</title>
+  <style>
+    :root {
+      --bg: #07101a;
+      --panel: rgba(20, 34, 50, .82);
+      --panel-2: rgba(13, 24, 38, .94);
+      --line: rgba(92, 218, 255, .24);
+      --cyan: #69ddff;
+      --mint: #79e2a5;
+      --amber: #ffd078;
+      --red: #ff838d;
+      --text: #edf7ff;
+      --muted: #9cb0c3;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(28, 196, 255, .18), transparent 28rem),
+        radial-gradient(circle at 88% 20%, rgba(129, 91, 255, .16), transparent 30rem),
+        linear-gradient(180deg, #091522 0%, var(--bg) 58%, #050a10 100%);
+    }
+    a { color: inherit; }
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 72px; }
+    .hero, .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .28);
+      backdrop-filter: blur(18px);
+    }
+    .hero { padding: clamp(24px, 5vw, 54px); border-radius: 34px; overflow: hidden; position: relative; }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      right: -120px;
+      bottom: -190px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(105, 221, 255, .22), transparent 68%);
+    }
+    .eyebrow { color: var(--cyan); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 12px; }
+    h1 { margin: 12px 0 10px; font-size: clamp(36px, 7vw, 76px); line-height: .98; letter-spacing: -.055em; }
+    h2 { margin: 0 0 8px; font-size: clamp(23px, 4vw, 36px); letter-spacing: -.03em; }
+    h3 { margin: 0 0 7px; font-size: 18px; }
+    p { color: var(--muted); line-height: 1.7; margin: 0; }
+    .hero-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 28px; align-items: end; }
+    .summary { max-width: 720px; font-size: 17px; }
+    .release {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(5, 13, 22, .5);
+      border: 1px solid rgba(105, 221, 255, .18);
+    }
+    .release strong { color: var(--mint); font-size: 24px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
+    .chip {
+      padding: 8px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--cyan);
+      border: 1px solid rgba(105, 221, 255, .2);
+      background: rgba(5, 13, 22, .42);
+    }
+    .tabs { position: sticky; top: 12px; z-index: 5; display: flex; gap: 8px; margin: 22px 0; padding: 8px; border-radius: 20px; background: rgba(5, 11, 18, .8); border: 1px solid var(--line); backdrop-filter: blur(18px); overflow-x: auto; }
+    .tabs button {
+      border: 0;
+      padding: 11px 15px;
+      border-radius: 14px;
+      color: var(--muted);
+      background: transparent;
+      white-space: nowrap;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .tabs button.active { color: #00151d; background: var(--cyan); }
+    .view { display: none; }
+    .view.active { display: block; animation: enter .28s ease; }
+    @keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .panel { margin-top: 18px; padding: clamp(20px, 4vw, 34px); border-radius: 28px; }
+    .flow { display: grid; gap: 12px; margin-top: 22px; }
+    .step { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 14px; padding: 16px; border-radius: 20px; background: var(--panel-2); border: 1px solid rgba(105, 221, 255, .13); }
+    .number { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 16px; color: #00151d; background: linear-gradient(135deg, var(--cyan), #b4f3ff); font-size: 18px; font-weight: 900; }
+    .state { padding: 7px 10px; border-radius: 999px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+    .good { color: var(--mint); background: rgba(121, 226, 165, .1); }
+    .warn { color: var(--amber); background: rgba(255, 208, 120, .1); }
+    .danger { color: var(--red); background: rgba(255, 131, 141, .1); }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px; }
+    .card { padding: 20px; border-radius: 22px; background: var(--panel-2); border: 1px solid rgba(105, 221, 255, .13); }
+    .priority { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+    .priority .card { min-height: 160px; }
+    .priority b { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; color: #00151d; background: var(--cyan); margin-bottom: 20px; }
+    ul { margin: 12px 0 0; padding-left: 20px; color: var(--muted); line-height: 1.75; }
+    .note { margin-top: 18px; padding: 15px 17px; border-radius: 17px; border-left: 3px solid var(--amber); background: rgba(255, 208, 120, .07); color: #e8d6b1; line-height: 1.65; }
+    footer { padding: 34px 0 0; color: #72869b; text-align: center; font-size: 12px; }
+    @media (max-width: 820px) {
+      .hero-grid, .grid, .priority { grid-template-columns: 1fr; }
+      .step { grid-template-columns: 42px 1fr; }
+      .number { width: 42px; height: 42px; }
+      .state { grid-column: 2; justify-self: start; }
+      .tabs { top: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">Stable workflow review</div>
+          <h1>PHANToM GO</h1>
+          <p class="summary">แผนภาพการทำงานหลังปรับปรุงสำหรับการจับคู่ ส่งเส้นทาง เปิด Maps ระบบกันขโมย และระบบจัดการพลังงาน โดยให้แต่ละระบบมีลำดับความสำคัญชัดเจนและไม่ทำงานทับซ้อนกัน</p>
+          <div class="chips">
+            <span class="chip">Single APK</span><span class="chip">QR + Cloud Pairing</span><span class="chip">Web App Compatible</span><span class="chip">Display Security</span>
+          </div>
+        </div>
+        <div class="release"><span>Stable release</span><br><strong>v1.0.13</strong><p>Android 6.0+ / Firebase anonymous auth</p></div>
+      </div>
+    </section>
+
+    <nav class="tabs" aria-label="Workflow sections">
+      <button class="active" data-view="route">ส่งเส้นทาง</button>
+      <button data-view="pairing">จับคู่</button>
+      <button data-view="security">กันขโมย</button>
+      <button data-view="power">พลังงาน</button>
+      <button data-view="priority">ลำดับระบบ</button>
+      <button data-view="platform">องค์ประกอบโปรเจกต์</button>
+    </nav>
+
+    <section class="view active" id="route">
+      <div class="panel">
+        <div class="eyebrow">Main to Display</div><h2>เส้นทางหนึ่งครั้ง เปิดบนจอที่จับคู่ไว้</h2>
+        <p>ใช้ Share Target, Map Link Hub หรือช่องวางลิงก์บน Web App แล้วส่งผ่าน Cloud เป็นหลัก พร้อม local Wi-Fi fallback เมื่อมีข้อมูล local transport</p>
+        <div class="flow">
+          <div class="step"><div class="number">1</div><div><h3>ผู้ใช้เลือกปลายทาง</h3><p>แชร์ลิงก์จาก Google Maps/แอปอื่นไปที่ PHANToM GO</p></div><span class="state good">One tap</span></div>
+          <div class="step"><div class="number">2</div><div><h3>Normalize และส่ง</h3><p>แปลง geo:, google.navigation:, Maps URL หรือข้อความสถานที่ให้เป็นรูปแบบเดียวกัน แล้วส่งไป Display</p></div><span class="state good">Cloud first</span></div>
+          <div class="step"><div class="number">3</div><div><h3>Display ตรวจความพร้อม</h3><p>ถ้าจอสว่างและปลดล็อกแล้ว เปิด Maps ทันที ถ้ายังไม่พร้อมจึงปลุกและปรับแสงก่อน</p></div><span class="state warn">Conditional</span></div>
+          <div class="step"><div class="number">4</div><div><h3>เปิดเส้นทางล่าสุด</h3><p>คำสั่งใหม่กว่าจะยกเลิก launch เก่า ลดโอกาสเปิดปลายทางผิดหรือลำดับซ้ำ</p></div><span class="state good">Latest wins</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="pairing">
+      <div class="panel">
+        <div class="eyebrow">One pair at a time</div><h2>จับคู่ด้วย QR โดยไม่ต้องสมัครสมาชิก</h2>
+        <div class="grid">
+          <article class="card"><h3>Display Device</h3><p>เปิด Display Mode, สร้าง QR payload และ publish pairing code ไป Firebase เมื่อจับคู่แล้ว QR จะถูกซ่อนและแสดงสถานะ Connected</p></article>
+          <article class="card"><h3>Main Device</h3><p>สแกน QR, claim pairing ด้วย anonymous auth และบันทึก peer info เพื่อส่งคำสั่ง Cloud หรือ local fallback</p></article>
+          <article class="card"><h3>เปลี่ยนคู่</h3><p>กด Disconnect/Reset บน Display หรือ Clear Pairing บน Main ก่อนเชื่อมอุปกรณ์ใหม่ เพื่อรักษาหลักการหนึ่งคู่ต่อครั้ง</p></article>
+          <article class="card"><h3>กู้คืนหลัง process ถูกปิด</h3><p>ถ้าอุปกรณ์ยังอยู่ในบทบาท Display แอปจะร้องขอเริ่ม Display service กลับเมื่อ process เปิดใหม่</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="security">
+      <div class="panel">
+        <div class="eyebrow">Display anti-theft</div><h2>แจ้งเตือนเป็นขั้น ไม่ขัดกับการรับเส้นทาง</h2>
+        <div class="flow">
+          <div class="step"><div class="number">1</div><div><h3>Arm ด้วยสาย 3.5 มม.</h3><p>ผู้ใช้ตั้ง PIN และเปิดระบบเอง ระบบจะเริ่มเฝ้าระวังเมื่อ trigger เสียบอยู่</p></div><span class="state good">Armed</span></div>
+          <div class="step"><div class="number">2</div><div><h3>ถอดสาย</h3><p>แสดง Security Verification และให้เวลาใส่ PIN โดยยังไม่เปิดเผยหน้า Home ของแอป</p></div><span class="state warn">Challenge</span></div>
+          <div class="step"><div class="number">3</div><div><h3>ผิด/หมดเวลา</h3><p>ส่ง alert พร้อมตำแหน่งล่าสุดไป Main จากนั้นเริ่มเสียงเตือนและยกระดับเป็น full-screen lock</p></div><span class="state danger">Escalate</span></div>
+          <div class="step"><div class="number">4</div><div><h3>ปลดด้วย PIN ถูกต้อง</h3><p>หยุด alarm, ยกเลิก timer และกลับสู่สถานะพร้อมใช้งาน</p></div><span class="state good">Disarmed</span></div>
+        </div>
+        <div class="note">ขณะ anti-theft challenge/alarm ทำงาน ระบบจะพักการเปิด Maps และการล็อกเครื่องจากเหตุการณ์ถอดสายชาร์จ เพื่อให้หน้าป้อน PIN ยังคงมองเห็นและใช้งานได้</div>
+      </div>
+    </section>
+
+    <section class="view" id="power">
+      <div class="panel">
+        <div class="eyebrow">Display readiness</div><h2>ปลุกจอ ปรับแสง และล็อกเฉพาะเครื่อง Display</h2>
+        <div class="grid">
+          <article class="card"><h3>เสียบไฟ</h3><p>เมื่อเปิด automation และเครื่องอยู่ในบทบาท Display ระบบใช้ profile กลางวัน/กลางคืน พร้อมปลุกจอแบบ best effort</p></article>
+          <article class="card"><h3>ถอดไฟ</h3><p>หรี่หน้าจอและล็อกเครื่องเมื่อเปิด Lock on Disconnect และอนุญาต Device Admin แล้ว</p></article>
+          <article class="card"><h3>Service ถูก OEM ปิด</h3><p>manifest receiver ยังคงรับเหตุการณ์ power ได้ โดยไม่ผูกกับอายุของ Display service เพียงอย่างเดียว</p></article>
+          <article class="card"><h3>ความปลอดภัย</h3><p>Power automation จะไม่ทำงานบนเครื่อง Main และไม่แทรกแซงขณะ anti-theft กำลังบังคับยืนยัน PIN</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="priority">
+      <div class="panel">
+        <div class="eyebrow">Conflict prevention</div><h2>ระบบใดมีสิทธิ์ก่อน</h2>
+        <div class="priority">
+          <article class="card"><b>1</b><h3>Anti-Theft</h3><p>Challenge, alarm และ full-screen lock มีสิทธิ์สูงสุด</p></article>
+          <article class="card"><b>2</b><h3>Latest Route</h3><p>เก็บคำสั่งล่าสุดไว้จนกว่าระบบกันขโมยจะปล่อย</p></article>
+          <article class="card"><b>3</b><h3>Display Readiness</h3><p>ปลุก/ปรับแสงเฉพาะเมื่อจอยังไม่พร้อม</p></article>
+          <article class="card"><b>4</b><h3>Maps + Overlay</h3><p>เปิด Maps แล้วจึงแสดง overlay เฉพาะกรณีที่เหมาะสม</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="platform">
+      <div class="panel">
+        <div class="eyebrow">Project surfaces</div><h2>หนึ่งระบบ หลายช่องทางใช้งาน</h2>
+        <div class="grid">
+          <article class="card"><h3>Android APK</h3><ul><li>Main / Display / Settings</li><li>Share target และ Map Link Hub</li><li>Speedometer, anti-theft, power automation</li></ul></article>
+          <article class="card"><h3>Browser Web App</h3><ul><li>Main และ Display ผ่าน browser</li><li>Firebase cloud pairing</li><li>เปิดเส้นทางด้วยปุ่มเมื่อ browser รับคำสั่ง</li></ul></article>
+          <article class="card"><h3>Landing Page</h3><ul><li>อธิบายผลิตภัณฑ์และวิดีโอ</li><li>ลิงก์ดาวน์โหลด stable APK</li><li>ทางเข้า Web App</li></ul></article>
+          <article class="card"><h3>iOS Parallel Project</h3><ul><li>SwiftUI scaffold และ Firebase contract</li><li>มี CI/test plan</li><li>ยังต้องยืนยัน build/runtime บน macOS/iOS จริง</li></ul></article>
+        </div>
+      </div>
+    </section>
+
+    <footer>PHANToM GO workflow document • Generated for stable v1.0.13 review</footer>
+  </main>
+  <script>
+    const buttons = [...document.querySelectorAll(".tabs button")];
+    const views = [...document.querySelectorAll(".view")];
+    buttons.forEach((button) => button.addEventListener("click", () => {
+      buttons.forEach((item) => item.classList.toggle("active", item === button));
+      views.forEach((view) => view.classList.toggle("active", view.id === button.dataset.view));
+    }));
+  </script>
+</body>
+</html>

@@ -39,6 +39,7 @@ class PrefsManager(context: Context) {
         private const val KEY_DEVICE_MODE = "device_mode"
         const val MODE_MAIN = "MAIN"
         const val MODE_DISPLAY = "DISPLAY"
+        private const val MAX_PENDING_ROUTES = 25
 
         // Main -> Display transport selection
         private const val KEY_CONNECTION_TRANSPORT = "connection_transport"
@@ -309,15 +310,21 @@ class PrefsManager(context: Context) {
         return JsonUtils.parsePendingQueueJson(json)
     }
     
+    @Synchronized
     fun addToPendingQueue(url: String) {
         val queue = getPendingQueue().toMutableList()
+        queue.remove(url)
         queue.add(url)
+        while (queue.size > MAX_PENDING_ROUTES) {
+            queue.removeAt(0)
+        }
         savePendingQueue(queue)
     }
     
+    @Synchronized
     fun removeFromPendingQueue(url: String) {
         val queue = getPendingQueue().toMutableList()
-        queue.remove(url)
+        queue.removeAll { it == url }
         savePendingQueue(queue)
     }
     
@@ -527,7 +534,11 @@ class PrefsManager(context: Context) {
         val json = prefs.getString(KEY_URL_RESOLVE_CACHE, "{}") ?: "{}"
         return try {
             val obj = org.json.JSONObject(json)
-            obj.optString(shortUrl, null)
+            if (obj.has(shortUrl)) {
+                obj.optString(shortUrl).takeIf { it.isNotBlank() }
+            } else {
+                null
+            }
         } catch (e: Exception) {
             null
         }
