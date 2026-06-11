@@ -70,29 +70,29 @@ jobs:
       - name: Select simulator destination
         run: |
           python3 - <<'PY'
-import json
-import subprocess
+          import json
+          import subprocess
 
-data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
-destination = None
-for runtime_name, devices in data.get("devices", {}).items():
-    if "iOS" not in runtime_name:
-        continue
-    for device in devices:
-        if device.get("isAvailable") and "iPhone" in device.get("name", ""):
-            destination = f"platform=iOS Simulator,id={device['udid']}"
-            break
-    if destination:
-        break
+          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
+          destination = None
+          for runtime_name, devices in data.get("devices", {}).items():
+              if "iOS" not in runtime_name:
+                  continue
+              for device in devices:
+                  if device.get("isAvailable") and "iPhone" in device.get("name", ""):
+                      destination = f"platform=iOS Simulator,id={device['udid']}"
+                      break
+              if destination:
+                  break
 
-if not destination:
-    raise SystemExit("No available iPhone simulator destination was found.")
+          if not destination:
+              raise SystemExit("No available iPhone simulator destination was found.")
 
-with open("destination.env", "w", encoding="utf-8") as handle:
-    handle.write(f"IOS_SIMULATOR_DESTINATION={destination}\n")
+          with open("destination.env", "w", encoding="utf-8") as handle:
+              handle.write(f"IOS_SIMULATOR_DESTINATION={destination}\n")
 
-print(destination)
-PY
+          print(destination)
+          PY
           cat destination.env >> "$GITHUB_ENV"
 
       - name: Run unit tests
