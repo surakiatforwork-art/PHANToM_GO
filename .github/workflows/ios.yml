@@ -97,6 +97,7 @@ jobs:
 
       - name: Run unit tests
         run: |
+          mkdir -p build
           set -o pipefail
           xcodebuild \
             -project PHANToMGO.xcodeproj \

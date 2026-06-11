@@ -30,7 +30,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.phantom.PHANToMGO
-        PRODUCT_NAME: PHANToM GO
+        PRODUCT_NAME: PHANToMGO
         PRODUCT_MODULE_NAME: PHANToMGO
         SWIFT_VERSION: 5.10
         CURRENT_PROJECT_VERSION: 1
