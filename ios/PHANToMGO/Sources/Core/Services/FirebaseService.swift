@@ -27,10 +27,22 @@ final class FirebaseService {
 
     private init() {}
 
-    func configureIfNeeded() {
-        guard FirebaseApp.app() == nil else { return }
+    @discardableResult
+    func configureIfNeeded() -> Bool {
+        guard FirebaseApp.app() == nil else { return true }
+        guard
+            let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+            let config = NSDictionary(contentsOfFile: path),
+            config["GOOGLE_APP_ID"] as? String != nil,
+            config["API_KEY"] as? String != nil,
+            config["PROJECT_ID"] as? String != nil
+        else {
+            return false
+        }
+
         FirebaseApp.configure()
         Database.database(url: databaseURL).isPersistenceEnabled = true
+        return true
     }
 
     func signInAnonymouslyIfNeeded() async throws -> User {

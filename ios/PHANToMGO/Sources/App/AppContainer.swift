@@ -58,7 +58,11 @@ final class AppContainer: ObservableObject {
     }
 
     func start() async {
-        firebaseService.configureIfNeeded()
+        guard firebaseService.configureIfNeeded() else {
+            authSummary = "Firebase configuration is missing"
+            appendLog("Firebase configuration is missing or invalid")
+            return
+        }
         await bootstrap()
     }
 
