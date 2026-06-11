@@ -17,6 +17,11 @@ enum RouteParser {
             )
         }
 
+        if raw.lowercased().hasPrefix("google.navigation:"),
+           let navigationPayload = parseGoogleNavigation(raw, navMode: navMode) {
+            return navigationPayload
+        }
+
         if let url = URL(string: raw), let scheme = url.scheme?.lowercased() {
             if raw.contains("maps.app.goo.gl") {
                 return RoutePayload(
@@ -151,7 +156,11 @@ enum RouteParser {
     }
 
     private static func parseGoogleNavigation(_ raw: String, navMode: DisplayNavigationMode) -> RoutePayload? {
-        guard let components = URLComponents(string: raw),
+        let prefix = "google.navigation:"
+        guard raw.lowercased().hasPrefix(prefix) else { return nil }
+
+        let queryString = String(raw.dropFirst(prefix.count)).trimmingCharacters(in: CharacterSet(charactersIn: "?"))
+        guard let components = URLComponents(string: "https://phantom.invalid/?\(queryString)"),
               let query = components.queryItems?.first(where: { $0.name == "q" })?.value else {
             return nil
         }
@@ -199,4 +208,3 @@ enum RouteParser {
         )
     }
 }
-
