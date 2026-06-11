@@ -1,5 +1,6 @@
 package com.phantom.carnavrelay
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -7,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
@@ -683,6 +685,14 @@ object DisplayAntiTheftManager {
 
     private fun showChallengeNotification(fullscreen: Boolean) {
         createNotificationChannel()
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.w(TAG, "Security verification notification blocked: notification permission missing")
+            return
+        }
         val launchIntent = Intent(appContext, AntiTheftPinActivity::class.java).apply {
             action = ACTION_OPEN_CHALLENGE
             putExtra(AntiTheftPinActivity.EXTRA_FULLSCREEN, fullscreen)
@@ -710,10 +720,14 @@ object DisplayAntiTheftManager {
             .setContentIntent(pendingIntent)
             .setFullScreenIntent(pendingIntent, true)
             .build()
-        NotificationManagerCompat.from(appContext).notify(
-            if (fullscreen) NOTIFICATION_ID_ALARM else NOTIFICATION_ID_CHALLENGE,
-            notification
-        )
+        try {
+            NotificationManagerCompat.from(appContext).notify(
+                if (fullscreen) NOTIFICATION_ID_ALARM else NOTIFICATION_ID_CHALLENGE,
+                notification
+            )
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Security verification notification blocked", e)
+        }
     }
 
     private fun cancelNotifications() {
@@ -740,8 +754,15 @@ object DisplayAntiTheftManager {
         if (!prefs.isAntiTheftAttachLocationEnabled()) {
             return AntiTheftLocationSnapshot(available = false)
         }
-        val hasPermission = DisplaySpeedMonitor.hasLocationPermission(appContext)
-        if (!hasPermission) {
+        val hasFineLocation = ContextCompat.checkSelfPermission(
+            appContext,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val hasCoarseLocation = ContextCompat.checkSelfPermission(
+            appContext,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasFineLocation && !hasCoarseLocation) {
             return AntiTheftLocationSnapshot(available = false)
         }
         val locationManager = appContext.getSystemService(Context.LOCATION_SERVICE) as? android.location.LocationManager

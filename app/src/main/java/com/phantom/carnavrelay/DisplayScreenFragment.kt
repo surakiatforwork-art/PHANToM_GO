@@ -22,6 +22,7 @@ import android.provider.Settings
 import android.util.TypedValue
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -697,7 +698,9 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
     private fun updatePairingCardLayout(isPaired: Boolean) {
         val density = resources.displayMetrics.density
 
-        ivQrCode.updateLayoutParams<LinearLayout.LayoutParams> {
+        // The QR image is hosted by a FrameLayout in the current design.
+        // Use the shared base params so resizing remains valid if its parent changes again.
+        ivQrCode.updateLayoutParams<ViewGroup.LayoutParams> {
             width = (if (isPaired) 180 else 280).dp(density)
             height = (if (isPaired) 180 else 280).dp(density)
         }

@@ -390,6 +390,7 @@ class DisplayServerService : Service() {
 
     private fun broadcastSpeedState(snapshot: SpeedSnapshot) {
         val intent = Intent(ACTION_SPEED_UPDATED).apply {
+            setPackage(packageName)
             putExtra(EXTRA_SPEED_HAS_FIX, snapshot.hasFix)
             putExtra(EXTRA_SPEED_UPDATED_AT, snapshot.updatedAt)
             putExtra(EXTRA_SPEED_SOURCE, snapshot.source)

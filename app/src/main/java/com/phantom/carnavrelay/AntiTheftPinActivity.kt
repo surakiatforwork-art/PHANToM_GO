@@ -1,9 +1,11 @@
 package com.phantom.carnavrelay
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.view.WindowManager
@@ -40,8 +42,16 @@ class AntiTheftPinActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_anti_theft_pin)
-        setTurnScreenOn(true)
-        setShowWhenLocked(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setTurnScreenOn(true)
+            setShowWhenLocked(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+            )
+        }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
 
@@ -100,6 +110,7 @@ class AntiTheftPinActivity : AppCompatActivity() {
         super.onStop()
     }
 
+    @SuppressLint("MissingSuperCall")
     override fun onBackPressed() {
         // Block dismiss while active.
     }
