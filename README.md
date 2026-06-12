@@ -13,7 +13,7 @@ The same pairing system also works with the browser Web App, so iOS and devices 
 - Display Mode with automatic Google Maps opening
 - Browser Web App interoperability
 - Display speedometer using location data
-- Display-ready automation for wake and brightness
+- Display power automation: turn the screen on when external power is connected
 - Optional lock-on-power-disconnect automation
 - Jack 3.5 mm anti-theft alarm with Main Device alerts and last known location
 - Find Display from the paired Main Device
@@ -45,14 +45,13 @@ PHANToM GO requests only the permissions needed by enabled features:
 - Location for speed, Find Display, and anti-theft location reporting
 - Background location for continuous Display location updates
 - Overlay for optional floating controls and security verification
-- Modify system settings for optional brightness automation
 - Device Admin for optional lock-on-power-disconnect
 
 Optional permissions can be skipped, but their related features will remain unavailable.
 
 ## Downloads and Web App
 
-- Stable APK: [Download PHANToM GO v1.0.17](https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.17/PHANToM_GO-v1.0.17.apk)
+- Stable APK: [Download PHANToM GO v1.0.18](https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.18/PHANToM_GO-v1.0.18.apk)
 - Landing page: [`docs/web/index.html`](docs/web/index.html)
 - Browser Web App: [`docs/web/webapp/index.html`](docs/web/webapp/index.html)
 

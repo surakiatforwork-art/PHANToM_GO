@@ -344,7 +344,7 @@
   <string name="settings_display_device_desc">Configure this section on the device used as the in-car display that receives destinations from the Main device</string>
   <string name="settings_power_automation">Display Power Automation</string>
   <string name="settings_profile_details">Profile details</string>
-  <string name="settings_wake_brighten">Wake and brighten before opening Maps</string>
+  <string name="settings_wake_brighten">Wake screen before opening Maps</string>
   <string name="settings_lock_on_disconnect">Lock device when external power disconnects</string>
   <string name="settings_modify_system_required">Modify system settings required</string>
   <string name="settings_grant_modify_system">Grant Modify System Settings</string>
@@ -616,7 +616,7 @@
   <string name="settings_map_link_hub_path_hint">Go to system Settings &gt; Apps &gt; Open by default &gt; choose PHANToM GO, then tap Always</string>
   <string name="settings_device_mode_main_value">Main Device</string>
   <string name="settings_device_mode_display_value">Display Device</string>
-  <string name="settings_power_detail_fmt">%1$s • Expected brightness: %2$d\nReady now: %3$s • Screen: %4$s • Lock: %5$s • Brightness: %6$s</string>
+  <string name="settings_power_detail_fmt">Charger connected → screen on • Unplugged → lock\nReady: %1$s • Screen: %2$s • Lock: %3$s</string>
   <string name="settings_choose_alarm_sound_title">Choose Anti-Theft Alarm Sound</string>
 
   <!-- Display / Security runtime fallback -->

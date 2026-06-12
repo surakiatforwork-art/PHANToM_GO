@@ -344,7 +344,7 @@
   <string name="settings_display_device_desc">ตั้งค่าส่วนนี้บนเครื่องที่ใช้เป็นจอติดรถและรับปลายทางจากเครื่องหลัก</string>
   <string name="settings_power_automation">ระบบจัดการพลังงานจออัตโนมัติ</string>
   <string name="settings_profile_details">รายละเอียดโปรไฟล์</string>
-  <string name="settings_wake_brighten">ปลุกจอและเพิ่มความสว่างก่อนเปิด Maps</string>
+  <string name="settings_wake_brighten">ปลุกหน้าจอก่อนเปิด Maps</string>
   <string name="settings_lock_on_disconnect">ล็อกเครื่องเมื่อถอดไฟภายนอก</string>
   <string name="settings_modify_system_required">ต้องการสิทธิ์แก้ไขการตั้งค่าระบบ</string>
   <string name="settings_grant_modify_system">ให้สิทธิ์แก้ไขการตั้งค่าระบบ</string>
@@ -616,7 +616,7 @@
   <string name="settings_map_link_hub_path_hint">ไปที่ Settings ของระบบ &gt; Apps &gt; Open by default &gt; เลือก PHANToM GO แล้วกด Always</string>
   <string name="settings_device_mode_main_value">เครื่องหลัก</string>
   <string name="settings_device_mode_display_value">เครื่องจอ</string>
-  <string name="settings_power_detail_fmt">%1$s • ความสว่างที่คาดไว้: %2$d\nพร้อมตอนนี้: %3$s • หน้าจอ: %4$s • การล็อก: %5$s • ความสว่างปัจจุบัน: %6$s</string>
+  <string name="settings_power_detail_fmt">เสียบชาร์จ → เปิดหน้าจอ • ถอดชาร์จ → ล็อกเครื่อง\nพร้อม: %1$s • หน้าจอ: %2$s • การล็อก: %3$s</string>
   <string name="settings_choose_alarm_sound_title">เลือกเสียงกันขโมย</string>
 
   <!-- Display / Security runtime fallback -->

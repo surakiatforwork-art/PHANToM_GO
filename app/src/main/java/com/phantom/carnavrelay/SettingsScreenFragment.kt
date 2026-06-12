@@ -772,7 +772,6 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         val lockOnDisconnectEnabled = DisplayPowerAutomationManager.isLockOnPowerDisconnectEnabled(requireContext())
         val canWriteSettings = DisplayPowerAutomationManager.canWriteSystemSettings(requireContext())
         val deviceAdminEnabled = DisplayPowerAutomationManager.isDeviceAdminActive(requireContext())
-        val expectedBrightness = DisplayPowerAutomationManager.getExpectedBrightnessNow()
         val readiness = DisplayPowerAutomationManager.evaluateReadiness(requireContext())
 
         updatingDisplayPowerUi = true
@@ -798,12 +797,9 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
 
         displayPowerAutomationDetailText.text = getString(
             R.string.settings_power_detail_fmt,
-            if (expectedBrightness >= 200) getString(R.string.settings_profile_day) else getString(R.string.settings_profile_night),
-            expectedBrightness,
             if (readiness.ready) getString(R.string.common_yes) else getString(R.string.common_no),
             if (readiness.interactive) getString(R.string.common_on) else getString(R.string.common_off),
-            if (readiness.unlocked) getString(R.string.common_unlocked) else getString(R.string.common_locked),
-            readiness.currentBrightness?.toString() ?: getString(R.string.common_unknown)
+            if (readiness.unlocked) getString(R.string.common_unlocked) else getString(R.string.common_locked)
         )
 
         displayWakeBeforeMapsStatusText.text = if (wakeBeforeMapsEnabled) getString(R.string.common_enabled) else getString(R.string.common_disabled)

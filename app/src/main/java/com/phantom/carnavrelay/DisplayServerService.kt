@@ -131,6 +131,11 @@ class DisplayServerService : Service() {
                         source = "display-service-runtime-receiver"
                     )
                 }
+                Intent.ACTION_BATTERY_CHANGED -> {
+                    // Sticky battery broadcast is the most reliable plug/unplug signal across OEMs.
+                    val plugged = intent.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, 0) != 0
+                    DisplayPowerAutomationManager.handleBatteryChanged(context, plugged)
+                }
             }
         }
     }
@@ -179,6 +184,7 @@ class DisplayServerService : Service() {
                 IntentFilter().apply {
                     addAction(Intent.ACTION_POWER_CONNECTED)
                     addAction(Intent.ACTION_POWER_DISCONNECTED)
+                    addAction(Intent.ACTION_BATTERY_CHANGED)
                 },
                 ContextCompat.RECEIVER_NOT_EXPORTED
             )
@@ -665,7 +671,7 @@ class DisplayServerService : Service() {
 
         Log.d(
             TAG,
-            "🌙 Preparing display before opening Maps (interactive=${readiness.interactive}, unlocked=${readiness.unlocked}, brightnessMatches=${readiness.brightnessMatchesProfile}, currentBrightness=${readiness.currentBrightness}, expectedBrightness=${readiness.expectedBrightness})"
+            "🌙 Preparing display before opening Maps (interactive=${readiness.interactive}, unlocked=${readiness.unlocked})"
         )
         DisplayPowerAutomationManager.prepareForNavigationLaunch(this) {
             if (navigationLaunchToken == currentToken && !isNavigationBlockedByAntiTheft()) {

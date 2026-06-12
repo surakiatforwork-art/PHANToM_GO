@@ -14,31 +14,32 @@ import android.os.PowerManager
 import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
-import java.util.Calendar
-import kotlin.math.abs
 
 data class DisplayReadinessSnapshot(
     val ready: Boolean,
     val interactive: Boolean,
-    val unlocked: Boolean,
-    val brightnessMatchesProfile: Boolean,
-    val expectedBrightness: Int,
-    val currentBrightness: Int?
+    val unlocked: Boolean
 )
 
+/**
+ * Display power automation, intentionally limited to the two behaviours the product needs:
+ *  - external power connected  -> turn the display screen on (and show it)
+ *  - external power disconnected -> lock the display (Device Admin)
+ *
+ * Screen brightness is deliberately NOT touched anymore. The reliability problem this
+ * class previously had came from two places that are both fixed here:
+ *  1. Trigger coverage: besides ACTION_POWER_CONNECTED/DISCONNECTED we now also derive the
+ *     plugged edge from the sticky ACTION_BATTERY_CHANGED broadcast, which fires on every
+ *     device on plug/unplug, so we never miss the event.
+ *  2. Turning the screen on: the deprecated FULL_WAKE_LOCK is ignored on modern Android, so
+ *     we wake the screen through an Activity that uses setTurnScreenOn()/setShowWhenLocked().
+ */
 object DisplayPowerAutomationManager {
 
     private const val TAG = "PHANTOM_GO"
-    private const val DAY_BRIGHTNESS = 255
-    private const val NIGHT_BRIGHTNESS = 125
-    private const val DISCONNECTED_BRIGHTNESS = 0
-    private const val BRIGHTNESS_TOLERANCE = 10
     private const val READY_DELAY_MS = 900L
-    private const val NIGHT_START_HOUR = 18
-    private const val NIGHT_START_MINUTE = 30
-    private const val NIGHT_END_HOUR = 5
-    private const val NIGHT_END_MINUTE = 0
     private const val POWER_EVENT_DEBOUNCE_MS = 1_000L
+    private const val SCREEN_WAKE_TIMEOUT_MS = 8_000L
 
     private lateinit var appContext: Context
     private lateinit var prefs: PrefsManager
@@ -48,6 +49,9 @@ object DisplayPowerAutomationManager {
     private var screenWakeLock: PowerManager.WakeLock? = null
     private var lastPowerEventAction: String? = null
     private var lastPowerEventAtElapsed = 0L
+
+    // Edge detector for ACTION_BATTERY_CHANGED. Null means "unknown yet".
+    @Volatile private var lastPluggedState: Boolean? = null
 
     fun initialize(context: Context) {
         if (initialized) return
@@ -66,6 +70,11 @@ object DisplayPowerAutomationManager {
         releaseScreenWakeLock()
     }
 
+    /**
+     * Seed the plugged-state edge detector when the service starts and wake the screen if we
+     * are already charging. We never *lock* from here, because reconciliation runs when the
+     * user opens Display mode and locking the device at that moment would be surprising.
+     */
     fun reconcileCurrentPowerState(context: Context, source: String) {
         initialize(context)
         val batteryIntent = appContext.registerReceiver(
@@ -77,12 +86,26 @@ object DisplayPowerAutomationManager {
             return
         }
         val plugged = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
-        val action = if (plugged) {
-            Intent.ACTION_POWER_CONNECTED
+        lastPluggedState = plugged
+        if (plugged) {
+            handlePowerEvent(appContext, Intent.ACTION_POWER_CONNECTED, "$source-reconcile")
         } else {
-            Intent.ACTION_POWER_DISCONNECTED
+            PhantomLog.i("DISPLAY POWER reconcile: unplugged at start (source=$source), no action")
         }
-        handlePowerEvent(appContext, action, "$source-reconcile")
+    }
+
+    /**
+     * Robust trigger: derive a plug/unplug edge from the sticky ACTION_BATTERY_CHANGED
+     * broadcast. This catches cases where ACTION_POWER_CONNECTED/DISCONNECTED is delayed,
+     * coalesced or never delivered on a given OEM build.
+     */
+    fun handleBatteryChanged(context: Context, plugged: Boolean) {
+        initialize(context)
+        val previous = lastPluggedState
+        lastPluggedState = plugged
+        if (previous == null || previous == plugged) return
+        val action = if (plugged) Intent.ACTION_POWER_CONNECTED else Intent.ACTION_POWER_DISCONNECTED
+        handlePowerEvent(appContext, action, "battery-changed")
     }
 
     fun handlePowerEvent(context: Context, action: String, source: String) {
@@ -90,6 +113,10 @@ object DisplayPowerAutomationManager {
         if (action != Intent.ACTION_POWER_CONNECTED && action != Intent.ACTION_POWER_DISCONNECTED) {
             return
         }
+        // Keep the edge detector in sync no matter which source delivered the event, so the
+        // ACTION_BATTERY_CHANGED path does not re-fire the same edge.
+        lastPluggedState = action == Intent.ACTION_POWER_CONNECTED
+
         val now = SystemClock.elapsedRealtime()
         val duplicate = synchronized(this) {
             val isDuplicate = action == lastPowerEventAction &&
@@ -128,11 +155,11 @@ object DisplayPowerAutomationManager {
 
         when (action) {
             Intent.ACTION_POWER_CONNECTED -> {
-                Log.d(TAG, "Power connected - applying display profile")
+                Log.d(TAG, "Power connected - turning the display screen on")
                 applyConnectedProfile("$source-power-connected", wakeScreen = true)
             }
             Intent.ACTION_POWER_DISCONNECTED -> {
-                Log.d(TAG, "Power disconnected - applying display dim/lock profile")
+                Log.d(TAG, "Power disconnected - locking the display")
                 applyDisconnectedProfile("$source-power-disconnected")
             }
         }
@@ -207,31 +234,20 @@ object DisplayPowerAutomationManager {
         }
     }
 
-    fun getExpectedBrightnessNow(): Int {
-        return if (isNightNow()) NIGHT_BRIGHTNESS else DAY_BRIGHTNESS
-    }
-
     fun evaluateReadiness(context: Context): DisplayReadinessSnapshot {
         initialize(context)
         val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
         val keyguardManager = appContext.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-        val currentBrightness = getCurrentBrightness()
-        val expectedBrightness = getExpectedBrightnessNow()
         val interactive = powerManager?.isInteractive == true
         val unlocked = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             keyguardManager?.isDeviceLocked == false
         } else {
             keyguardManager?.isKeyguardLocked == false
         }
-        val brightnessMatches = currentBrightness != null &&
-            abs(currentBrightness - expectedBrightness) <= BRIGHTNESS_TOLERANCE
         return DisplayReadinessSnapshot(
-            ready = interactive && unlocked && brightnessMatches,
+            ready = interactive && unlocked,
             interactive = interactive,
-            unlocked = unlocked,
-            brightnessMatchesProfile = brightnessMatches,
-            expectedBrightness = expectedBrightness,
-            currentBrightness = currentBrightness
+            unlocked = unlocked
         )
     }
 
@@ -261,12 +277,10 @@ object DisplayPowerAutomationManager {
     }
 
     fun applyConnectedProfile(reason: String, wakeScreen: Boolean) {
-        val targetBrightness = getExpectedBrightnessNow()
-        val brightnessResult = setBrightness(targetBrightness)
-        Log.d(TAG, "💡 Connected profile [$reason]: $brightnessResult")
         if (wakeScreen) {
-            val wakeResult = wakeAndDismissSwipeBestEffort()
-            Log.d(TAG, "🌙 Wake profile [$reason]: $wakeResult")
+            val wakeResult = wakeDisplayScreen(reason)
+            Log.d(TAG, "🌞 Connected profile [$reason]: $wakeResult")
+            PhantomLog.i("DISPLAY POWER connect wake: $wakeResult")
         }
     }
 
@@ -276,9 +290,6 @@ object DisplayPowerAutomationManager {
             PhantomLog.w("DISPLAY POWER disconnect skipped: anti-theft has priority")
             return
         }
-        val brightnessResult = setBrightness(DISCONNECTED_BRIGHTNESS)
-        Log.d(TAG, "💡 Disconnected profile [$reason]: $brightnessResult")
-        PhantomLog.i("DISPLAY POWER disconnect brightness: $brightnessResult")
         if (prefs.isDisplayLockOnPowerDisconnectEnabled()) {
             val lockResult = lockDevice()
             Log.d(TAG, "🔐 Disconnect lock [$reason]: $lockResult")
@@ -287,54 +298,47 @@ object DisplayPowerAutomationManager {
             } else {
                 PhantomLog.w("DISPLAY POWER disconnect lock: $lockResult")
             }
+        } else {
+            Log.d(TAG, "Disconnect lock [$reason] skipped: lock-on-disconnect disabled")
         }
     }
 
-    private fun getCurrentBrightness(): Int? {
+    /**
+     * Turn the display screen on reliably. The screen is woken by launching the Display screen
+     * with setTurnScreenOn()/setShowWhenLocked() flags (handled in MainActivity); the legacy
+     * wake lock below is only a best-effort assist for very old devices.
+     */
+    private fun wakeDisplayScreen(reason: String): String {
+        acquireLegacyWake()
         return runCatching {
-            Settings.System.getInt(appContext.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
-        }.getOrNull()
-    }
-
-    private fun setBrightness(value: Int): String {
-        if (!Settings.System.canWrite(appContext)) {
-            return "brightness skipped: Modify system settings is disabled"
-        }
-        return runCatching {
-            Settings.System.putInt(
-                appContext.contentResolver,
-                Settings.System.SCREEN_BRIGHTNESS_MODE,
-                Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
-            )
-            val success = Settings.System.putInt(
-                appContext.contentResolver,
-                Settings.System.SCREEN_BRIGHTNESS,
-                value.coerceIn(0, 255)
-            )
-            if (success) "brightness=${value.coerceIn(0, 255)}" else "brightness write failed"
-        }.getOrElse { "brightness failed: ${it.message}" }
+            val intent = MainActivity.createIntent(appContext, BottomNavHelper.Tab.DISPLAY).apply {
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                )
+                putExtra(MainActivity.EXTRA_WAKE_SCREEN, true)
+            }
+            appContext.startActivity(intent)
+            "screen wake requested via Display activity"
+        }.getOrElse { "screen wake failed: ${it.message}" }
     }
 
     @Suppress("DEPRECATION")
-    private fun wakeAndDismissSwipeBestEffort(): String {
-        val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
-            ?: return "wake failed: power service unavailable"
-        val wakeLock = powerManager.newWakeLock(
-            PowerManager.FULL_WAKE_LOCK or
-                PowerManager.ACQUIRE_CAUSES_WAKEUP or
-                PowerManager.ON_AFTER_RELEASE,
-            "${appContext.packageName}:displayWake"
-        )
+    private fun acquireLegacyWake() {
+        val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
+        val wakeLock = runCatching {
+            powerManager.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or
+                    PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                    PowerManager.ON_AFTER_RELEASE,
+                "${appContext.packageName}:displayWake"
+            )
+        }.getOrNull() ?: return
         wakeLock.setReferenceCounted(false)
-        acquireScreenWakeLock(wakeLock)
-
-        val keyguardManager = appContext.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-        if (keyguardManager != null && !keyguardManager.isDeviceSecure) {
-            val lock = keyguardManager.newKeyguardLock("${appContext.packageName}:displayKeyguard")
-            lock.disableKeyguard()
-            return "screen awake for 5s; swipe keyguard dismiss requested"
-        }
-        return "screen awake for 5s; secure keyguard not dismissed"
+        releaseScreenWakeLock()
+        screenWakeLock = wakeLock
+        runCatching { wakeLock.acquire(SCREEN_WAKE_TIMEOUT_MS) }
     }
 
     private fun lockDevice(): String {
@@ -350,12 +354,6 @@ object DisplayPowerAutomationManager {
         }.getOrElse { "lock failed: ${it.message}" }
     }
 
-    private fun acquireScreenWakeLock(wakeLock: PowerManager.WakeLock) {
-        releaseScreenWakeLock()
-        screenWakeLock = wakeLock
-        wakeLock.acquire(5_000L)
-    }
-
     private fun releaseScreenWakeLock() {
         screenWakeLock?.let { current ->
             if (current.isHeld) {
@@ -363,14 +361,6 @@ object DisplayPowerAutomationManager {
             }
         }
         screenWakeLock = null
-    }
-
-    private fun isNightNow(): Boolean {
-        val calendar = Calendar.getInstance()
-        val nowMinutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
-        val startMinutes = NIGHT_START_HOUR * 60 + NIGHT_START_MINUTE
-        val endMinutes = NIGHT_END_HOUR * 60 + NIGHT_END_MINUTE
-        return nowMinutes >= startMinutes || nowMinutes < endMinutes
     }
 
     private fun isAntiTheftBlocking(): Boolean {
