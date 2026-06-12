@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/aurora_card"
@@ -34,6 +35,7 @@
         android:textColor="@color/white"
         android:background="@drawable/aurora_button_ripple"
         android:backgroundTint="@null"
+        app:backgroundTint="@null"
         android:layout_marginBottom="8dp" />
 
     <Button
@@ -45,6 +47,7 @@
         android:textColor="@color/white"
         android:background="@drawable/aurora_button_ripple"
         android:backgroundTint="@null"
+        app:backgroundTint="@null"
         android:layout_marginBottom="8dp" />
 
     <Button
@@ -56,6 +59,7 @@
         android:textColor="@color/white"
         android:background="@drawable/aurora_button_ripple"
         android:backgroundTint="@null"
+        app:backgroundTint="@null"
         android:layout_marginBottom="8dp" />
 
     <Button
@@ -67,6 +71,7 @@
         android:textColor="@color/white"
         android:background="@drawable/aurora_button_ripple"
         android:backgroundTint="@null"
+        app:backgroundTint="@null"
         android:layout_marginBottom="8dp" />
 
     <Button
@@ -77,6 +82,7 @@
         android:text="ยกเลิก"
         android:textColor="@color/white"
         android:background="@drawable/aurora_button_ripple"
-        android:backgroundTint="@null" />
+        android:backgroundTint="@null"
+        app:backgroundTint="@null" />
 
 </LinearLayout>

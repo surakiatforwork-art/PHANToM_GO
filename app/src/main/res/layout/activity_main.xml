@@ -275,6 +275,7 @@
         android:textSize="16sp"
         android:background="@drawable/aurora_button_ripple"
         android:backgroundTint="@null"
+        app:backgroundTint="@null"
         android:paddingHorizontal="24dp"
         android:paddingVertical="12dp"
         app:layout_constraintEnd_toEndOf="parent"

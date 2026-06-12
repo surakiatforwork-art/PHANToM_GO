@@ -53,6 +53,7 @@
                 android:textColor="@android:color/white"
                 android:background="@drawable/aurora_button_ripple"
                 android:backgroundTint="@null"
+                app:backgroundTint="@null"
                 android:textSize="14sp" />
 
             <Button
@@ -65,6 +66,7 @@
                 android:textColor="@android:color/white"
                 android:background="@drawable/aurora_button_ripple"
                 android:backgroundTint="@null"
+                app:backgroundTint="@null"
                 android:textSize="14sp" />
 
         </LinearLayout>

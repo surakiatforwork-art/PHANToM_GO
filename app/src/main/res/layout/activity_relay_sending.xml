@@ -64,6 +64,7 @@
                     android:textColor="@color/white"
                     android:background="@drawable/aurora_button_ripple"
                     android:backgroundTint="@null"
+                    app:backgroundTint="@null"
                     android:visibility="gone" />
 
             </LinearLayout>
