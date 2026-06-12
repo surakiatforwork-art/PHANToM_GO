@@ -17,13 +17,13 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.Button
 import android.widget.ScrollView
-import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.google.android.material.materialswitch.MaterialSwitch
 
 class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
 
@@ -34,9 +34,9 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
 
     private lateinit var prefsManager: PrefsManager
     private lateinit var overlayController: OverlayController
-    private lateinit var overlaySwitch: Switch
+    private lateinit var overlaySwitch: MaterialSwitch
     private lateinit var overlayStatusText: TextView
-    private lateinit var mapLinkHubSwitch: Switch
+    private lateinit var mapLinkHubSwitch: MaterialSwitch
     private lateinit var mapLinkHubStatusText: TextView
     private lateinit var mapLinkHubInstructionText: TextView
     private lateinit var mapLinkHubDefaultStatusText: TextView
@@ -50,7 +50,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var bluetoothTargetStatusText: TextView
     private lateinit var pickBluetoothDeviceButton: Button
     private lateinit var clearBluetoothDeviceButton: Button
-    private lateinit var smartModeSwitch: Switch
+    private lateinit var smartModeSwitch: MaterialSwitch
     private lateinit var smartModeStatusText: TextView
     private lateinit var smartPolicyGroup: android.widget.RadioGroup
     private lateinit var policyAutoSendNavOnly: android.widget.RadioButton
@@ -60,7 +60,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var afterSendGroup: android.widget.RadioGroup
     private lateinit var afterSendExit: android.widget.RadioButton
     private lateinit var afterSendStay: android.widget.RadioButton
-    private lateinit var openMapsAfterSendSwitch: Switch
+    private lateinit var openMapsAfterSendSwitch: MaterialSwitch
     private lateinit var displayNavModeGroup: android.widget.RadioGroup
     private lateinit var displayNavModeCar: android.widget.RadioButton
     private lateinit var displayNavModeMotorcycle: android.widget.RadioButton
@@ -69,25 +69,25 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var displayOpenModePreview: android.widget.RadioButton
     private lateinit var displayOpenModeNavigate: android.widget.RadioButton
     private lateinit var displayOpenModeStatusText: TextView
-    private lateinit var speedometerSwitch: Switch
+    private lateinit var speedometerSwitch: MaterialSwitch
     private lateinit var speedometerStatusText: TextView
     private lateinit var speedometerPermissionText: TextView
     private lateinit var requestLocationPermissionButton: Button
-    private lateinit var displayPowerAutomationSwitch: Switch
+    private lateinit var displayPowerAutomationSwitch: MaterialSwitch
     private lateinit var displayPowerAutomationStatusText: TextView
     private lateinit var displayPowerAutomationDetailText: TextView
-    private lateinit var displayWakeBeforeMapsSwitch: Switch
+    private lateinit var displayWakeBeforeMapsSwitch: MaterialSwitch
     private lateinit var displayWakeBeforeMapsStatusText: TextView
-    private lateinit var lockOnDisconnectSwitch: Switch
+    private lateinit var lockOnDisconnectSwitch: MaterialSwitch
     private lateinit var lockOnDisconnectStatusText: TextView
     private lateinit var systemSettingsStatusText: TextView
     private lateinit var requestSystemSettingsButton: Button
     private lateinit var deviceAdminStatusText: TextView
     private lateinit var requestDeviceAdminButton: Button
-    private lateinit var antiTheftEnabledSwitch: Switch
+    private lateinit var antiTheftEnabledSwitch: MaterialSwitch
     private lateinit var antiTheftStatusText: TextView
     private lateinit var antiTheftDetailText: TextView
-    private lateinit var antiTheftAttachLocationSwitch: Switch
+    private lateinit var antiTheftAttachLocationSwitch: MaterialSwitch
     private lateinit var antiTheftAttachLocationStatus: TextView
     private lateinit var antiTheftPinButton: Button
     private lateinit var antiTheftSoundButton: Button

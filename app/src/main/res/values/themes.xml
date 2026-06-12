@@ -1,34 +1,33 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-  <!-- Neon Glass Theme (themeref.html) -->
+  <!-- Daylight Console base theme. Night overrides live in values-night. -->
   <style name="Theme.CarNavRelay" parent="Theme.Material3.DayNight.NoActionBar">
-    <!-- Primary Colors (Purple/Cyan) -->
-    <item name="colorPrimary">@color/aurora_purple</item>
-    <item name="colorPrimaryVariant">@color/purple_dark</item>
-    <item name="colorOnPrimary">@color/white_soft</item>
-    <item name="colorPrimaryContainer">@color/aurora_gray</item>
-    <item name="colorOnPrimaryContainer">@color/text_primary</item>
+    <item name="colorPrimary">@color/ui_primary</item>
+    <item name="colorPrimaryVariant">@color/ui_primary</item>
+    <item name="colorOnPrimary">@color/ui_on_primary</item>
+    <item name="colorPrimaryContainer">@color/ui_primary_container</item>
+    <item name="colorOnPrimaryContainer">@color/ui_text_primary</item>
 
     <!-- Secondary Colors -->
-    <item name="colorSecondary">@color/aurora_cyan</item>
-    <item name="colorSecondaryVariant">@color/aurora_green</item>
-    <item name="colorOnSecondary">@color/white_soft</item>
-    <item name="colorSecondaryContainer">@color/aurora_gray</item>
-    <item name="colorOnSecondaryContainer">@color/text_primary</item>
+    <item name="colorSecondary">@color/ui_success</item>
+    <item name="colorSecondaryVariant">@color/ui_success</item>
+    <item name="colorOnSecondary">@color/ui_on_primary</item>
+    <item name="colorSecondaryContainer">@color/ui_surface_alt</item>
+    <item name="colorOnSecondaryContainer">@color/ui_text_primary</item>
 
     <!-- Surface Colors -->
-    <item name="colorSurface">@color/aurora_dark_gray</item>
-    <item name="colorOnSurface">@color/text_primary</item>
-    <item name="android:colorBackground">@color/aurora_black</item>
-    <item name="colorOnBackground">@color/text_primary</item>
+    <item name="colorSurface">@color/ui_surface</item>
+    <item name="colorOnSurface">@color/ui_text_primary</item>
+    <item name="android:colorBackground">@color/ui_background</item>
+    <item name="colorOnBackground">@color/ui_text_primary</item>
 
     <!-- Error Colors -->
-    <item name="colorError">@color/aurora_error</item>
-    <item name="colorOnError">@color/white_soft</item>
+    <item name="colorError">@color/ui_danger</item>
+    <item name="colorOnError">@color/ui_on_primary</item>
 
     <!-- System Bars -->
-    <item name="android:statusBarColor">@color/aurora_black</item>
-    <item name="android:navigationBarColor">@color/aurora_black</item>
-    <item name="android:windowLightStatusBar">false</item>
+    <item name="android:statusBarColor">@color/ui_background</item>
+    <item name="android:navigationBarColor">@color/navy</item>
+    <item name="android:windowLightStatusBar">true</item>
 
     <!-- Shape Appearance -->
     <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.CarNavRelay.SmallComponent</item>
@@ -38,6 +37,7 @@
     <!-- Default Card Style -->
     <item name="materialCardViewStyle">@style/Widget.CarNavRelay.CardView</item>
     <item name="materialButtonStyle">@style/Widget.CarNavRelay.Button</item>
+    <item name="materialSwitchStyle">@style/Widget.CarNavRelay.Switch</item>
   </style>
 
   <!-- Shape Appearances -->
@@ -58,21 +58,19 @@
 
   <!-- Card Style -->
   <style name="Widget.CarNavRelay.CardView" parent="Widget.Material3.CardView.Elevated">
-    <item name="cardElevation">8dp</item>
-    <item name="cardCornerRadius">24dp</item>
-    <item name="cardBackgroundColor">@color/aurora_glass</item>
-    <item name="strokeColor">@color/glass_border</item>
+    <item name="cardElevation">3dp</item>
+    <item name="cardCornerRadius">16dp</item>
+    <item name="cardBackgroundColor">@color/ui_surface</item>
+    <item name="strokeColor">@color/ui_outline</item>
     <item name="strokeWidth">1dp</item>
   </style>
 
   <!-- Button Styles -->
   <style name="Widget.CarNavRelay.Button" parent="Widget.Material3.Button">
-    <item name="cornerRadius">16dp</item>
+    <item name="cornerRadius">12dp</item>
     <item name="android:textSize">16sp</item>
     <item name="android:textStyle">bold</item>
-    <item name="backgroundTint">@null</item>
-    <item name="android:background">@drawable/aurora_button_ripple</item>
-    <item name="android:textColor">@color/white</item>
+    <item name="android:textColor">@color/ui_on_primary</item>
     <item name="android:scaleY">1.0</item>
     <item name="android:scaleX">1.0</item>
   </style>
@@ -84,6 +82,11 @@
     <item name="android:windowContentOverlay">@null</item>
     <item name="android:windowNoTitle">true</item>
     <item name="android:backgroundDimEnabled">false</item>
+  </style>
+
+  <style name="Widget.CarNavRelay.Switch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+    <item name="android:minWidth">52dp</item>
+    <item name="android:minHeight">48dp</item>
   </style>
 
   <style name="Theme.CarNavRelay.SecurityOverlay" parent="Theme.CarNavRelay.Translucent">

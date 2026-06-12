@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <gradient
-        android:angle="90"
-        android:endColor="#FF11162A"
-        android:startColor="#FF1A2137"
-        android:type="linear" />
+    <solid android:color="@color/ui_nav_surface" />
     <stroke
         android:width="1dp"
-        android:color="@color/aurora_cyan" />
+        android:color="@color/ui_outline" />
     <corners
-        android:topLeftRadius="30dp"
-        android:topRightRadius="30dp"
-        android:bottomLeftRadius="24dp"
-        android:bottomRightRadius="24dp" />
+        android:topLeftRadius="22dp"
+        android:topRightRadius="22dp"
+        android:bottomLeftRadius="22dp"
+        android:bottomRightRadius="22dp" />
 </shape>

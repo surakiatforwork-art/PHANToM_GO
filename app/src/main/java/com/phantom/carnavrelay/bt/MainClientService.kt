@@ -72,7 +72,7 @@ class MainClientService : Service() {
   }
 
   private fun connectIfNeeded() {
-    if (socket != null && socket!!.isConnected) {
+    if (socket?.isConnected == true) {
       Log.d(TAG, "✅ Already connected")
       return
     }

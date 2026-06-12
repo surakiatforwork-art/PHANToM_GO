@@ -217,7 +217,7 @@ class DisplayServerService : Service() {
 
         // Start HTTP server
         try {
-            if (httpServer == null || !httpServer!!.isServerRunning()) {
+            if (httpServer?.isServerRunning() != true) {
                 httpServer = HttpServer(this, prefsManager)
                 httpServer?.start()
                 Log.d(TAG, "✅ HTTP Server started successfully")
@@ -415,10 +415,12 @@ class DisplayServerService : Service() {
         val now = System.currentTimeMillis()
 
         val timeDue = now - lastDisplayLocationSyncAt >= DISPLAY_LOCATION_SYNC_INTERVAL_MS
-        val movedEnough = if (lastDisplayLocationLat == null || lastDisplayLocationLng == null) {
+        val previousLat = lastDisplayLocationLat
+        val previousLng = lastDisplayLocationLng
+        val movedEnough = if (previousLat == null || previousLng == null) {
             true
         } else {
-            distanceMeters(lastDisplayLocationLat!!, lastDisplayLocationLng!!, lat, lng) >= DISPLAY_LOCATION_MIN_DISTANCE_METERS
+            distanceMeters(previousLat, previousLng, lat, lng) >= DISPLAY_LOCATION_MIN_DISTANCE_METERS
         }
 
         if (!timeDue && !movedEnough) return

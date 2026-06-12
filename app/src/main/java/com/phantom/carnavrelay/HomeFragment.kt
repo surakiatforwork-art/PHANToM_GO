@@ -9,7 +9,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.location.Geocoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -32,9 +31,6 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.navigation.NavigationView
-import java.text.DateFormat
-import java.util.Date
-import java.util.Locale
 
 class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
 
@@ -158,6 +154,9 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
                 R.id.nav_settings, R.id.nav_logs -> {
                     (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.SETTINGS)
                 }
+                R.id.nav_security -> {
+                    (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.SECURITY)
+                }
                 R.id.nav_about -> showAboutDialog()
                 R.id.nav_switch_mode -> {
                     (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.DISPLAY)
@@ -263,18 +262,7 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
             Toast.makeText(requireContext(), "Not paired with Display device", Toast.LENGTH_SHORT).show()
             return
         }
-
-        Toast.makeText(requireContext(), "Looking up display location…", Toast.LENGTH_SHORT).show()
-        FirebaseManager.getPairedDisplayLocation(requireContext()) { info, error ->
-            activity?.runOnUiThread {
-                if (!isAdded) return@runOnUiThread
-                if (info == null) {
-                    Toast.makeText(requireContext(), error ?: "Could not load display location", Toast.LENGTH_LONG).show()
-                    return@runOnUiThread
-                }
-                resolveAddressAndShowDisplayLocation(info)
-            }
-        }
+        (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.SECURITY)
     }
 
     private fun confirmClearPairing() {
@@ -572,89 +560,4 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         }
     }
 
-    private fun resolveAddressAndShowDisplayLocation(info: FirebaseManager.DisplayLocationInfo) {
-        val lat = info.lat
-        val lng = info.lng
-        if (lat == null || lng == null) {
-            showDisplayLocationDialog(info, null)
-            return
-        }
-
-        Thread {
-            val address = runCatching {
-                val geocoder = Geocoder(requireContext(), Locale.getDefault())
-                @Suppress("DEPRECATION")
-                geocoder.getFromLocation(lat, lng, 1)
-                    ?.firstOrNull()
-                    ?.getAddressLine(0)
-            }.getOrNull()
-
-            activity?.runOnUiThread {
-                if (!isAdded) return@runOnUiThread
-                showDisplayLocationDialog(info, address)
-            }
-        }.start()
-    }
-
-    private fun showDisplayLocationDialog(
-        info: FirebaseManager.DisplayLocationInfo,
-        address: String?
-    ) {
-        val title = info.displayName ?: "Display device"
-        val status = if (info.connected) "Online now" else "Offline - showing latest recorded location"
-        val lat = info.lat
-        val lng = info.lng
-        val timestamp = info.locationUpdatedAt ?: info.lastOnlineAt ?: info.presenceUpdatedAt
-        val accuracy = info.accuracyMeters?.let { String.format(Locale.US, "%.1f m", it) } ?: "Unknown"
-        val updatedText = timestamp?.let { formatTimestamp(it) } ?: "Unknown"
-        val message = buildString {
-            append(title)
-            append("\n\n")
-            append(status)
-            append("\n\n")
-            if (lat != null && lng != null) {
-                append("Coordinates: ")
-                append(String.format(Locale.US, "%.6f, %.6f", lat, lng))
-                append("\n")
-            } else {
-                append("Coordinates: Not available\n")
-            }
-            append("Accuracy: ")
-            append(accuracy)
-            append("\n")
-            append("Updated: ")
-            append(updatedText)
-            info.speedKmh?.let {
-                append("\nSpeed: ")
-                append(it)
-                append(" km/h")
-            }
-            if (!address.isNullOrBlank()) {
-                append("\n\nAddress:\n")
-                append(address)
-            }
-        }
-
-        val builder = AlertDialog.Builder(requireContext())
-            .setTitle("Find Display")
-            .setMessage(message)
-            .setPositiveButton("Close", null)
-
-        if (lat != null && lng != null) {
-            builder.setNeutralButton("Open Map") { _, _ ->
-                val uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng")
-                startActivity(Intent(Intent.ACTION_VIEW, uri))
-            }
-        }
-
-        builder.show()
-    }
-
-    private fun formatTimestamp(timestamp: Long): String {
-        return DateFormat.getDateTimeInstance(
-            DateFormat.MEDIUM,
-            DateFormat.SHORT,
-            Locale.getDefault()
-        ).format(Date(timestamp))
-    }
 }

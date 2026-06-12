@@ -66,7 +66,7 @@ class PhantomGoApplication : Application(), Application.ActivityLifecycleCallbac
                 Log.d(TAG, "ℹ️ Network callback auto-reconnect requires API 24+")
                 return
             }
-            networkCallback = object : ConnectivityManager.NetworkCallback() {
+            val callback = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
                     scheduleReconnectBurst("network-available")
                 }
@@ -81,7 +81,8 @@ class PhantomGoApplication : Application(), Application.ActivityLifecycleCallbac
                     maybeTriggerAutoReconnect("network-lost")
                 }
             }
-            cm.registerDefaultNetworkCallback(networkCallback!!)
+            networkCallback = callback
+            cm.registerDefaultNetworkCallback(callback)
             Log.d(TAG, "✅ Network reconnect callback registered")
         } catch (e: Exception) {
             Log.w(TAG, "⚠️ Failed to register network callback", e)

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Midnight Executive overrides -->
+    <color name="ui_background">#0B1326</color>
+    <color name="ui_surface">#131B2E</color>
+    <color name="ui_surface_alt">#171F33</color>
+    <color name="ui_surface_high">#222A3D</color>
+    <color name="ui_text_primary">#DAE2FD</color>
+    <color name="ui_text_secondary">#C4C6CD</color>
+    <color name="ui_text_muted">#8E9197</color>
+    <color name="ui_outline">#43474D</color>
+    <color name="ui_primary">#B3C8E5</color>
+    <color name="ui_primary_container">#869BB6</color>
+    <color name="ui_on_primary">#1D3248</color>
+    <color name="ui_success">#BECCA3</color>
+    <color name="ui_warning">#E7C36C</color>
+    <color name="ui_danger">#FFB4AB</color>
+    <color name="ui_nav_surface">#131B2E</color>
+    <color name="ui_nav_active">#869BB6</color>
+    <color name="ui_nav_active_content">@color/ui_on_primary</color>
+
+    <color name="soft_bg_start">@color/ui_background</color>
+    <color name="soft_bg_end">#060E20</color>
+    <color name="soft_surface">@color/ui_surface</color>
+    <color name="soft_surface_alt">@color/ui_surface_alt</color>
+    <color name="soft_border">@color/ui_outline</color>
+    <color name="soft_shadow">#52000000</color>
+    <color name="soft_text_primary">@color/ui_text_primary</color>
+    <color name="soft_text_secondary">@color/ui_text_secondary</color>
+    <color name="soft_text_muted">@color/ui_text_muted</color>
+    <color name="soft_blue">@color/ui_primary</color>
+    <color name="soft_blue_end">@color/ui_primary_container</color>
+    <color name="soft_blue_dark">@color/ui_primary</color>
+    <color name="soft_success">@color/ui_success</color>
+    <color name="soft_warning">@color/ui_warning</color>
+    <color name="soft_danger">@color/ui_danger</color>
+
+    <color name="aurora_silver">@color/ui_text_secondary</color>
+    <color name="aurora_cyan">@color/ui_primary</color>
+    <color name="aurora_success">@color/ui_success</color>
+    <color name="aurora_warning">@color/ui_warning</color>
+    <color name="aurora_error">@color/ui_danger</color>
+    <color name="aurora_waiting">@color/ui_text_muted</color>
+    <color name="aurora_connected">@color/ui_success</color>
+    <color name="aurora_disconnected">@color/ui_danger</color>
+    <color name="aurora_auth_failed">@color/ui_danger</color>
+</resources>

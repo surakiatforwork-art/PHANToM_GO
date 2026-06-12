@@ -1,0 +1,26 @@
+<resources>
+  <style name="Theme.CarNavRelay" parent="Theme.Material3.DayNight.NoActionBar">
+    <item name="colorPrimary">@color/ui_primary</item>
+    <item name="colorPrimaryVariant">@color/ui_primary</item>
+    <item name="colorOnPrimary">@color/ui_on_primary</item>
+    <item name="colorPrimaryContainer">@color/ui_primary_container</item>
+    <item name="colorOnPrimaryContainer">@color/ui_text_primary</item>
+    <item name="colorSecondary">@color/ui_success</item>
+    <item name="colorOnSecondary">@color/ui_on_primary</item>
+    <item name="colorSurface">@color/ui_surface</item>
+    <item name="colorOnSurface">@color/ui_text_primary</item>
+    <item name="android:colorBackground">@color/ui_background</item>
+    <item name="colorOnBackground">@color/ui_text_primary</item>
+    <item name="colorError">@color/ui_danger</item>
+    <item name="colorOnError">@color/ui_on_primary</item>
+    <item name="android:statusBarColor">@color/ui_background</item>
+    <item name="android:navigationBarColor">@color/ui_background</item>
+    <item name="android:windowLightStatusBar">false</item>
+    <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.CarNavRelay.SmallComponent</item>
+    <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.CarNavRelay.MediumComponent</item>
+    <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.CarNavRelay.LargeComponent</item>
+    <item name="materialCardViewStyle">@style/Widget.CarNavRelay.CardView</item>
+    <item name="materialButtonStyle">@style/Widget.CarNavRelay.Button</item>
+    <item name="materialSwitchStyle">@style/Widget.CarNavRelay.Switch</item>
+  </style>
+</resources>

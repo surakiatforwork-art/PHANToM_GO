@@ -395,9 +395,10 @@ class RelayActivity : AppCompatActivity() {
             actionButton.text = "Retry"
             actionButton.visibility = View.VISIBLE
             actionButton.setOnClickListener {
+                val raw = lastRaw ?: return@setOnClickListener
                 requestId += 1
                 resetUiForNewRequest()
-                startSendFlow(lastRaw!!, requestId, lastIntent ?: intent, lastForceSend)
+                startSendFlow(raw, requestId, lastIntent ?: intent, lastForceSend)
             }
         } else {
             actionButton.text = "Close"

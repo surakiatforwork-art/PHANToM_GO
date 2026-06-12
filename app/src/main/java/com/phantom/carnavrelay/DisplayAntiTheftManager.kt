@@ -373,10 +373,11 @@ object DisplayAntiTheftManager {
 
     private fun scheduleHeadsetStateApply(plugged: Boolean) {
         pendingHeadsetApply?.let(handler::removeCallbacks)
-        pendingHeadsetApply = Runnable {
+        val applyRunnable = Runnable {
             applyStableHeadsetState(plugged)
         }
-        handler.postDelayed(pendingHeadsetApply!!, HEADSET_DEBOUNCE_MS)
+        pendingHeadsetApply = applyRunnable
+        handler.postDelayed(applyRunnable, HEADSET_DEBOUNCE_MS)
     }
 
     private fun applyStableHeadsetState(plugged: Boolean) {
@@ -802,10 +803,11 @@ object DisplayAntiTheftManager {
             prefs.setAntiTheftSessionId(sessionId)
         }
         val location = captureLocationSnapshot()
+        val alertSessionId = sessionId ?: return
         FirebaseManager.sendSecurityAlert(
             context = appContext,
             eventType = eventType,
-            sessionId = sessionId!!,
+            sessionId = alertSessionId,
             wrongAttemptCount = wrongAttempts,
             jackPlugged = headsetPlugged,
             location = location,

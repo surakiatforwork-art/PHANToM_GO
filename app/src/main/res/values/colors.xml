@@ -37,14 +37,14 @@
     <color name="aurora_center">@color/navy_mid</color>
     <color name="aurora_end">@color/navy_light</color>
 
-    <color name="aurora_success">@color/cyan</color>
-    <color name="aurora_warning">@color/purple_glow</color>
-    <color name="aurora_error">@color/error_red</color>
+    <color name="aurora_success">@color/ui_success</color>
+    <color name="aurora_warning">@color/ui_warning</color>
+    <color name="aurora_error">@color/ui_danger</color>
     <color name="aurora_info">@color/cyan_glow</color>
-    <color name="aurora_waiting">@color/purple_glow</color>
-    <color name="aurora_connected">@color/cyan</color>
-    <color name="aurora_disconnected">@color/purple_dark</color>
-    <color name="aurora_auth_failed">@color/error_red</color>
+    <color name="aurora_waiting">@color/ui_text_muted</color>
+    <color name="aurora_connected">@color/ui_success</color>
+    <color name="aurora_disconnected">@color/ui_danger</color>
+    <color name="aurora_auth_failed">@color/ui_danger</color>
     <color name="aurora_glass">@color/glass_bg</color>
 
     <!-- Legacy palette remapped -->
@@ -78,10 +78,10 @@
     <color name="gray_800">@color/navy_light</color>
     <color name="gray_900">@color/navy</color>
 
-    <color name="success">@color/cyan</color>
-    <color name="warning">@color/purple_glow</color>
-    <color name="error">@color/error_red</color>
-    <color name="red">@color/error_red</color>
+    <color name="success">@color/ui_success</color>
+    <color name="warning">@color/ui_warning</color>
+    <color name="error">@color/ui_danger</color>
+    <color name="red">@color/ui_danger</color>
     <color name="info">@color/cyan_glow</color>
 
     <color name="background">@color/navy</color>
@@ -92,22 +92,41 @@
     <color name="text_primary">@color/white_soft</color>
     <color name="text_secondary">@color/gray_soft</color>
 
-    <!-- Soft UI palette for stitch-inspired screens -->
-    <color name="soft_bg_start">#F6F8FF</color>
-    <color name="soft_bg_end">#EEF3FF</color>
+    <!-- Semantic Daylight Console palette -->
+    <color name="ui_background">#F7F9FB</color>
+    <color name="ui_surface">#FFFFFFFF</color>
+    <color name="ui_surface_alt">#F2F4F6</color>
+    <color name="ui_surface_high">#E6E8EA</color>
+    <color name="ui_text_primary">#191C1E</color>
+    <color name="ui_text_secondary">#434655</color>
+    <color name="ui_text_muted">#737686</color>
+    <color name="ui_outline">#C3C6D7</color>
+    <color name="ui_primary">#004AC6</color>
+    <color name="ui_primary_container">#D5E3FD</color>
+    <color name="ui_on_primary">#FFFFFFFF</color>
+    <color name="ui_success">#007D55</color>
+    <color name="ui_warning">#A15C00</color>
+    <color name="ui_danger">#BA1A1A</color>
+    <color name="ui_nav_surface">#FAFBFD</color>
+    <color name="ui_nav_active">#D5E3FD</color>
+    <color name="ui_nav_active_content">@color/ui_primary</color>
+
+    <!-- Soft UI aliases used by the Android layouts -->
+    <color name="soft_bg_start">@color/ui_background</color>
+    <color name="soft_bg_end">#F2F4F6</color>
     <color name="soft_surface">#FFFFFFFF</color>
-    <color name="soft_surface_alt">#F1F4FB</color>
-    <color name="soft_border">#D7E0F2</color>
+    <color name="soft_surface_alt">@color/ui_surface_alt</color>
+    <color name="soft_border">@color/ui_outline</color>
     <color name="soft_shadow">#190C2B63</color>
-    <color name="soft_text_primary">#111827</color>
-    <color name="soft_text_secondary">#4B5563</color>
-    <color name="soft_text_muted">#6B7280</color>
-    <color name="soft_blue">#2D7EF7</color>
-    <color name="soft_blue_end">#1765D8</color>
-    <color name="soft_blue_dark">#1F5CBF</color>
-    <color name="soft_success">#1F9D5A</color>
-    <color name="soft_warning">#C98917</color>
-    <color name="soft_danger">#CC3D5A</color>
+    <color name="soft_text_primary">@color/ui_text_primary</color>
+    <color name="soft_text_secondary">@color/ui_text_secondary</color>
+    <color name="soft_text_muted">@color/ui_text_muted</color>
+    <color name="soft_blue">@color/ui_primary</color>
+    <color name="soft_blue_end">#2563EB</color>
+    <color name="soft_blue_dark">@color/ui_primary</color>
+    <color name="soft_success">@color/ui_success</color>
+    <color name="soft_warning">@color/ui_warning</color>
+    <color name="soft_danger">@color/ui_danger</color>
 
     <!-- Display redesign palette -->
     <color name="display_bg_top">#182536</color>

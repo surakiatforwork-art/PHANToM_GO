@@ -9,22 +9,22 @@
     android:elevation="10dp"
     android:gravity="center"
     android:orientation="horizontal"
-    android:paddingHorizontal="10dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="18dp">
+    android:paddingHorizontal="8dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="10dp">
 
     <LinearLayout
         android:id="@+id/navHomeAction"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="6dp"
+        android:layout_marginEnd="2dp"
         android:layout_weight="1"
         android:background="@drawable/bottom_nav_item_idle"
         android:gravity="center"
-        android:minHeight="60dp"
+        android:minHeight="58dp"
         android:orientation="vertical"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="10dp">
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="8dp">
 
         <ImageView
             android:id="@+id/navHomeIcon"
@@ -32,7 +32,7 @@
             android:layout_height="22dp"
             android:contentDescription="@null"
             android:src="@drawable/ic_home"
-            app:tint="@color/aurora_silver" />
+            app:tint="@color/ui_text_secondary" />
 
         <TextView
             android:id="@+id/navHomeLabel"
@@ -40,7 +40,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Home"
-            android:textColor="@color/aurora_silver"
+            android:textColor="@color/ui_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -49,15 +49,15 @@
         android:id="@+id/navDisplayAction"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="3dp"
-        android:layout_marginEnd="3dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginEnd="2dp"
         android:layout_weight="1"
         android:background="@drawable/bottom_nav_item_idle"
         android:gravity="center"
-        android:minHeight="60dp"
+        android:minHeight="58dp"
         android:orientation="vertical"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="10dp">
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="8dp">
 
         <ImageView
             android:id="@+id/navDisplayIcon"
@@ -65,7 +65,7 @@
             android:layout_height="22dp"
             android:contentDescription="@null"
             android:src="@drawable/ic_display_mode"
-            app:tint="@color/aurora_silver" />
+            app:tint="@color/ui_text_secondary" />
 
         <TextView
             android:id="@+id/navDisplayLabel"
@@ -73,7 +73,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Display"
-            android:textColor="@color/aurora_silver"
+            android:textColor="@color/ui_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -82,14 +82,15 @@
         android:id="@+id/navSettingsAction"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginEnd="2dp"
         android:layout_weight="1"
         android:background="@drawable/bottom_nav_item_idle"
         android:gravity="center"
-        android:minHeight="60dp"
+        android:minHeight="58dp"
         android:orientation="vertical"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="10dp">
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="8dp">
 
         <ImageView
             android:id="@+id/navSettingsIcon"
@@ -97,7 +98,7 @@
             android:layout_height="22dp"
             android:contentDescription="@null"
             android:src="@drawable/ic_settings"
-            app:tint="@color/aurora_silver" />
+            app:tint="@color/ui_text_secondary" />
 
         <TextView
             android:id="@+id/navSettingsLabel"
@@ -105,7 +106,39 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Settings"
-            android:textColor="@color/aurora_silver"
+            android:textColor="@color/ui_text_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/navSecurityAction"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
+        android:layout_weight="1"
+        android:background="@drawable/bottom_nav_item_idle"
+        android:gravity="center"
+        android:minHeight="58dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="8dp">
+
+        <ImageView
+            android:id="@+id/navSecurityIcon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_security"
+            app:tint="@color/ui_text_secondary" />
+
+        <TextView
+            android:id="@+id/navSecurityLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Security"
+            android:textColor="@color/ui_text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>

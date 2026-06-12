@@ -122,6 +122,7 @@ class MainActivity : AppCompatActivity() {
             BottomNavHelper.Tab.HOME -> HomeFragment()
             BottomNavHelper.Tab.DISPLAY -> DisplayScreenFragment()
             BottomNavHelper.Tab.SETTINGS -> SettingsScreenFragment()
+            BottomNavHelper.Tab.SECURITY -> SecurityFragment()
         }
     }
 

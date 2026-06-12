@@ -128,11 +128,12 @@ class DisplaySpeedMonitor(
     }
 
     private fun buildSnapshot(location: Location): SpeedSnapshot {
+        val previousLocation = lastLocation
         val speedMps = when {
             location.hasSpeed() -> max(location.speed, 0f)
-            lastLocation != null && location.time > lastLocation!!.time -> {
-                val distance = lastLocation!!.distanceTo(location)
-                val deltaSeconds = (location.time - lastLocation!!.time).coerceAtLeast(1L) / 1000f
+            previousLocation != null && location.time > previousLocation.time -> {
+                val distance = previousLocation.distanceTo(location)
+                val deltaSeconds = (location.time - previousLocation.time).coerceAtLeast(1L) / 1000f
                 if (deltaSeconds > 0f) max(distance / deltaSeconds, 0f) else 0f
             }
             else -> 0f

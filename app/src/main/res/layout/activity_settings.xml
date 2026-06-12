@@ -153,18 +153,24 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:gravity="center_vertical"
+                        android:layoutDirection="rtl"
                         android:orientation="horizontal">
 
-                        <Switch
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/displayPowerAutomationSwitch"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1" />
+                            android:layoutDirection="ltr"
+                            android:layout_gravity="end" />
 
                         <TextView
                             android:id="@+id/displayPowerAutomationStatusText"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:gravity="start"
+                            android:textDirection="locale"
                             android:text="Off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
@@ -179,49 +185,75 @@
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="13sp" />
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Wake and brighten before opening Maps"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="6dp"
                         android:gravity="center_vertical"
+                        android:layoutDirection="rtl"
                         android:orientation="horizontal">
 
-                        <Switch
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/displayWakeBeforeMapsSwitch"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Wake and brighten before opening Maps"
-                            android:textColor="@color/soft_text_primary" />
+                            android:layoutDirection="ltr"
+                            android:layout_gravity="end" />
 
                         <TextView
                             android:id="@+id/displayWakeBeforeMapsStatusText"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:gravity="start"
+                            android:textDirection="locale"
                             android:text="Enabled"
                             android:textColor="@color/soft_success"
                             android:textSize="14sp" />
                     </LinearLayout>
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Lock device when external power disconnects"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="6dp"
                         android:gravity="center_vertical"
+                        android:layoutDirection="rtl"
                         android:orientation="horizontal">
 
-                        <Switch
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/lockOnDisconnectSwitch"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Lock device when external power disconnects"
-                            android:textColor="@color/soft_text_primary" />
+                            android:layoutDirection="ltr"
+                            android:layout_gravity="end" />
 
                         <TextView
                             android:id="@+id/lockOnDisconnectStatusText"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:gravity="start"
+                            android:textDirection="locale"
                             android:text="Disabled"
                             android:textColor="@color/soft_text_secondary"
                             android:textSize="14sp" />
@@ -287,18 +319,24 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:gravity="center_vertical"
+                        android:layoutDirection="rtl"
                         android:orientation="horizontal">
 
-                        <Switch
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/overlaySwitch"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1" />
+                            android:layoutDirection="ltr"
+                            android:layout_gravity="end" />
 
                         <TextView
                             android:id="@+id/overlayStatusText"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:gravity="start"
+                            android:textDirection="locale"
                             android:text="Checking..."
                             android:textColor="@color/soft_text_secondary"
                             android:textSize="14sp" />
@@ -416,18 +454,24 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:gravity="center_vertical"
+                        android:layoutDirection="rtl"
                         android:orientation="horizontal">
 
-                        <Switch
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/speedometerSwitch"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1" />
+                            android:layoutDirection="ltr"
+                            android:layout_gravity="end" />
 
                         <TextView
                             android:id="@+id/speedometerStatusText"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:gravity="start"
+                            android:textDirection="locale"
                             android:text="Off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
@@ -474,18 +518,24 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:gravity="center_vertical"
+                        android:layoutDirection="rtl"
                         android:orientation="horizontal">
 
-                        <Switch
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/antiTheftEnabledSwitch"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1" />
+                            android:layoutDirection="ltr"
+                            android:layout_gravity="end" />
 
                         <TextView
                             android:id="@+id/antiTheftStatusText"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:gravity="start"
+                            android:textDirection="locale"
                             android:text="Off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
@@ -500,25 +550,38 @@
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="13sp" />
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Attach location in theft alerts"
+                        android:textColor="@color/soft_text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="6dp"
                         android:gravity="center_vertical"
+                        android:layoutDirection="rtl"
                         android:orientation="horizontal">
 
-                        <Switch
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/antiTheftAttachLocationSwitch"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Attach location in theft alerts"
-                            android:textColor="@color/soft_text_primary" />
+                            android:layoutDirection="ltr"
+                            android:layout_gravity="end" />
 
                         <TextView
                             android:id="@+id/antiTheftAttachLocationStatus"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:gravity="start"
+                            android:textDirection="locale"
                             android:text="On"
                             android:textColor="@color/soft_success"
                             android:textSize="14sp" />
@@ -602,18 +665,24 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:gravity="center_vertical"
+                        android:layoutDirection="rtl"
                         android:orientation="horizontal">
 
-                        <Switch
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/mapLinkHubSwitch"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1" />
+                            android:layoutDirection="ltr"
+                            android:layout_gravity="end" />
 
                         <TextView
                             android:id="@+id/mapLinkHubStatusText"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:gravity="start"
+                            android:textDirection="locale"
                             android:text="Off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
@@ -759,18 +828,24 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:gravity="center_vertical"
+                        android:layoutDirection="rtl"
                         android:orientation="horizontal">
 
-                        <Switch
+                        <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/smartModeSwitch"
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1" />
+                            android:layoutDirection="ltr"
+                            android:layout_gravity="end" />
 
                         <TextView
                             android:id="@+id/smartModeStatusText"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:gravity="start"
+                            android:textDirection="locale"
                             android:text="Off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
@@ -826,9 +901,9 @@
                             android:text="Stay in app" />
                     </RadioGroup>
 
-                    <Switch
+                    <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/openMapsAfterSendSwitch"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="Open Google Maps on Main after send"
