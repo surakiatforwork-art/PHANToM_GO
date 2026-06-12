@@ -41,7 +41,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
                     android:layout_weight="1"
-                    android:text="PHANToM GO Display Mode"
+                    android:text="@string/app_name_display"
                     android:textColor="@android:color/white"
                     android:textSize="20sp"
                     android:textStyle="bold" />
@@ -50,7 +50,7 @@
                     android:id="@+id/tvStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Waiting"
+                    android:text="@string/home_state_waiting"
                     android:textColor="@android:color/white"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -86,7 +86,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 android:gravity="center"
-                android:text="Scan this QR code with Main device"
+                android:text="@string/display_scan_this_qr"
                 android:textColor="#D8E4F4"
                 android:textSize="15sp" />
 
@@ -147,7 +147,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="Token: ****"
+                            android:text="@string/display_token_masked"
                             android:textColor="#A8D5FF"
                             android:textSize="13sp" />
 
@@ -159,7 +159,7 @@
                             android:fontFamily="monospace"
                             android:gravity="center"
                             android:maxLines="3"
-                            android:text="QR Payload"
+                            android:text="@string/display_qr_payload_label"
                             android:textColor="#7AB6FF"
                             android:textSize="11sp" />
 
@@ -171,9 +171,9 @@
                             android:background="@drawable/soft_secondary_button"
                             android:backgroundTint="@null"
                             app:backgroundTint="@null"
-                            android:text="Copy Payload"
+                            android:text="@string/display_copy_payload"
                             android:textAllCaps="false"
-                            android:textColor="@color/soft_blue_dark" />
+                            android:textColor="@color/soft_button_secondary_text" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -199,7 +199,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="16dp"
                             android:gravity="center"
-                            android:text="Waiting for Connection"
+                            android:text="@string/display_waiting_pairing"
                             android:textColor="@android:color/white"
                             android:textSize="22sp"
                             android:textStyle="bold" />
@@ -210,7 +210,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
                             android:gravity="center"
-                            android:text="Scan this QR code with your Main device to link and start synchronizing map displays."
+                            android:text="@string/display_show_on_car_hint"
                             android:textColor="#D8E4F4"
                             android:textSize="15sp" />
 
@@ -220,7 +220,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="14dp"
                             android:gravity="center"
-                            android:text="This display is linked and ready to receive new routes from your Main device."
+                            android:text="@string/display_auto_switch_hint"
                             android:textColor="#D8E4F4"
                             android:textSize="15sp" />
                     </LinearLayout>
@@ -242,9 +242,9 @@
                     android:background="@drawable/display_primary_button"
                     android:backgroundTint="@null"
                     app:backgroundTint="@null"
-                    android:text="Open Last Navigation"
+                    android:text="@string/display_open_last_nav"
                     android:textAllCaps="false"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/display_button_primary_text"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -256,9 +256,9 @@
                     android:background="@drawable/soft_secondary_button"
                     android:backgroundTint="@null"
                     app:backgroundTint="@null"
-                    android:text="Disconnect / Reset"
+                    android:text="@string/display_disconnect_reset"
                     android:textAllCaps="false"
-                    android:textColor="@color/soft_danger"
+                    android:textColor="@color/soft_button_secondary_danger_text"
                     android:textSize="16sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -280,9 +280,9 @@
                     android:background="@drawable/soft_secondary_button"
                     android:backgroundTint="@null"
                     app:backgroundTint="@null"
-                    android:text="Refresh Token"
+                    android:text="@string/refresh_token"
                     android:textAllCaps="false"
-                    android:textColor="@color/soft_blue_dark"
+                    android:textColor="@color/soft_button_secondary_text"
                     android:textStyle="bold" />
 
                 <com.google.android.material.button.MaterialButton
@@ -294,9 +294,9 @@
                     android:background="@drawable/soft_secondary_button"
                     android:backgroundTint="@null"
                     app:backgroundTint="@null"
-                    android:text="Copy Token"
+                    android:text="@string/copy_token"
                     android:textAllCaps="false"
-                    android:textColor="@color/soft_blue_dark"
+                    android:textColor="@color/soft_button_secondary_text"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -326,7 +326,7 @@
                         android:id="@+id/tvSpeedLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Current Speed"
+                        android:text="@string/display_speed_label"
                         android:textColor="#D8E4F4"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -353,7 +353,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="10dp"
                             android:layout_marginBottom="12dp"
-                            android:text="km/h"
+                            android:text="@string/display_speed_unit"
                             android:textColor="#A8D5FF"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -365,7 +365,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:gravity="center"
-                        android:text="Enable speedometer in Settings"
+                        android:text="@string/display_speed_enable_hint"
                         android:textColor="#C1D0E6"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -399,7 +399,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Display Mode"
+                            android:text="@string/display_mode_title"
                             android:textColor="@android:color/white"
                             android:textSize="17sp"
                             android:textStyle="bold" />
@@ -409,7 +409,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="8dp"
-                            android:text="OFF"
+                            android:text="@string/display_mode_off"
                             android:textColor="#D8E4F4"
                             android:textSize="13sp" />
 
@@ -424,7 +424,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Server not running"
+                        android:text="@string/display_server_not_running"
                         android:textColor="#C1D0E6"
                         android:textSize="13sp" />
 
@@ -440,7 +440,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Battery optimization: ON"
+                            android:text="@string/display_battery_opt_on"
                             android:textColor="#F7CD7D"
                             android:textSize="13sp" />
 
@@ -451,9 +451,9 @@
                             android:background="@drawable/soft_secondary_button"
                             android:backgroundTint="@null"
                             app:backgroundTint="@null"
-                            android:text="Fix"
+                            android:text="@string/display_battery_fix"
                             android:textAllCaps="false"
-                            android:textColor="@color/soft_blue_dark" />
+                            android:textColor="@color/soft_button_secondary_text" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -480,7 +480,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Security Lock"
+                        android:text="@string/at_security_lock"
                         android:textColor="#FF9CB4"
                         android:textSize="17sp"
                         android:textStyle="bold" />
@@ -490,7 +490,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Anti-Theft Off"
+                        android:text="@string/at_status_off"
                         android:textColor="@android:color/white"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -500,7 +500,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="Plug in a 3.5 mm trigger to use this feature."
+                        android:text="@string/at_detail_plug"
                         android:textColor="#D8E4F4"
                         android:textSize="13sp" />
 
@@ -518,9 +518,9 @@
                             android:background="@drawable/display_primary_button"
                             android:backgroundTint="@null"
                             app:backgroundTint="@null"
-                            android:text="Arm"
+                            android:text="@string/at_arm"
                             android:textAllCaps="false"
-                            android:textColor="@android:color/white"
+                            android:textColor="@color/display_button_primary_text"
                             android:textStyle="bold" />
 
                         <com.google.android.material.button.MaterialButton
@@ -532,9 +532,9 @@
                             android:background="@drawable/soft_secondary_button"
                             android:backgroundTint="@null"
                             app:backgroundTint="@null"
-                            android:text="Set PIN"
+                            android:text="@string/at_set_pin"
                             android:textAllCaps="false"
-                            android:textColor="@color/soft_blue_dark"
+                            android:textColor="@color/soft_button_secondary_text"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>

@@ -104,7 +104,7 @@ class DiagnosticsActivity : AppCompatActivity() {
                 val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("Crash Report", report)
                 clipboard.setPrimaryClip(clip)
-                Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.diag_copied_clipboard), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -123,7 +123,7 @@ class DiagnosticsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.clearButton).setOnClickListener {
             CrashReporter.clearCrashReport()
             loadCrashReport()
-            Toast.makeText(this, "Crash report cleared", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.diag_cleared_report), Toast.LENGTH_SHORT).show()
         }
     }
 

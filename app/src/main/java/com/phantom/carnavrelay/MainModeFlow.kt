@@ -36,8 +36,8 @@ object MainModeFlow {
     if (adapter == null) {
       Log.e(TAG, "❌ No Bluetooth adapter found")
       MaterialAlertDialogBuilder(activity)
-        .setTitle("ไม่รองรับ Bluetooth")
-        .setMessage("อุปกรณ์นี้ไม่รองรับ Bluetooth")
+        .setTitle(R.string.bt_not_supported_title)
+        .setMessage(R.string.bt_not_supported_message)
         .setPositiveButton(R.string.ok, null)
         .show()
       return false
@@ -48,8 +48,8 @@ object MainModeFlow {
     if (!adapter.isEnabled) {
       Log.w(TAG, "⚠️ Bluetooth is disabled")
       MaterialAlertDialogBuilder(activity)
-        .setTitle("Bluetooth ปิดอยู่")
-        .setMessage("กรุณาเปิด Bluetooth ใน Settings ก่อนใช้งาน")
+        .setTitle(R.string.bt_disabled_title)
+        .setMessage(R.string.bt_disabled_message)
         .setPositiveButton(R.string.ok, null)
         .show()
       return false
@@ -77,7 +77,7 @@ object MainModeFlow {
       return false
     }
 
-    val names = bonded.map { "${it.name ?: "Unknown"}\n${it.address}" }.toTypedArray()
+    val names = bonded.map { "${it.name ?: activity.getString(R.string.bt_unknown_device)}\n${it.address}" }.toTypedArray()
     
     Log.d(TAG, "📋 Showing device picker dialog with ${names.size} devices")
 
@@ -90,7 +90,7 @@ object MainModeFlow {
         // Start MainPairActivity and then finish MainActivity
         val intent = Intent(activity, MainPairActivity::class.java).apply {
           putExtra("address", device.address)
-          putExtra("device_name", device.name ?: "Unknown")
+          putExtra("device_name", device.name ?: activity.getString(R.string.bt_unknown_device))
           // No FLAG_ACTIVITY_NEW_TASK needed when using Activity context
         }
         
@@ -98,13 +98,21 @@ object MainModeFlow {
           Log.d(TAG, "🚀 Starting MainPairActivity for ${device.address}")
           activity.startActivity(intent)
           Log.d(TAG, "✅ MainPairActivity started, finishing MainActivity")
-          Toast.makeText(activity, "กำลังเชื่อมต่อ ${device.name ?: "Unknown"}...", Toast.LENGTH_SHORT).show()
+          Toast.makeText(
+            activity,
+            activity.getString(R.string.bt_connecting_device_fmt, device.name ?: activity.getString(R.string.bt_unknown_device)),
+            Toast.LENGTH_SHORT
+          ).show()
           // Now finish the calling activity after successfully starting MainPairActivity
           activity.finish()
         } catch (e: Exception) {
           Log.e(TAG, "💥 Failed to start MainPairActivity", e)
           CrashReporter.recordException(activity, "MainModeFlow:startMainPairActivity", e)
-          Toast.makeText(activity, "ไม่สามารถเปิดหน้าจอคู่เครื่องได้: ${e.message}", Toast.LENGTH_LONG).show()
+          Toast.makeText(
+            activity,
+            activity.getString(R.string.bt_cannot_open_pair_fmt, e.message ?: activity.getString(R.string.common_unknown)),
+            Toast.LENGTH_LONG
+          ).show()
         }
       }
       .setNegativeButton(R.string.cancel) { _, _ ->
@@ -125,8 +133,8 @@ object MainModeFlow {
   private fun showPermissionDialog(activity: Activity) {
     Log.d(TAG, "⚠️ Showing permission dialog")
     MaterialAlertDialogBuilder(activity)
-      .setTitle("ต้องการสิทธิ์ Bluetooth")
-      .setMessage("กรุณาอนุญาติสิทธิ์ Bluetooth เพื่อใช้งานโหมดนี้")
+      .setTitle(R.string.bt_permission_title)
+      .setMessage(R.string.bt_permission_message)
       .setPositiveButton(R.string.ok, null)
       .show()
   }

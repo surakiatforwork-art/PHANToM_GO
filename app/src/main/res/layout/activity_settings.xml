@@ -36,7 +36,7 @@
                     app:backgroundTint="@null"
                     android:minWidth="0dp"
                     android:paddingHorizontal="0dp"
-                    android:text="Back"
+                    android:text="@string/common_back"
                     android:textAllCaps="false"
                     android:textColor="@color/soft_text_secondary"
                     android:textSize="16sp"
@@ -49,7 +49,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
                     android:layout_weight="1"
-                    android:text="PHANToM GO Settings"
+                    android:text="@string/settings_title"
                     android:textColor="@color/soft_text_primary"
                     android:textSize="26sp"
                     android:textStyle="bold" />
@@ -59,7 +59,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:text="จัดการการแจ้งเตือน, เครื่องจอ, เครื่องหลัก และระบบ log ในหน้าเดียว"
+                android:text="@string/settings_subtitle"
                 android:textColor="@color/soft_text_muted"
                 android:textSize="14sp" />
 
@@ -75,7 +75,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Notifications"
+                    android:text="@string/settings_section_notifications"
                     android:textColor="@color/soft_text_primary"
                     android:textSize="20sp"
                     android:textStyle="bold" />
@@ -84,7 +84,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="เปิดไว้เพื่อให้ foreground service, cloud alerts และการส่งเส้นทางทำงานได้เสถียร"
+                    android:text="@string/settings_notifications_desc"
                     android:textColor="@color/soft_text_secondary"
                     android:textSize="14sp" />
 
@@ -93,7 +93,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
-                    android:text="Checking..."
+                    android:text="@string/common_checking"
                     android:textColor="@color/soft_text_secondary"
                     android:textSize="14sp" />
 
@@ -105,9 +105,9 @@
                     android:background="@drawable/soft_primary_button"
                     android:backgroundTint="@null"
                     app:backgroundTint="@null"
-                    android:text="Enable Notifications"
+                    android:text="@string/settings_enable_notifications"
                     android:textAllCaps="false"
-                    android:textColor="@color/ui_on_primary"
+                    android:textColor="@color/soft_button_primary_text"
                     android:visibility="gone" />
             </LinearLayout>
 
@@ -123,7 +123,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Display Device"
+                    android:text="@string/settings_section_display_device"
                     android:textColor="@color/soft_text_primary"
                     android:textSize="20sp"
                     android:textStyle="bold" />
@@ -132,7 +132,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="ตั้งค่าส่วนนี้บนเครื่องที่ใช้เป็นจอติดรถและรับปลายทางจากเครื่องหลัก"
+                    android:text="@string/settings_display_device_desc"
                     android:textColor="@color/soft_text_secondary"
                     android:textSize="14sp" />
 
@@ -147,7 +147,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Display Power Automation"
+                        android:text="@string/settings_power_automation"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="17sp"
                         android:textStyle="bold" />
@@ -175,7 +175,7 @@
                             android:layout_weight="1"
                             android:gravity="start"
                             android:textDirection="locale"
-                            android:text="Off"
+                            android:text="@string/common_off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -185,7 +185,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Profile details"
+                        android:text="@string/settings_profile_details"
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="13sp" />
 
@@ -193,7 +193,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:text="Wake and brighten before opening Maps"
+                        android:text="@string/settings_wake_brighten"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -221,7 +221,7 @@
                             android:layout_weight="1"
                             android:gravity="start"
                             android:textDirection="locale"
-                            android:text="Enabled"
+                            android:text="@string/common_enabled"
                             android:textColor="@color/soft_success"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -230,7 +230,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:text="Lock device when external power disconnects"
+                        android:text="@string/settings_lock_on_disconnect"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -258,7 +258,7 @@
                             android:layout_weight="1"
                             android:gravity="start"
                             android:textDirection="locale"
-                            android:text="Disabled"
+                            android:text="@string/common_disabled"
                             android:textColor="@color/soft_text_secondary"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -268,7 +268,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:text="Modify system settings required"
+                        android:text="@string/settings_modify_system_required"
                         android:textColor="@color/soft_warning"
                         android:textSize="13sp" />
 
@@ -280,16 +280,16 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Grant Modify System Settings"
+                        android:text="@string/settings_grant_modify_system"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
 
                     <TextView
                         android:id="@+id/deviceAdminStatusText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:text="Device Admin optional"
+                        android:text="@string/settings_device_admin_optional"
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="13sp" />
 
@@ -301,9 +301,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Enable Device Admin"
+                        android:text="@string/settings_enable_device_admin"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -317,7 +317,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Overlay Widget"
+                        android:text="@string/settings_overlay_widget"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="17sp"
                         android:textStyle="bold" />
@@ -345,7 +345,7 @@
                             android:layout_weight="1"
                             android:gravity="start"
                             android:textDirection="locale"
-                            android:text="Checking..."
+                            android:text="@string/common_checking"
                             android:textColor="@color/soft_text_secondary"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -358,9 +358,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Grant Overlay Permission"
+                        android:text="@string/settings_grant_overlay"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark"
+                        android:textColor="@color/soft_button_secondary_text"
                         android:visibility="gone" />
                 </LinearLayout>
 
@@ -375,7 +375,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Display Open Behavior"
+                        android:text="@string/settings_open_behavior"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="17sp"
                         android:textStyle="bold" />
@@ -385,7 +385,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Preview Route"
+                        android:text="@string/settings_preview_route"
                         android:textColor="@color/soft_blue_dark"
                         android:textSize="13sp" />
 
@@ -401,14 +401,14 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Preview Route" />
+                            android:text="@string/settings_preview_route" />
 
                         <RadioButton
                             android:id="@+id/displayOpenModeNavigate"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Start Navigation" />
+                            android:text="@string/settings_start_navigation" />
                     </RadioGroup>
 
                     <TextView
@@ -416,7 +416,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:text="Car"
+                        android:text="@string/settings_nav_mode_car"
                         android:textColor="@color/soft_blue_dark"
                         android:textSize="13sp" />
 
@@ -432,14 +432,14 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Car" />
+                            android:text="@string/settings_nav_mode_car" />
 
                         <RadioButton
                             android:id="@+id/displayNavModeMotorcycle"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Motorcycle" />
+                            android:text="@string/settings_nav_mode_motorcycle" />
                     </RadioGroup>
                 </LinearLayout>
 
@@ -454,7 +454,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Display Speedometer"
+                        android:text="@string/settings_speedometer"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="17sp"
                         android:textStyle="bold" />
@@ -482,7 +482,7 @@
                             android:layout_weight="1"
                             android:gravity="start"
                             android:textDirection="locale"
-                            android:text="Off"
+                            android:text="@string/common_off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -492,7 +492,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Location permission: not granted"
+                        android:text="@string/settings_location_perm_not_granted"
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="13sp" />
 
@@ -504,9 +504,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Allow location and all-time access"
+                        android:text="@string/settings_allow_location_alltime"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -520,7 +520,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Display Anti-Theft"
+                        android:text="@string/settings_anti_theft"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="17sp"
                         android:textStyle="bold" />
@@ -548,7 +548,7 @@
                             android:layout_weight="1"
                             android:gravity="start"
                             android:textDirection="locale"
-                            android:text="Off"
+                            android:text="@string/common_off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -558,7 +558,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Waiting for a 3.5 mm trigger"
+                        android:text="@string/settings_waiting_jack"
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="13sp" />
 
@@ -566,7 +566,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:text="Attach location in theft alerts"
+                        android:text="@string/settings_attach_location"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
@@ -594,7 +594,7 @@
                             android:layout_weight="1"
                             android:gravity="start"
                             android:textDirection="locale"
-                            android:text="On"
+                            android:text="@string/common_on"
                             android:textColor="@color/soft_success"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -607,9 +607,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Set / Change Anti-Theft PIN"
+                        android:text="@string/at_set_change_pin_title"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
 
                     <Button
                         android:id="@+id/antiTheftSoundButton"
@@ -619,9 +619,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Choose Alarm Sound"
+                        android:text="@string/settings_choose_alarm_sound"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
 
                     <Button
                         android:id="@+id/antiTheftTestButton"
@@ -631,9 +631,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Test Anti-Theft Alarm"
+                        android:text="@string/settings_test_alarm"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -649,7 +649,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Main Device"
+                    android:text="@string/settings_section_main_device"
                     android:textColor="@color/soft_text_primary"
                     android:textSize="20sp"
                     android:textStyle="bold" />
@@ -658,7 +658,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="ตั้งค่าส่วนนี้บนเครื่องที่ใช้รับลิงก์และส่งปลายทางไปยังจอ"
+                    android:text="@string/settings_main_device_desc"
                     android:textColor="@color/soft_text_secondary"
                     android:textSize="14sp" />
 
@@ -673,7 +673,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Map Link Hub"
+                        android:text="@string/settings_map_link_hub"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="17sp"
                         android:textStyle="bold" />
@@ -701,7 +701,7 @@
                             android:layout_weight="1"
                             android:gravity="start"
                             android:textDirection="locale"
-                            android:text="Off"
+                            android:text="@string/common_off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -711,7 +711,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Device mode: MAIN"
+                        android:text="@string/settings_device_mode_fmt"
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="13sp" />
 
@@ -720,7 +720,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="หากต้องการให้เด้งเข้า PHANToM GO อัตโนมัติ ให้ตั้งค่า Open by default ในระบบ"
+                        android:text="@string/settings_map_link_hub_instruction"
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="13sp" />
 
@@ -729,7 +729,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="System default: โปรดตั้งค่าในระบบ"
+                        android:text="@string/settings_system_default_hint"
                         android:textColor="@color/soft_text_muted"
                         android:textSize="12sp" />
 
@@ -741,9 +741,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Open by default settings"
+                        android:text="@string/settings_open_by_default"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -757,7 +757,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Connection Transport"
+                        android:text="@string/settings_connection_transport"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="17sp"
                         android:textStyle="bold" />
@@ -767,7 +767,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Current transport: WIFI"
+                        android:text="@string/settings_current_transport_wifi"
                         android:textColor="@color/soft_blue_dark"
                         android:textSize="13sp" />
 
@@ -781,19 +781,19 @@
                             android:id="@+id/transportModeAuto"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="AUTO" />
+                            android:text="@string/settings_transport_auto" />
 
                         <RadioButton
                             android:id="@+id/transportModeWifi"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Wi‑Fi Local (HTTP)" />
+                            android:text="@string/settings_transport_wifi" />
 
                         <RadioButton
                             android:id="@+id/transportModeBluetooth"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Bluetooth (RFCOMM)" />
+                            android:text="@string/settings_transport_bluetooth" />
                     </RadioGroup>
 
                     <TextView
@@ -801,7 +801,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="Bluetooth transport disabled"
+                        android:text="@string/settings_bluetooth_disabled"
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="13sp" />
 
@@ -813,9 +813,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="เลือกอุปกรณ์ Bluetooth"
+                        android:text="@string/settings_pick_bluetooth"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
 
                     <Button
                         android:id="@+id/clearBluetoothDeviceButton"
@@ -825,9 +825,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="ล้างอุปกรณ์ Bluetooth"
+                        android:text="@string/settings_clear_bluetooth"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark"
+                        android:textColor="@color/soft_button_secondary_text"
                         android:visibility="gone" />
                 </LinearLayout>
 
@@ -842,7 +842,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Smart Mode"
+                        android:text="@string/settings_smart_mode"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="17sp"
                         android:textStyle="bold" />
@@ -870,7 +870,7 @@
                             android:layout_weight="1"
                             android:gravity="start"
                             android:textDirection="locale"
-                            android:text="Off"
+                            android:text="@string/common_off"
                             android:textColor="@color/soft_warning"
                             android:textSize="14sp" />
                     </LinearLayout>
@@ -885,25 +885,25 @@
                             android:id="@+id/policyAutoSendNavOnly"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Auto Send (Nav Only)" />
+                            android:text="@string/settings_policy_auto_send_nav" />
 
                         <RadioButton
                             android:id="@+id/policyAlwaysAsk"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Always Ask" />
+                            android:text="@string/settings_policy_always_ask" />
 
                         <RadioButton
                             android:id="@+id/policyAlwaysSend"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Always Send" />
+                            android:text="@string/settings_policy_always_send" />
 
                         <RadioButton
                             android:id="@+id/policyAlwaysOpenOnPhone"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Always Open On Phone" />
+                            android:text="@string/settings_policy_always_open_phone" />
                     </RadioGroup>
 
                     <RadioGroup
@@ -916,13 +916,13 @@
                             android:id="@+id/afterSendExit"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Exit after send" />
+                            android:text="@string/settings_after_send_exit" />
 
                         <RadioButton
                             android:id="@+id/afterSendStay"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Stay in app" />
+                            android:text="@string/settings_after_send_stay" />
                     </RadioGroup>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -930,7 +930,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="Open Google Maps on Main after send"
+                        android:text="@string/settings_open_maps_after_send"
                         android:textColor="@color/soft_text_primary" />
                 </LinearLayout>
             </LinearLayout>
@@ -954,7 +954,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Logcat / System Logs"
+                        android:text="@string/settings_logs_title"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -966,9 +966,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Copy"
+                        android:text="@string/common_copy"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
 
                     <Button
                         android:id="@+id/clearLogButton"
@@ -978,9 +978,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Clear"
+                        android:text="@string/common_clear"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark" />
+                        android:textColor="@color/soft_button_secondary_text" />
                 </LinearLayout>
 
                 <ScrollView
@@ -996,7 +996,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:fontFamily="monospace"
-                        android:text="Loading logs..."
+                        android:text="@string/settings_loading_logs"
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="12sp" />
                 </ScrollView>

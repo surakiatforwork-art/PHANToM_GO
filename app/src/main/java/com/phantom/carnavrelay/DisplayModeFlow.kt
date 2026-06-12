@@ -27,8 +27,8 @@ object DisplayModeFlow {
       if (!hasConnect || !hasScan) {
         Log.w(TAG, "❌ Missing Bluetooth permissions for DisplayMode")
         MaterialAlertDialogBuilder(ctx)
-          .setTitle("ต้องการสิทธิ์ Bluetooth")
-          .setMessage("กรุณาอนุญาติสิทธิ์ Bluetooth เพื่อใช้งานโหมดนี้")
+          .setTitle(R.string.bt_permission_title)
+          .setMessage(R.string.bt_permission_message)
           .setPositiveButton(R.string.ok, null)
           .show()
         return false
@@ -40,8 +40,8 @@ object DisplayModeFlow {
     if (adapter == null) {
       Log.e(TAG, "❌ No Bluetooth adapter found")
       MaterialAlertDialogBuilder(ctx)
-        .setTitle("ไม่รองรับ Bluetooth")
-        .setMessage("อุปกรณ์นี้ไม่รองรับ Bluetooth")
+        .setTitle(R.string.bt_not_supported_title)
+        .setMessage(R.string.bt_not_supported_message)
         .setPositiveButton(R.string.ok, null)
         .show()
       return false
@@ -50,8 +50,8 @@ object DisplayModeFlow {
     if (!adapter.isEnabled) {
       Log.w(TAG, "⚠️ Bluetooth is disabled")
       MaterialAlertDialogBuilder(ctx)
-        .setTitle("Bluetooth ปิดอยู่")
-        .setMessage("กรุณาเปิด Bluetooth ใน Settings ก่อนใช้งาน")
+        .setTitle(R.string.bt_disabled_title)
+        .setMessage(R.string.bt_disabled_message)
         .setPositiveButton(R.string.ok, null)
         .show()
       return false

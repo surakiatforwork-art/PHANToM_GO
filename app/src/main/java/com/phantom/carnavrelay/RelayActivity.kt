@@ -77,7 +77,7 @@ class RelayActivity : AppCompatActivity() {
         if (isDisplayModeActive()) {
             Log.w(TAG, "🚫 Display mode active - ignoring external intent")
             PhantomLog.w("NAV ignored: device in Display mode")
-            showError("This device is Display mode", retryable = false)
+            showError(getString(R.string.relay_display_mode_active), retryable = false)
             return
         }
 
@@ -90,7 +90,7 @@ class RelayActivity : AppCompatActivity() {
         if (raw.isNullOrEmpty()) {
             Log.e(TAG, "❌ NO_RAW: No data received in intent")
             PhantomLog.w("NAV no raw input")
-            showError("No data received", retryable = false)
+            showError(getString(R.string.relay_no_data), retryable = false)
             return
         }
 
@@ -124,11 +124,11 @@ class RelayActivity : AppCompatActivity() {
         if (normalizedUrl.isNullOrEmpty()) {
             Log.w(TAG, "❌ Could not normalize input: $raw")
             PhantomLog.w("NAV normalize failed: $raw")
-            showError("Invalid link", retryable = false)
+            showError(getString(R.string.relay_invalid_link), retryable = false)
             return
         }
 
-        updateStatus("Resolving link…", R.color.aurora_mint)
+        updateStatus(getString(R.string.relay_resolving), R.color.aurora_mint)
         PhantomLog.i("NAV normalizedUrl=$normalizedUrl")
 
         Thread {
@@ -138,7 +138,7 @@ class RelayActivity : AppCompatActivity() {
                 lastResolvedUrl = resolvedUrl
                 PhantomLog.i("NAV resolvedUrl=$resolvedUrl")
                 if (forceSend) {
-                    updateStatus("Sending to Display…", R.color.aurora_mint)
+                    updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
                     pendingOpenMapsAfterSend = null
                     sendToDisplay(resolvedUrl, currentRequestId)
                 } else {
@@ -165,7 +165,7 @@ class RelayActivity : AppCompatActivity() {
             PrefsManager.SMART_POLICY_AUTO_SEND_NAV_ONLY -> {
                 if (classification == MapIntentType.NAVIGATION) {
                     PhantomLog.i("NAV action=SEND (auto nav)")
-                    updateStatus("Sending to Display…", R.color.aurora_mint)
+                    updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
                     pendingOpenMapsAfterSend = false
                     sendToDisplay(resolvedUrl, currentRequestId)
                 } else {
@@ -175,7 +175,7 @@ class RelayActivity : AppCompatActivity() {
             }
             PrefsManager.SMART_POLICY_ALWAYS_SEND -> {
                 PhantomLog.i("NAV action=SEND (always)")
-                updateStatus("Sending to Display…", R.color.aurora_mint)
+                updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
                 pendingOpenMapsAfterSend = false
                 sendToDisplay(resolvedUrl, currentRequestId)
             }
@@ -185,7 +185,7 @@ class RelayActivity : AppCompatActivity() {
                     if (success) {
                         applyAfterSendBehavior()
                     } else {
-                        showError("ไม่พบ Google Maps", retryable = false)
+                        showError(getString(R.string.relay_maps_not_found), retryable = false)
                     }
                 }
             }
@@ -199,7 +199,7 @@ class RelayActivity : AppCompatActivity() {
     private fun sendToDisplay(resolvedUrl: String, currentRequestId: Int) {
         if (!mainSender.isPaired()) {
             Log.w(TAG, "❌ Not paired with any display device")
-            showError("Not paired with Display device", retryable = false)
+            showError(getString(R.string.relay_not_paired), retryable = false)
             PhantomLog.w("NAV send failed: not paired")
             return
         }
@@ -226,7 +226,7 @@ class RelayActivity : AppCompatActivity() {
                     if (currentRequestId != requestId) return@runOnUiThread
                     Log.e(TAG, "❌ Failed to send URL: $error, queued=$queued, authFailed=$authFailed")
                     PhantomLog.w("NAV send result=failure error=$error queued=$queued authFailed=$authFailed")
-                    showError("Send failed: $error", retryable = true)
+                    showError(getString(R.string.relay_send_failed_fmt, error), retryable = true)
                 }
             }
         })
@@ -238,31 +238,31 @@ class RelayActivity : AppCompatActivity() {
         pendingOpenMapsAfterSend = null
 
         if (shouldOpenMaps) {
-            updateStatus("Sent! Opening Google Maps…", R.color.aurora_success)
+            updateStatus(getString(R.string.relay_sent_opening), R.color.aurora_success)
             openGoogleMaps(resolvedUrl) { success ->
                 if (success) {
                     applyAfterSendBehavior()
                 } else {
-                    showError("ไม่พบ Google Maps", retryable = false)
+                    showError(getString(R.string.relay_maps_not_found), retryable = false)
                 }
             }
         } else {
-            updateStatus("Sent to Car Display ✅", R.color.aurora_success)
+            updateStatus(getString(R.string.relay_sent), R.color.aurora_success)
             applyAfterSendBehavior()
         }
     }
 
     private fun openMapsDirectAndFinish(rawUrl: String) {
         if (hasOpenedMaps) return
-        updateStatus("Opening Google Maps…", R.color.aurora_mint)
+        updateStatus(getString(R.string.relay_opening_maps), R.color.aurora_mint)
 
         openGoogleMaps(rawUrl) { success ->
             if (success) {
                 closeAndRemoveFromRecents()
             } else {
                 hasOpenedMaps = false
-                Toast.makeText(this, "ไม่พบ Google Maps", Toast.LENGTH_SHORT).show()
-                showError("ไม่พบ Google Maps", retryable = false)
+                Toast.makeText(this, getString(R.string.relay_maps_not_found), Toast.LENGTH_SHORT).show()
+                showError(getString(R.string.relay_maps_not_found), retryable = false)
             }
         }
     }
@@ -374,8 +374,8 @@ class RelayActivity : AppCompatActivity() {
     }
 
     private fun resetUiForNewRequest() {
-        sendingText.text = "Sending to Display..."
-        statusText.text = "Preparing..."
+        sendingText.text = getString(R.string.relay_sending)
+        statusText.text = getString(R.string.relay_preparing)
         statusText.setTextColor(ContextCompat.getColor(this, R.color.aurora_mint))
         progressBar.visibility = View.VISIBLE
         actionButton.visibility = View.GONE
@@ -392,7 +392,7 @@ class RelayActivity : AppCompatActivity() {
         updateStatus(message, R.color.aurora_error)
 
         if (retryable && !lastRaw.isNullOrEmpty()) {
-            actionButton.text = "Retry"
+            actionButton.text = getString(R.string.common_retry)
             actionButton.visibility = View.VISIBLE
             actionButton.setOnClickListener {
                 val raw = lastRaw ?: return@setOnClickListener
@@ -401,7 +401,7 @@ class RelayActivity : AppCompatActivity() {
                 startSendFlow(raw, requestId, lastIntent ?: intent, lastForceSend)
             }
         } else {
-            actionButton.text = "Close"
+            actionButton.text = getString(R.string.common_close)
             actionButton.visibility = View.VISIBLE
             actionButton.setOnClickListener { finish() }
         }
@@ -477,7 +477,7 @@ class RelayActivity : AppCompatActivity() {
         currentRequestId: Int
     ) {
         progressBar.visibility = View.GONE
-        updateStatus("Waiting for your choice…", R.color.aurora_mint)
+        updateStatus(getString(R.string.relay_waiting_choice), R.color.aurora_mint)
 
         val dialog = BottomSheetDialog(this)
         val view = layoutInflater.inflate(R.layout.bottom_sheet_map_action, null)
@@ -485,18 +485,18 @@ class RelayActivity : AppCompatActivity() {
 
         val typeText = view.findViewById<TextView>(R.id.actionSheetType)
         val typeLabel = when (classification) {
-            MapIntentType.NAVIGATION -> "นำทาง"
-            MapIntentType.VIEW_MAP -> "ดูแผนที่"
-            else -> "ไม่แน่ใจ"
+            MapIntentType.NAVIGATION -> getString(R.string.relay_type_navigation)
+            MapIntentType.VIEW_MAP -> getString(R.string.relay_type_view_map)
+            else -> getString(R.string.relay_type_unknown)
         }
-        typeText.text = "ชนิด: $typeLabel"
+        typeText.text = getString(R.string.relay_sheet_type_fmt, typeLabel)
 
         view.findViewById<Button>(R.id.btnSendToDisplay).setOnClickListener {
             if (currentRequestId != requestId) return@setOnClickListener
             PhantomLog.i("NAV action=SEND (sheet)")
             pendingOpenMapsAfterSend = false
             dialog.dismiss()
-            updateStatus("Sending to Display…", R.color.aurora_mint)
+            updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
             sendToDisplay(resolvedUrl, currentRequestId)
         }
 
@@ -505,7 +505,7 @@ class RelayActivity : AppCompatActivity() {
             PhantomLog.i("NAV action=SEND_OPEN (sheet)")
             pendingOpenMapsAfterSend = true
             dialog.dismiss()
-            updateStatus("Sending to Display…", R.color.aurora_mint)
+            updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
             sendToDisplay(resolvedUrl, currentRequestId)
         }
 
@@ -517,7 +517,7 @@ class RelayActivity : AppCompatActivity() {
                 if (success) {
                     applyAfterSendBehavior()
                 } else {
-                    showError("ไม่พบ Google Maps", retryable = false)
+                    showError(getString(R.string.relay_maps_not_found), retryable = false)
                 }
             }
         }
@@ -528,7 +528,7 @@ class RelayActivity : AppCompatActivity() {
             val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             val clip = android.content.ClipData.newPlainText("PHANTOM_GO_LINK", resolvedUrl)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(this, "คัดลอกลิงก์แล้ว", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.relay_link_copied), Toast.LENGTH_SHORT).show()
             dialog.dismiss()
             applyAfterSendBehavior()
         }

@@ -32,7 +32,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🚀 PHANToM GO"
+                    android:text="@string/brand_title_rocket"
                     android:textColor="@color/aurora_cyan"
                     android:textSize="28sp"
                     android:textStyle="bold"
@@ -42,7 +42,7 @@
                     android:id="@+id/sendingText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Sending to Display..."
+                    android:text="@string/relay_sending"
                     android:textColor="@color/aurora_silver"
                     android:textSize="18sp"
                     android:layout_marginBottom="16dp" />
@@ -51,7 +51,7 @@
                     android:id="@+id/statusText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Preparing..."
+                    android:text="@string/relay_preparing"
                     android:textColor="@color/aurora_mint"
                     android:textSize="16sp" />
 
@@ -60,7 +60,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="20dp"
-                    android:text="Retry"
+                    android:text="@string/common_retry"
                     android:textColor="@color/white"
                     android:background="@drawable/aurora_button_ripple"
                     android:backgroundTint="@null"

@@ -57,7 +57,7 @@ class PairScanActivity : AppCompatActivity() {
             handleScannedQR(result.contents)
         } else {
             Log.d(TAG, "❌ QR Scan cancelled")
-            Toast.makeText(this, "Scan cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.pair_scan_cancelled), Toast.LENGTH_SHORT).show()
             finish()
         }
     }
@@ -90,7 +90,7 @@ class PairScanActivity : AppCompatActivity() {
     private fun startScan() {
         val options = ScanOptions().apply {
             setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-            setPrompt("Scan QR code from Display device")
+            setPrompt(getString(R.string.pair_scan_prompt))
             setCameraId(0)
             setBeepEnabled(true)
             setBarcodeImageEnabled(false)
@@ -128,25 +128,26 @@ class PairScanActivity : AppCompatActivity() {
     private fun showInvalidQRDialog(raw: String) {
         if (!canShowDialogs()) {
             Log.w(TAG, "⚠️ Skipping invalid QR dialog: activity not active")
-            Toast.makeText(this, "Invalid QR format", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.pair_invalid_toast), Toast.LENGTH_SHORT).show()
             setResult(RESULT_CANCELED)
             finish()
             return
         }
         try {
+            val preview = raw.take(200) + if (raw.length > 200) "..." else ""
             AlertDialog.Builder(this)
-                .setTitle("Invalid QR Format")
-                .setMessage("The QR code could not be parsed. Format not recognized.\n\nRaw content:\n${raw.take(200)}${if (raw.length > 200) "..." else ""}")
-                .setPositiveButton("Copy RAW") { _, _ ->
+                .setTitle(R.string.pair_invalid_title)
+                .setMessage(getString(R.string.pair_invalid_message_fmt, preview))
+                .setPositiveButton(R.string.pair_copy_raw) { _, _ ->
                     val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText("QR Raw", raw)
                     clipboard.setPrimaryClip(clip)
-                    Toast.makeText(this, "Raw content copied to clipboard", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.pair_raw_copied), Toast.LENGTH_SHORT).show()
                 }
-                .setNegativeButton("Retry") { _, _ ->
+                .setNegativeButton(R.string.common_retry) { _, _ ->
                     startScan()
                 }
-                .setNeutralButton("Cancel") { _, _ ->
+                .setNeutralButton(R.string.cancel) { _, _ ->
                     setResult(RESULT_CANCELED)
                     finish()
                 }
@@ -162,12 +163,12 @@ class PairScanActivity : AppCompatActivity() {
         val port = pairInfo.port
         val token = pairInfo.token
         if (ip.isNullOrBlank() || port == null || token.isNullOrBlank()) {
-            showErrorDialog("QR code is missing local network pairing data.")
+            showErrorDialog(getString(R.string.pair_local_missing_data))
             return
         }
 
         val endpoint = "http://$ip:$port/pair"
-        val mainId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "unknown"
+        val mainId = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: getString(R.string.common_unknown)
         val mainName = android.os.Build.MODEL
         
         val jsonBody = JSONObject().apply {
@@ -179,7 +180,7 @@ class PairScanActivity : AppCompatActivity() {
         Log.d(TAG, "✅ Parsed pairing data - IP: $ip, Port: $port, Token: ${prefsManager.getTokenHint(token)}")
         
         // Show progress dialog
-        showProgressDialog("Verifying pairing...")
+        showProgressDialog(getString(R.string.pair_progress_verifying))
         
         Log.d(TAG, "📤 Calling /pair at $endpoint")
         Log.d(TAG, "📦 Payload: $jsonBody")
@@ -195,10 +196,10 @@ class PairScanActivity : AppCompatActivity() {
                 hideProgressDialog()
                 
                 val errorMsg = when (e) {
-                    is UnknownHostException -> "Cannot reach device. Check IP address."
-                    is ConnectException -> "Connection refused. Is Display mode running?"
-                    is SocketTimeoutException -> "Connection timed out. Check network."
-                    else -> "Network error: ${e.message}"
+                    is UnknownHostException -> getString(R.string.pair_error_cannot_reach)
+                    is ConnectException -> getString(R.string.pair_error_conn_refused)
+                    is SocketTimeoutException -> getString(R.string.pair_error_timeout)
+                    else -> getString(R.string.pair_error_network_fmt, e.message ?: getString(R.string.common_unknown))
                 }
                 
                 mainHandler.post {
@@ -221,14 +222,14 @@ class PairScanActivity : AppCompatActivity() {
                             // Success - save pairing as verified
                             Log.d(TAG, "✅ /pair success - saving verified pairing")
                             prefsManager.savePairing(ip, port, token, verified = true)
-                            Toast.makeText(this@PairScanActivity, "Paired with $ip:$port!", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@PairScanActivity, getString(R.string.pair_paired_with_fmt, ip, port), Toast.LENGTH_LONG).show()
                             setResult(RESULT_OK)
                             finish()
                         }
                         401 -> {
                             // Unauthorized - token mismatch
                             Log.w(TAG, "❌ /pair UNAUTHORIZED - token mismatch")
-                            showErrorDialog("Authentication failed. Token mismatch.\n\nPlease refresh QR code on Display device and scan again.")
+                            showErrorDialog(getString(R.string.pair_auth_failed_message))
                         }
                         else -> {
                             // Other error
@@ -237,9 +238,9 @@ class PairScanActivity : AppCompatActivity() {
                             } catch (e: Exception) {
                                 null
                             }
-                            val reason = json?.optString("reason", "Unknown error")
+                            val reason = json?.optString("reason", getString(R.string.pair_reason_unknown))
                             Log.e(TAG, "❌ /pair error: $reason")
-                            showErrorDialog("Pairing failed: $reason\n\nPlease try again.")
+                            showErrorDialog(getString(R.string.pair_failed_reason_fmt, reason))
                         }
                     }
                 }
@@ -249,7 +250,7 @@ class PairScanActivity : AppCompatActivity() {
     }
 
     private fun callCloudPairing(pairInfo: PairInfo) {
-        showProgressDialog("Claiming pairing from Firebase...")
+        showProgressDialog(getString(R.string.pair_progress_claiming_cloud))
         FirebaseManager.claimPairingCode(
             context = this,
             pairInfo = pairInfo,
@@ -279,7 +280,7 @@ class PairScanActivity : AppCompatActivity() {
                     val displayLabel = result.displayName ?: result.displayDeviceId
                     Toast.makeText(
                         this@PairScanActivity,
-                        "Cloud paired with $displayLabel",
+                        getString(R.string.pair_cloud_paired_with_fmt, displayLabel),
                         Toast.LENGTH_LONG
                     ).show()
                     setResult(RESULT_OK)
@@ -289,7 +290,7 @@ class PairScanActivity : AppCompatActivity() {
             onFailure = { error ->
                 hideProgressDialog()
                 mainHandler.post {
-                    showErrorDialog("Cloud pairing failed: $error")
+                    showErrorDialog(getString(R.string.pair_cloud_failed_fmt, error))
                 }
             }
         )
@@ -302,7 +303,7 @@ class PairScanActivity : AppCompatActivity() {
                 return@post
             }
             progressDialog = AlertDialog.Builder(this)
-                .setTitle("Pairing")
+                .setTitle(R.string.pair_progress_title)
                 .setMessage(message)
                 .setCancelable(false)
                 .create()
@@ -356,12 +357,12 @@ class PairScanActivity : AppCompatActivity() {
 
         try {
             AlertDialog.Builder(this)
-                .setTitle("Pairing Failed")
+                .setTitle(R.string.pair_failed_title)
                 .setMessage(message)
-                .setPositiveButton("Scan Again") { _, _ ->
+                .setPositiveButton(R.string.common_scan_again) { _, _ ->
                     startScan()
                 }
-                .setNegativeButton("Cancel") { _, _ ->
+                .setNegativeButton(R.string.cancel) { _, _ ->
                     setResult(RESULT_CANCELED)
                     finish()
                 }
@@ -396,7 +397,7 @@ class PairScanActivity : AppCompatActivity() {
                     startScan()
                 } else {
                     Log.w(TAG, "❌ Camera permission denied")
-                    Toast.makeText(this, "Camera permission required to scan QR codes", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, getString(R.string.home_camera_required), Toast.LENGTH_LONG).show()
                     setResult(RESULT_CANCELED)
                     finish()
                 }

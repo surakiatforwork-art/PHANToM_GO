@@ -23,7 +23,9 @@
     <color name="soft_bg_end">#060E20</color>
     <color name="soft_surface">@color/ui_surface</color>
     <color name="soft_surface_alt">@color/ui_surface_alt</color>
+    <color name="soft_surface_disabled">#1A2236</color>
     <color name="soft_border">@color/ui_outline</color>
+    <color name="soft_border_disabled">#3E4A60</color>
     <color name="soft_shadow">#52000000</color>
     <color name="soft_text_primary">@color/ui_text_primary</color>
     <color name="soft_text_secondary">@color/ui_text_secondary</color>
@@ -31,6 +33,11 @@
     <color name="soft_blue">@color/ui_primary</color>
     <color name="soft_blue_end">@color/ui_primary_container</color>
     <color name="soft_blue_dark">@color/ui_primary</color>
+    <color name="soft_secondary_text_disabled">#8FA3BE</color>
+    <color name="soft_secondary_danger_text_disabled">#D5A7A2</color>
+    <color name="soft_primary_fill_disabled">#7D90A9</color>
+    <color name="soft_primary_fill_disabled_end">#697C94</color>
+    <color name="soft_primary_text_disabled">#11253A</color>
     <color name="soft_success">@color/ui_success</color>
     <color name="soft_warning">@color/ui_warning</color>
     <color name="soft_danger">@color/ui_danger</color>
@@ -44,4 +51,7 @@
     <color name="aurora_connected">@color/ui_success</color>
     <color name="aurora_disconnected">@color/ui_danger</color>
     <color name="aurora_auth_failed">@color/ui_danger</color>
+    <color name="display_button_start_disabled">#305177</color>
+    <color name="display_button_end_disabled">#243F5D</color>
+    <color name="display_button_text_disabled">#D8E4F2</color>
 </resources>

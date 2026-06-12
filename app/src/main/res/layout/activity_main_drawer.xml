@@ -61,7 +61,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:text="PHANToM GO"
+                    android:text="@string/app_name"
                     android:textColor="@color/soft_blue_dark"
                     android:textSize="28sp"
                     android:textStyle="bold" />
@@ -78,7 +78,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Connection Status"
+                        android:text="@string/home_connection_status"
                         android:textColor="@color/soft_text_primary"
                         android:textSize="18sp"
                         android:textStyle="bold" />
@@ -89,7 +89,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="18dp"
                         android:gravity="center"
-                        android:text="Disconnected"
+                        android:text="@string/home_state_disconnected"
                         android:textColor="@color/soft_blue"
                         android:textSize="34sp"
                         android:textStyle="bold" />
@@ -100,7 +100,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:gravity="center"
-                        android:text="Scan QR to pair with a Display."
+                        android:text="@string/home_scan_hint"
                         android:textColor="@color/soft_text_secondary"
                         android:textSize="15sp" />
 
@@ -118,7 +118,7 @@
                             android:background="@drawable/soft_secondary_button"
                             android:paddingHorizontal="14dp"
                             android:paddingVertical="8dp"
-                            android:text="Pending: 0"
+                            android:text="@string/home_pending_zero"
                             android:textColor="@color/soft_warning"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -131,7 +131,7 @@
                             android:background="@drawable/soft_secondary_button"
                             android:paddingHorizontal="14dp"
                             android:paddingVertical="8dp"
-                            android:text="Waiting"
+                            android:text="@string/home_state_waiting"
                             android:textColor="@color/soft_text_secondary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -145,9 +145,9 @@
                         android:background="@drawable/soft_primary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="📷  Scan QR"
+                        android:text="@string/home_scan_qr_decorated"
                         android:textAllCaps="false"
-                        android:textColor="@color/ui_on_primary"
+                        android:textColor="@color/soft_button_primary_text"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -201,7 +201,7 @@
                         app:backgroundTint="@null"
                         android:text="@string/maps_auto_share_enable_accessibility"
                         android:textAllCaps="false"
-                        android:textColor="@color/ui_on_primary"
+                        android:textColor="@color/soft_button_primary_text"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
@@ -215,7 +215,7 @@
                         app:backgroundTint="@null"
                         android:text="@string/maps_auto_share_allow_notification"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark"
+                        android:textColor="@color/soft_button_secondary_text"
                         android:textSize="14sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -224,7 +224,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="26dp"
-                    android:text="Quick Actions"
+                    android:text="@string/home_quick_actions"
                     android:textColor="@color/soft_text_primary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
@@ -261,7 +261,7 @@
                                 app:backgroundTint="@null"
                                 android:minHeight="0dp"
                                 android:padding="0dp"
-                                android:text="📍 Send Test"
+                                android:text="@string/home_send_test_decorated"
                                 android:textAllCaps="false"
                                 android:textColor="@color/soft_text_primary"
                                 android:textSize="16sp"
@@ -288,7 +288,7 @@
                                 app:backgroundTint="@null"
                                 android:minHeight="0dp"
                                 android:padding="0dp"
-                                android:text="↻ Retry Pending"
+                                android:text="@string/home_retry_pending_decorated"
                                 android:textAllCaps="false"
                                 android:textColor="@color/soft_text_primary"
                                 android:textSize="16sp"
@@ -304,9 +304,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Find Display"
+                        android:text="@string/home_find_display"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_blue_dark"
+                        android:textColor="@color/soft_button_secondary_text"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -318,9 +318,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Clear Pairing"
+                        android:text="@string/clear_pairing"
                         android:textAllCaps="false"
-                        android:textColor="@color/soft_danger"
+                        android:textColor="@color/soft_button_secondary_danger_text"
                         android:textSize="16sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -330,7 +330,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="18dp"
                     android:gravity="center"
-                    android:text="PHANToM GO · Main device command deck"
+                    android:text="@string/home_main_device_command_deck"
                     android:textColor="@color/soft_text_muted"
                     android:textSize="12sp" />
             </LinearLayout>

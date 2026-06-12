@@ -23,7 +23,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Security"
+                android:text="@string/security_title"
                 android:textColor="@color/ui_text_primary"
                 android:textSize="30sp"
                 android:textStyle="bold" />
@@ -33,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Monitor protection and the paired Display's last known location."
+                android:text="@string/security_subtitle"
                 android:textColor="@color/ui_text_secondary"
                 android:textSize="15sp" />
 
@@ -66,7 +66,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
                         android:layout_weight="1"
-                        android:text="Security ready"
+                        android:text="@string/security_ready"
                         android:textColor="@color/ui_text_primary"
                         android:textSize="22sp"
                         android:textStyle="bold" />
@@ -78,7 +78,7 @@
                         android:background="@drawable/badge_success"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="7dp"
-                        android:text="SAFE"
+                        android:text="@string/security_safe"
                         android:textColor="@color/ui_success"
                         android:textSize="11sp"
                         android:textStyle="bold" />
@@ -89,7 +89,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
-                    android:text="Waiting for security status."
+                    android:text="@string/security_waiting_status"
                     android:textColor="@color/ui_text_secondary"
                     android:textSize="15sp" />
 
@@ -101,9 +101,9 @@
                     android:background="@drawable/soft_secondary_button"
                     android:backgroundTint="@null"
                     app:backgroundTint="@null"
-                    android:text="Manage security settings"
+                    android:text="@string/security_manage_settings"
                     android:textAllCaps="false"
-                    android:textColor="@color/ui_primary"
+                    android:textColor="@color/soft_button_secondary_text"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -126,7 +126,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Find Display"
+                        android:text="@string/security_find_display"
                         android:textColor="@color/ui_text_primary"
                         android:textSize="21sp"
                         android:textStyle="bold" />
@@ -138,9 +138,9 @@
                         android:background="@drawable/soft_secondary_button"
                         android:backgroundTint="@null"
                         app:backgroundTint="@null"
-                        android:text="Refresh"
+                        android:text="@string/security_refresh"
                         android:textAllCaps="false"
-                        android:textColor="@color/ui_primary"
+                        android:textColor="@color/soft_button_secondary_text"
                         android:textStyle="bold" />
                 </LinearLayout>
 
@@ -149,7 +149,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="Pair a Display device to see its last known location."
+                    android:text="@string/security_pair_to_see_location"
                     android:textColor="@color/ui_text_secondary"
                     android:textSize="14sp" />
 
@@ -173,7 +173,7 @@
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:padding="28dp"
-                        android:text="No location available yet"
+                        android:text="@string/security_no_location"
                         android:textColor="@color/ui_text_muted"
                         android:textSize="15sp" />
                 </FrameLayout>
@@ -186,9 +186,9 @@
                     android:background="@drawable/soft_primary_button"
                     android:backgroundTint="@null"
                     app:backgroundTint="@null"
-                    android:text="Open in Maps"
+                    android:text="@string/security_open_in_maps"
                     android:textAllCaps="false"
-                    android:textColor="@color/ui_on_primary"
+                    android:textColor="@color/soft_button_primary_text"
                     android:textStyle="bold"
                     android:visibility="gone" />
             </LinearLayout>

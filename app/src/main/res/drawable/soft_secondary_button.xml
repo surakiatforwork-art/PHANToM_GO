@@ -1,13 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#14000000">
-    <item>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false">
         <shape>
-            <solid android:color="@color/soft_surface" />
+            <solid android:color="@color/soft_surface_disabled" />
             <corners android:radius="12dp" />
             <stroke
                 android:width="1dp"
-                android:color="@color/soft_border" />
+                android:color="@color/soft_border_disabled" />
         </shape>
     </item>
-</ripple>
+    <item>
+        <ripple android:color="#14000000">
+            <item>
+                <shape>
+                    <solid android:color="@color/soft_surface" />
+                    <corners android:radius="12dp" />
+                    <stroke
+                        android:width="1dp"
+                        android:color="@color/soft_border" />
+                </shape>
+            </item>
+        </ripple>
+    </item>
+</selector>

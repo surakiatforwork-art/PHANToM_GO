@@ -24,7 +24,7 @@
             android:id="@+id/checkName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Check Name"
+            android:text="@string/diag_check_name_placeholder"
             android:textColor="@color/purple_900"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -34,7 +34,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:text="Status message"
+            android:text="@string/diag_status_message_placeholder"
             android:textColor="@color/gray_600"
             android:textSize="14sp" />
 

@@ -32,13 +32,13 @@ class MainPairActivity : AppCompatActivity() {
         prefsManager = PrefsManager(this)
 
         deviceAddress = intent.getStringExtra("address") ?: ""
-        deviceName = intent.getStringExtra("device_name") ?: "Unknown Device"
+        deviceName = intent.getStringExtra("device_name") ?: getString(R.string.main_pair_unknown_device)
         
         Log.d(TAG, "📱 MainPairActivity - Address: $deviceAddress, Name: $deviceName")
 
         if (deviceAddress.isEmpty()) {
             Log.e(TAG, "❌ MainPairActivity: Empty device address")
-            Toast.makeText(this, "ไม่พบอุปกรณ์", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.main_pair_device_missing), Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -51,7 +51,7 @@ class MainPairActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "💥 MainPairActivity view initialization failed", e)
             CrashReporter.recordException(this, "MainPairActivity:onCreate", e)
-            Toast.makeText(this, "เกิดข้อผิดพลาด: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.main_pair_error_fmt, e.message ?: getString(R.string.common_unknown)), Toast.LENGTH_LONG).show()
             finish()
         }
     }
@@ -88,7 +88,7 @@ class MainPairActivity : AppCompatActivity() {
 
                 // Enable button when code is complete
                 connectButton.isEnabled = code.length == 6
-                codeLayout.error = if (code.length == 6) null else "กรุณากรอกรหัส 6 หลัก"
+                codeLayout.error = if (code.length == 6) null else getString(R.string.main_pair_code_required)
             }
         })
     }
@@ -105,7 +105,7 @@ class MainPairActivity : AppCompatActivity() {
             if (code.length == 6) {
                 startMainClientService(code)
             } else {
-                codeLayout.error = "กรุณากรอกรหัส 6 หลัก"
+                codeLayout.error = getString(R.string.main_pair_code_required)
             }
         }
     }
@@ -128,11 +128,11 @@ class MainPairActivity : AppCompatActivity() {
                 startService(intent)
             }
             Log.d(TAG, "✅ MainClientService started successfully")
-            Toast.makeText(this, "กำลังเชื่อมต่อ...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.main_pair_connecting), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to start MainClientService", e)
             CrashReporter.recordException(this, "MainPairActivity:startMainClientService", e)
-            Toast.makeText(this, "ไม่สามารถเริ่มบริการได้: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.main_pair_cannot_start_service_fmt, e.message ?: getString(R.string.common_unknown)), Toast.LENGTH_LONG).show()
         }
         
         finish()

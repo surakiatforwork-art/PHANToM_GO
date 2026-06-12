@@ -141,9 +141,9 @@ class PermissionSetupActivity : AppCompatActivity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Allow Overlay")
-            .setMessage("PHANToM GO can show a floating navigation overlay above other apps. Open the system page to allow overlay access?")
-            .setPositiveButton("Open Settings") { _, _ ->
+            .setTitle(R.string.setup_allow_overlay_title)
+            .setMessage(R.string.setup_allow_overlay_msg)
+            .setPositiveButton(R.string.common_open_settings) { _, _ ->
                 continueFlowAfterOverlay = true
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -151,7 +151,7 @@ class PermissionSetupActivity : AppCompatActivity() {
                 )
                 overlaySettingsLauncher.launch(intent)
             }
-            .setNegativeButton("Skip") { _, _ ->
+            .setNegativeButton(R.string.common_skip) { _, _ ->
                 requestWriteSettingsIfNeeded()
             }
             .show()
@@ -164,12 +164,12 @@ class PermissionSetupActivity : AppCompatActivity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Allow Modify System Settings")
-            .setMessage("PHANToM GO can brighten and dim the display automatically before opening Google Maps and when power changes. Open the system page now?")
-            .setPositiveButton("Open Settings") { _, _ ->
+            .setTitle(R.string.setup_allow_modify_title)
+            .setMessage(R.string.setup_allow_modify_msg)
+            .setPositiveButton(R.string.common_open_settings) { _, _ ->
                 writeSettingsLauncher.launch(DisplayPowerAutomationManager.buildWriteSettingsIntent(this))
             }
-            .setNegativeButton("Skip") { _, _ ->
+            .setNegativeButton(R.string.common_skip) { _, _ ->
                 requestDeviceAdminIfNeeded()
             }
             .show()
@@ -182,12 +182,12 @@ class PermissionSetupActivity : AppCompatActivity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Optional: Device Admin for Power Disconnect Lock")
-            .setMessage("Enable this only if you want PHANToM GO to lock the display device automatically when external power is disconnected.")
-            .setPositiveButton("Enable") { _, _ ->
+            .setTitle(R.string.setup_optional_device_admin_title)
+            .setMessage(R.string.setup_optional_device_admin_msg)
+            .setPositiveButton(R.string.common_enable) { _, _ ->
                 deviceAdminLauncher.launch(DisplayPowerAutomationManager.buildDeviceAdminIntent(this))
             }
-            .setNegativeButton("Skip") { _, _ ->
+            .setNegativeButton(R.string.common_skip) { _, _ ->
                 requestBatteryOptimizationIfNeeded()
             }
             .show()
@@ -200,15 +200,15 @@ class PermissionSetupActivity : AppCompatActivity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Disable Battery Optimization")
-            .setMessage("Display mode works more reliably if Android does not optimize PHANToM GO in the background. Open the system page now?")
-            .setPositiveButton("Open Settings") { _, _ ->
+            .setTitle(R.string.setup_disable_battery_title)
+            .setMessage(R.string.setup_disable_battery_msg)
+            .setPositiveButton(R.string.common_open_settings) { _, _ ->
                 val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                     data = Uri.parse("package:$packageName")
                 }
                 batterySettingsLauncher.launch(intent)
             }
-            .setNegativeButton("Skip", null)
+            .setNegativeButton(R.string.common_skip, null)
             .show()
     }
 
@@ -222,14 +222,14 @@ class PermissionSetupActivity : AppCompatActivity() {
         val deviceAdminGranted = DisplayPowerAutomationManager.isDeviceAdminActive(this)
         val batteryGranted = isIgnoringBatteryOptimizations()
 
-        updateStatusLine(tvCameraStatus, cameraGranted, "Granted", "Needs action")
-        updateStatusLine(tvNotificationStatus, notificationsGranted, "Granted", "Recommended")
-        updateStatusLine(tvLocationStatus, locationGranted, "Granted", "Recommended")
-        updateStatusLine(tvBackgroundLocationStatus, backgroundLocationGranted, "Granted", "Recommended")
-        updateStatusLine(tvOverlayStatus, overlayGranted, "Granted", "Recommended")
-        updateStatusLine(tvSystemSettingsStatus, systemSettingsGranted, "Granted", "Recommended")
-        updateStatusLine(tvDeviceAdminStatus, deviceAdminGranted, "Enabled", "Optional")
-        updateStatusLine(tvBatteryStatus, batteryGranted, "Granted", "Recommended")
+        updateStatusLine(tvCameraStatus, cameraGranted, getString(R.string.setup_granted), getString(R.string.setup_needs_action))
+        updateStatusLine(tvNotificationStatus, notificationsGranted, getString(R.string.setup_granted), getString(R.string.setup_recommended))
+        updateStatusLine(tvLocationStatus, locationGranted, getString(R.string.setup_granted), getString(R.string.setup_recommended))
+        updateStatusLine(tvBackgroundLocationStatus, backgroundLocationGranted, getString(R.string.setup_granted), getString(R.string.setup_recommended))
+        updateStatusLine(tvOverlayStatus, overlayGranted, getString(R.string.setup_granted), getString(R.string.setup_recommended))
+        updateStatusLine(tvSystemSettingsStatus, systemSettingsGranted, getString(R.string.setup_granted), getString(R.string.setup_recommended))
+        updateStatusLine(tvDeviceAdminStatus, deviceAdminGranted, getString(R.string.setup_enabled), getString(R.string.common_optional))
+        updateStatusLine(tvBatteryStatus, batteryGranted, getString(R.string.setup_granted), getString(R.string.setup_recommended))
 
         val missingCount = listOf(
             cameraGranted,
@@ -241,15 +241,15 @@ class PermissionSetupActivity : AppCompatActivity() {
             batteryGranted
         ).count { !it }
         tvPermissionSummary.text = if (missingCount == 0) {
-            "All requested permissions are ready. You can start using the app now."
+            getString(R.string.setup_all_permissions_ready)
         } else {
-            "$missingCount item(s) still need attention. You can continue now and adjust any remaining permission later in Settings."
+            getString(R.string.setup_missing_attention_fmt, missingCount)
         }
 
         btnGrantPermissions.text = if (missingCount == 0) {
-            "All Permissions Ready"
+            getString(R.string.setup_all_permissions_button)
         } else {
-            "Grant Missing Permissions"
+            getString(R.string.setup_grant_missing_permissions)
         }
         btnGrantPermissions.isEnabled = missingCount > 0
         btnGrantPermissions.alpha = if (btnGrantPermissions.isEnabled) 1f else 0.52f
@@ -311,16 +311,16 @@ class PermissionSetupActivity : AppCompatActivity() {
 
     private fun showAppSettingsDialog() {
         AlertDialog.Builder(this)
-            .setTitle("Open App Settings")
-            .setMessage("Some Android permissions were denied permanently. Open App Settings to allow them manually.")
-            .setPositiveButton("Open Settings") { _, _ ->
+            .setTitle(R.string.setup_open_app_settings_title)
+            .setMessage(R.string.setup_open_app_settings_msg)
+            .setPositiveButton(R.string.common_open_settings) { _, _ ->
                 continueFlowAfterBackgroundLocationSettings = true
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.parse("package:$packageName")
                 }
                 startActivity(intent)
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -343,15 +343,15 @@ class PermissionSetupActivity : AppCompatActivity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Allow all-time location")
-            .setMessage("PHANToM GO can show live speed in Display mode. Android will open App Settings so you can set Location to Allow all the time.")
-            .setPositiveButton("Open Settings") { _, _ ->
+            .setTitle(R.string.setup_allow_all_time_title)
+            .setMessage(R.string.setup_allow_all_time_msg)
+            .setPositiveButton(R.string.common_open_settings) { _, _ ->
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.parse("package:$packageName")
                 }
                 startActivity(intent)
             }
-            .setNegativeButton("Skip") { _, _ ->
+            .setNegativeButton(R.string.common_skip) { _, _ ->
                 requestOverlayAccessIfNeeded()
             }
             .show()

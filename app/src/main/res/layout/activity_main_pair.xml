@@ -34,7 +34,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Device Name"
+        android:text="@string/main_pair_device_name_label"
         android:textColor="@color/text_secondary"
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -92,7 +92,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="16dp"
-                android:text="กรอกรหัส 6 หลักจากจอติดรถ"
+                android:text="@string/main_pair_enter_code_help"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 

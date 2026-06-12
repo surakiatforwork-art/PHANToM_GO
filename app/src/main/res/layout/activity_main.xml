@@ -43,7 +43,7 @@
                 android:id="@+id/tvPairStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Not Paired"
+                android:text="@string/home_not_paired"
                 android:textColor="@color/aurora_waiting"
                 android:textSize="20sp"
                 android:textStyle="bold" />
@@ -53,7 +53,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Scan QR code from Display device"
+                android:text="@string/home_scan_hint"
                 android:textColor="@color/gray_600"
                 android:textSize="14sp" />
 
@@ -62,7 +62,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Pending: 0"
+                android:text="@string/home_pending_zero"
                 android:textColor="@color/warning"
                 android:textSize="12sp" />
 
@@ -71,7 +71,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="❌ Not Paired"
+                android:text="@string/home_not_paired_decorated"
                 android:textColor="@color/gray_600"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -96,7 +96,7 @@
         android:id="@+id/btnScanQR"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Scan QR to Pair"
+        android:text="@string/scan_to_pair"
         style="@style/Widget.CarNavRelay.Button" />
 
     <com.google.android.material.button.MaterialButton
@@ -105,7 +105,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:enabled="false"
-        android:text="Send Test Location"
+        android:text="@string/send_test"
         style="@style/Widget.CarNavRelay.Button" />
 
         <LinearLayout
@@ -120,7 +120,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:enabled="false"
-                android:text="Retry Pending"
+                android:text="@string/retry_pending"
                 style="@style/Widget.Material3.Button.OutlinedButton" />
 
             <com.google.android.material.button.MaterialButton
@@ -130,7 +130,7 @@
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:enabled="false"
-                android:text="Clear Pairing"
+                android:text="@string/clear_pairing"
                 style="@style/Widget.Material3.Button.OutlinedButton" />
 
         </LinearLayout>
@@ -140,7 +140,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Check Connection"
+            android:text="@string/home_check_connection"
             style="@style/Widget.Material3.Button.TextButton" />
 
     </LinearLayout>
@@ -170,7 +170,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Auto Capture Navigation"
+                android:text="@string/home_auto_capture_navigation"
                 android:textColor="@color/purple_500"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -180,7 +180,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Capture navigation links from any app"
+                android:text="@string/home_auto_capture_navigation_desc"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
 
@@ -196,7 +196,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="OFF"
+                    android:text="@string/common_off"
                     android:textColor="@color/text_primary"
                     android:textSize="14sp" />
 
@@ -205,7 +205,7 @@
                     style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Settings" />
+                    android:text="@string/nav_settings" />
 
             </LinearLayout>
 
@@ -255,7 +255,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Open Display Mode"
+                android:text="@string/home_open_display_mode"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp"
                 android:alpha="0.8" />
@@ -270,7 +270,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="⚙️ Settings"
+        android:text="@string/home_settings_decorated"
         android:textColor="@color/white"
         android:textSize="16sp"
         android:background="@drawable/aurora_button_ripple"
@@ -286,7 +286,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
-        android:text="PHANToM GO - QR + HTTP Navigation"
+        android:text="@string/home_footer_legacy"
         android:textColor="@color/aurora_silver"
         android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="parent"

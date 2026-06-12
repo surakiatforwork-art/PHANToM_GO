@@ -127,7 +127,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         }
         DisplayAntiTheftManager.setAlarmSoundUri(requireContext(), pickedUri)
         updateAntiTheftStatus()
-        Toast.makeText(requireContext(), "Alarm sound updated", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.at_alarm_sound_updated), Toast.LENGTH_SHORT).show()
     }
 
     private val requestNotificationPermissionLauncher = registerForActivityResult(
@@ -149,7 +149,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     ) { result ->
         val granted = result.values.all { it }
         if (!granted) {
-            Toast.makeText(requireContext(), "Bluetooth permission required to select device", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.settings_bt_perm_required), Toast.LENGTH_SHORT).show()
             bluetoothPickPending = false
             return@registerForActivityResult
         }
@@ -286,7 +286,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         clearBluetoothDeviceButton.setOnClickListener {
             prefsManager.clearBluetoothTarget()
             updateTransportStatus()
-            Toast.makeText(requireContext(), "Bluetooth target cleared", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.settings_bt_target_cleared), Toast.LENGTH_SHORT).show()
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
@@ -419,7 +419,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
 
         antiTheftTestButton.setOnClickListener {
             DisplayAntiTheftManager.testAlarm(requireContext())
-            Toast.makeText(requireContext(), "Anti-Theft alarm test started", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.at_alarm_test_started), Toast.LENGTH_SHORT).show()
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
@@ -481,17 +481,17 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
 
         when {
             !hasPermission -> {
-                overlayStatusText.text = "Permission Required"
+                overlayStatusText.text = getString(R.string.settings_overlay_permission_required)
                 overlayStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_warning))
                 grantPermissionButton.visibility = View.VISIBLE
             }
             isEnabled -> {
-                overlayStatusText.text = "Overlay Enabled"
+                overlayStatusText.text = getString(R.string.settings_overlay_enabled)
                 overlayStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_success))
                 grantPermissionButton.visibility = View.GONE
             }
             else -> {
-                overlayStatusText.text = "Overlay Disabled"
+                overlayStatusText.text = getString(R.string.settings_overlay_disabled)
                 overlayStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_disconnected))
                 grantPermissionButton.visibility = View.GONE
             }
@@ -510,9 +510,9 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         setMapLinkHandlerEnabled(effectiveEnabled)
 
         mapLinkHubStatusText.text = when {
-            enabled && displayModeActive -> "Paused in Display Mode"
-            enabled -> "On"
-            else -> "Off"
+            enabled && displayModeActive -> getString(R.string.settings_paused_display_mode)
+            enabled -> getString(R.string.common_on)
+            else -> getString(R.string.common_off)
         }
         mapLinkHubStatusText.setTextColor(
             ContextCompat.getColor(
@@ -526,21 +526,26 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         )
 
         val deviceMode = prefsManager.getDeviceMode()
-        deviceModeStatusText.text = "Device mode: $deviceMode"
+        val deviceModeLabel = if (deviceMode == PrefsManager.MODE_DISPLAY) {
+            getString(R.string.settings_device_mode_display_value)
+        } else {
+            getString(R.string.settings_device_mode_main_value)
+        }
+        deviceModeStatusText.text = getString(R.string.settings_device_mode_fmt, deviceModeLabel)
 
         mapLinkHubInstructionText.text = when {
             enabled && displayModeActive -> {
-                "Map Link Hub ถูกพักไว้ชั่วคราวระหว่างที่เครื่องนี้ทำงานเป็น Display mode"
+                getString(R.string.settings_map_link_hub_paused)
             }
             enabled -> {
-                "ไปที่ Settings ของระบบ > Apps > Open by default > เลือก PHANToM GO แล้วกด Always"
+                getString(R.string.settings_map_link_hub_path_hint)
             }
             else -> {
-                "ปิดอยู่: ลิงก์แผนที่จะเปิด Google Maps ตามปกติ"
+                getString(R.string.settings_map_link_hub_off)
             }
         }
 
-        mapLinkHubDefaultStatusText.text = "System default: โปรดตั้งค่าในระบบ"
+        mapLinkHubDefaultStatusText.text = getString(R.string.settings_system_default_hint)
 
         updatingOpenMapsUi = true
         openMapsAfterSendSwitch.isChecked = prefsManager.isOpenMapsAfterSendEnabled()
@@ -558,17 +563,20 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
 
         transportModeAuto.visibility = View.GONE
         transportModeBluetooth.visibility = View.GONE
-        transportModeWifi.text = "Wi‑Fi Local (HTTP) - Recommended"
+        transportModeWifi.text = getString(R.string.settings_transport_wifi_recommended)
         transportModeWifi.isEnabled = false
         transportModeGroup.isEnabled = false
 
-        transportModeStatusText.text = "Current transport: WIFI (Bluetooth disabled)"
+        transportModeStatusText.text = getString(R.string.settings_current_transport_wifi_bt_off)
         transportModeStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_cyan))
 
         bluetoothTargetStatusText.text = if (!targetAddress.isNullOrBlank()) {
-            "Bluetooth transport disabled (saved target kept: ${targetName ?: "Unknown"})"
+            getString(
+                R.string.settings_bluetooth_disabled_kept_fmt,
+                targetName ?: getString(R.string.common_unknown)
+            )
         } else {
-            "Bluetooth transport disabled"
+            getString(R.string.settings_bluetooth_disabled)
         }
         bluetoothTargetStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_warning))
         pickBluetoothDeviceButton.visibility = View.GONE
@@ -578,11 +586,11 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private fun requestBluetoothDeviceSelection() {
         val adapter = BluetoothAdapter.getDefaultAdapter()
         if (adapter == null) {
-            Toast.makeText(requireContext(), "Device does not support Bluetooth", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.settings_bt_not_supported), Toast.LENGTH_SHORT).show()
             return
         }
         if (!adapter.isEnabled) {
-            Toast.makeText(requireContext(), "Please enable Bluetooth first", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.settings_bt_enable_first), Toast.LENGTH_SHORT).show()
             return
         }
         if (!hasBluetoothPermissions()) {
@@ -614,25 +622,29 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         val bonded = try {
             adapter.bondedDevices?.toList().orEmpty()
         } catch (e: SecurityException) {
-            Toast.makeText(requireContext(), "Bluetooth permission denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.settings_bt_perm_denied), Toast.LENGTH_SHORT).show()
             return
         }
 
         if (bonded.isEmpty()) {
-            Toast.makeText(requireContext(), "No paired Bluetooth devices found", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.settings_bt_no_paired), Toast.LENGTH_SHORT).show()
             return
         }
 
-        val labels = bonded.map { "${it.name ?: "Unknown"}\n${it.address}" }.toTypedArray()
+        val labels = bonded.map { "${it.name ?: getString(R.string.common_unknown)}\n${it.address}" }.toTypedArray()
         AlertDialog.Builder(requireContext())
-            .setTitle("Select Bluetooth Display")
+            .setTitle(R.string.settings_bt_select_title)
             .setItems(labels) { _, which ->
                 val device = bonded[which]
                 prefsManager.saveBluetoothTarget(device.address, device.name)
                 updateTransportStatus()
-                Toast.makeText(requireContext(), "Selected ${device.name ?: device.address}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.settings_bt_selected_fmt, device.name ?: device.address),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -644,7 +656,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         smartModeSwitch.isChecked = enabled
         updatingSmartModeUi = false
 
-        smartModeStatusText.text = if (enabled) "On" else "Off"
+        smartModeStatusText.text = if (enabled) getString(R.string.common_on) else getString(R.string.common_off)
         smartModeStatusText.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
@@ -692,8 +704,8 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         updatingDisplayNavModeUi = false
 
         displayNavModeStatusText.text = when (mode) {
-            PrefsManager.DISPLAY_NAV_MODE_MOTORCYCLE -> "Motorcycle"
-            else -> "Car"
+            PrefsManager.DISPLAY_NAV_MODE_MOTORCYCLE -> getString(R.string.settings_motorcycle)
+            else -> getString(R.string.settings_car)
         }
         displayNavModeStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_cyan))
     }
@@ -711,8 +723,8 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         updatingDisplayOpenModeUi = false
 
         displayOpenModeStatusText.text = when (behavior) {
-            PrefsManager.DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION -> "Start navigation"
-            else -> "Show route preview"
+            PrefsManager.DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION -> getString(R.string.settings_start_navigation_status)
+            else -> getString(R.string.settings_preview_route_status)
         }
         displayOpenModeStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_cyan))
     }
@@ -728,11 +740,11 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         updatingSpeedometerUi = false
 
         speedometerStatusText.text = when {
-            !enabled -> "Off"
-            !hasLocation -> "Need location"
-            !hasBackground -> "Need all-time access"
-            !locationEnabled -> "Location turned off"
-            else -> "On"
+            !enabled -> getString(R.string.common_off)
+            !hasLocation -> getString(R.string.settings_speed_need_location)
+            !hasBackground -> getString(R.string.settings_speed_need_alltime)
+            !locationEnabled -> getString(R.string.settings_speed_location_off)
+            else -> getString(R.string.common_on)
         }
         speedometerStatusText.setTextColor(
             ContextCompat.getColor(
@@ -745,14 +757,12 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             )
         )
 
-        speedometerPermissionText.text = buildString {
-            append("Location: ")
-            append(if (hasLocation) "granted" else "not granted")
-            append(" • All-time: ")
-            append(if (hasBackground) "granted" else "required")
-            append(" • GPS: ")
-            append(if (locationEnabled) "on" else "off")
-        }
+        speedometerPermissionText.text = getString(
+            R.string.settings_speed_perm_fmt,
+            if (hasLocation) getString(R.string.settings_granted) else getString(R.string.settings_not_granted),
+            if (hasBackground) getString(R.string.settings_granted) else getString(R.string.settings_required),
+            if (locationEnabled) getString(R.string.settings_gps_on) else getString(R.string.settings_gps_off)
+        )
         requestLocationPermissionButton.visibility = if (enabled || !hasLocation || !hasBackground) View.VISIBLE else View.GONE
     }
 
@@ -772,9 +782,9 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         updatingDisplayPowerUi = false
 
         displayPowerAutomationStatusText.text = when {
-            powerAutomationEnabled -> "Connected / disconnect automation on"
-            wakeBeforeMapsEnabled -> "Wake-before-Maps only"
-            else -> "Off"
+            powerAutomationEnabled -> getString(R.string.settings_power_conn_disc_on)
+            wakeBeforeMapsEnabled -> getString(R.string.settings_power_wake_only)
+            else -> getString(R.string.common_off)
         }
         displayPowerAutomationStatusText.setTextColor(
             ContextCompat.getColor(
@@ -786,22 +796,17 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             )
         )
 
-        displayPowerAutomationDetailText.text = buildString {
-            append("Profile: ")
-            append(if (expectedBrightness >= 200) "Day brightness" else "Night brightness")
-            append(" • Expected brightness: ")
-            append(expectedBrightness)
-            append("\nReady now: ")
-            append(if (readiness.ready) "yes" else "no")
-            append(" • Screen: ")
-            append(if (readiness.interactive) "on" else "off")
-            append(" • Lock: ")
-            append(if (readiness.unlocked) "unlocked" else "locked")
-            append(" • Brightness: ")
-            append(readiness.currentBrightness ?: "unknown")
-        }
+        displayPowerAutomationDetailText.text = getString(
+            R.string.settings_power_detail_fmt,
+            if (expectedBrightness >= 200) getString(R.string.settings_profile_day) else getString(R.string.settings_profile_night),
+            expectedBrightness,
+            if (readiness.ready) getString(R.string.common_yes) else getString(R.string.common_no),
+            if (readiness.interactive) getString(R.string.common_on) else getString(R.string.common_off),
+            if (readiness.unlocked) getString(R.string.common_unlocked) else getString(R.string.common_locked),
+            readiness.currentBrightness?.toString() ?: getString(R.string.common_unknown)
+        )
 
-        displayWakeBeforeMapsStatusText.text = if (wakeBeforeMapsEnabled) "Enabled" else "Disabled"
+        displayWakeBeforeMapsStatusText.text = if (wakeBeforeMapsEnabled) getString(R.string.common_enabled) else getString(R.string.common_disabled)
         displayWakeBeforeMapsStatusText.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
@@ -810,9 +815,9 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         )
 
         lockOnDisconnectStatusText.text = when {
-            !lockOnDisconnectEnabled -> "Disabled"
-            deviceAdminEnabled -> "Armed with Device Admin"
-            else -> "Needs Device Admin"
+            !lockOnDisconnectEnabled -> getString(R.string.common_disabled)
+            deviceAdminEnabled -> getString(R.string.settings_armed_device_admin)
+            else -> getString(R.string.settings_needs_device_admin)
         }
         lockOnDisconnectStatusText.setTextColor(
             ContextCompat.getColor(
@@ -825,7 +830,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             )
         )
 
-        systemSettingsStatusText.text = if (canWriteSettings) "Modify system settings granted" else "Modify system settings required"
+        systemSettingsStatusText.text = if (canWriteSettings) getString(R.string.settings_modify_granted) else getString(R.string.settings_modify_system_required)
         systemSettingsStatusText.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
@@ -834,7 +839,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         )
         requestSystemSettingsButton.visibility = if (canWriteSettings) View.GONE else View.VISIBLE
 
-        deviceAdminStatusText.text = if (deviceAdminEnabled) "Device Admin enabled" else "Device Admin optional (required for lock on disconnect)"
+        deviceAdminStatusText.text = if (deviceAdminEnabled) getString(R.string.settings_device_admin_enabled) else getString(R.string.settings_device_admin_optional_lock)
         deviceAdminStatusText.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
@@ -853,11 +858,11 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         updatingAntiTheftUi = false
 
         antiTheftStatusText.text = when {
-            !snapshot.featureEnabled -> "Off"
-            snapshot.armed -> "Armed"
-            snapshot.state == AntiTheftState.READY_UNPLUGGED -> "Waiting for jack"
-            snapshot.hasPin -> "Ready"
-            else -> "Need PIN"
+            !snapshot.featureEnabled -> getString(R.string.common_off)
+            snapshot.armed -> getString(R.string.settings_anti_theft_armed)
+            snapshot.state == AntiTheftState.READY_UNPLUGGED -> getString(R.string.settings_anti_theft_waiting_jack)
+            snapshot.hasPin -> getString(R.string.settings_anti_theft_ready)
+            else -> getString(R.string.settings_anti_theft_need_pin)
         }
         antiTheftStatusText.setTextColor(
             ContextCompat.getColor(
@@ -871,20 +876,15 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             )
         )
 
-        antiTheftDetailText.text = buildString {
-            append(snapshot.detail)
-            append("\nPIN: ")
-            append(if (snapshot.hasPin) "configured" else "not set")
-            append(" • Trigger: ")
-            append(if (snapshot.headsetPlugged) "3.5 mm detected" else "not detected")
-            if (currentSound != null) {
-                append(" • Sound: custom")
-            } else {
-                append(" • Sound: default alarm")
-            }
-        }
+        antiTheftDetailText.text = getString(
+            R.string.settings_at_detail_fmt,
+            snapshot.detail,
+            if (snapshot.hasPin) getString(R.string.settings_pin_configured) else getString(R.string.settings_pin_not_set),
+            if (snapshot.headsetPlugged) getString(R.string.settings_trigger_detected) else getString(R.string.settings_trigger_not_detected),
+            " • " + if (currentSound != null) getString(R.string.settings_sound_custom) else getString(R.string.settings_sound_default)
+        )
 
-        antiTheftAttachLocationStatus.text = if (DisplayAntiTheftManager.isAttachLocationEnabled(requireContext())) "On" else "Off"
+        antiTheftAttachLocationStatus.text = if (DisplayAntiTheftManager.isAttachLocationEnabled(requireContext())) getString(R.string.common_on) else getString(R.string.common_off)
         antiTheftAttachLocationStatus.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
@@ -897,28 +897,28 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private fun promptAntiTheftPinDialog() {
         val input = android.widget.EditText(requireContext()).apply {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = "PIN (4-6 digits)"
+            hint = getString(R.string.at_pin_hint)
         }
         AlertDialog.Builder(requireContext())
-            .setTitle("Set / Change Anti-Theft PIN")
+            .setTitle(R.string.at_set_change_pin_title)
             .setView(input)
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton(R.string.common_save) { _, _ ->
                 val ok = DisplayAntiTheftManager.savePin(requireContext(), input.text?.toString().orEmpty())
                 Toast.makeText(
                     requireContext(),
-                    if (ok) "Anti-Theft PIN saved" else "PIN must be 4-6 digits",
+                    if (ok) getString(R.string.at_pin_saved) else getString(R.string.at_pin_invalid),
                     Toast.LENGTH_SHORT
                 ).show()
                 updateAntiTheftStatus()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
     private fun openAntiTheftSoundPicker() {
         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
             putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Choose Anti-Theft Alarm Sound")
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.settings_choose_alarm_sound_title))
             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
             putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, DisplayAntiTheftManager.getAlarmSoundUri(requireContext()))
@@ -928,7 +928,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
 
     private fun requestWriteSettingsAccess() {
         startActivity(DisplayPowerAutomationManager.buildWriteSettingsIntent(requireContext()))
-        Toast.makeText(requireContext(), "Allow Modify system settings and return", Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), getString(R.string.settings_grant_write_toast), Toast.LENGTH_LONG).show()
     }
 
     private fun requestDeviceAdminAccess() {
@@ -982,7 +982,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             }
         }
 
-        Toast.makeText(requireContext(), "Cannot open settings on this device", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.settings_cannot_open_settings), Toast.LENGTH_SHORT).show()
     }
 
     private fun requestOverlayPermission() {
@@ -991,7 +991,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             Uri.parse("package:${requireContext().packageName}")
         )
         startActivity(intent)
-        Toast.makeText(requireContext(), "Grant overlay permission and return", Toast.LENGTH_LONG).show()
+        Toast.makeText(requireContext(), getString(R.string.settings_grant_overlay_toast), Toast.LENGTH_LONG).show()
     }
 
     private fun requestLocationPermissionFlow() {
@@ -1026,12 +1026,12 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         }
 
         AlertDialog.Builder(requireContext())
-            .setTitle("Allow all-time location")
-            .setMessage("Speedometer in Display mode works best with all-time location access. Android will open App Settings so you can set Location to Allow all the time.")
-            .setPositiveButton("Open Settings") { _, _ ->
+            .setTitle(R.string.settings_allow_alltime_title)
+            .setMessage(R.string.settings_allow_alltime_msg)
+            .setPositiveButton(R.string.common_open_settings) { _, _ ->
                 openAppLocationSettings()
             }
-            .setNegativeButton("Later", null)
+            .setNegativeButton(R.string.common_later, null)
             .show()
     }
 
@@ -1065,28 +1065,28 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         val api33Plus = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
         if (enabled) {
-            notificationStatusText.text = "Notifications: Enabled"
+            notificationStatusText.text = getString(R.string.settings_notifications_enabled)
             notificationStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_success))
             requestNotificationButton.visibility = View.GONE
         } else {
-            notificationStatusText.text = "Notifications: Disabled"
+            notificationStatusText.text = getString(R.string.settings_notifications_disabled)
             notificationStatusText.setTextColor(ContextCompat.getColor(requireContext(), R.color.aurora_warning))
             requestNotificationButton.visibility = View.VISIBLE
             requestNotificationButton.isEnabled = !notificationRequestInFlight
             requestNotificationButton.text = if (api33Plus) {
-                "🔔 Request Notification Permission"
+                getString(R.string.settings_request_notification)
             } else {
-                "🔔 Open Notification Settings"
+                getString(R.string.settings_open_notification_settings)
             }
         }
     }
 
     private fun showNotificationSettingsDialog() {
         AlertDialog.Builder(requireContext())
-            .setTitle("Enable Notifications")
-            .setMessage("Notifications are disabled. Please enable them in App Settings.")
-            .setPositiveButton("Open Settings") { _, _ -> openAppNotificationSettings() }
-            .setNegativeButton("Cancel", null)
+            .setTitle(R.string.settings_enable_notifications_title)
+            .setMessage(R.string.settings_enable_notifications_msg)
+            .setPositiveButton(R.string.common_open_settings) { _, _ -> openAppNotificationSettings() }
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -1106,19 +1106,19 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private fun copyLogToClipboard() {
         val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("PHANTOM_GO_LOGS", logText.text))
-        Toast.makeText(requireContext(), "Logs copied to clipboard", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.settings_logs_copied), Toast.LENGTH_SHORT).show()
     }
 
     private fun clearLogs() {
         AlertDialog.Builder(requireContext())
-            .setTitle("Clear Logs")
-            .setMessage("Are you sure you want to clear all logs?")
-            .setPositiveButton("Clear") { _, _ ->
+            .setTitle(R.string.settings_clear_logs_title)
+            .setMessage(R.string.settings_clear_logs_msg)
+            .setPositiveButton(R.string.common_clear) { _, _ ->
                 PhantomLog.clearLogs()
                 logText.text = ""
-                Toast.makeText(requireContext(), "Logs cleared", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.settings_logs_cleared), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 

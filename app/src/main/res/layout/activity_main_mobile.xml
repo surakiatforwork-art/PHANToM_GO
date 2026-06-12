@@ -113,7 +113,7 @@
                         android:id="@+id/tvPairStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Not Paired"
+                        android:text="@string/home_not_paired"
                         android:textColor="@color/aurora_waiting"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -123,7 +123,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Scan QR code from Display device"
+                        android:text="@string/home_scan_hint"
                         android:textColor="@color/aurora_silver"
                         android:textSize="14sp" />
 
@@ -132,7 +132,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="Pending: 0"
+                        android:text="@string/home_pending_zero"
                         android:textColor="@color/aurora_warning"
                         android:textSize="12sp"
                         android:background="@drawable/aurora_button_ripple"
@@ -144,7 +144,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="❌ Not Paired"
+                        android:text="@string/home_not_paired_decorated"
                         android:textColor="@color/aurora_disconnected"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -159,7 +159,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="64dp"
                 android:layout_marginBottom="12dp"
-                android:text="📷 Scan QR to Pair"
+                android:text="@string/scan_to_pair"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:background="@drawable/neon_primary_button"
@@ -180,7 +180,7 @@
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
                     android:enabled="false"
-                    android:text="📍 Test"
+                    android:text="@string/home_send_test_decorated"
                     android:textSize="16sp"
                     android:background="@drawable/neon_primary_button"
                     android:backgroundTint="@null"
@@ -194,7 +194,7 @@
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
                     android:enabled="false"
-                    android:text="🔄 Retry"
+                    android:text="@string/home_retry_pending_decorated"
                     android:textSize="16sp"
                     android:background="@drawable/neon_outline_button"
                     android:backgroundTint="@null"
@@ -322,7 +322,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:enabled="false"
-                android:text="🗑️ Clear"
+                android:text="@string/home_clear_decorated"
                 android:textSize="14sp"
                 android:background="@drawable/neon_outline_button"
                 android:backgroundTint="@null"
@@ -335,7 +335,7 @@
                     android:layout_height="48dp"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
-                    android:text="ℹ️ Info"
+                    android:text="@string/home_info_decorated"
                     android:textSize="14sp"
                     style="@style/Widget.Material3.Button.TextButton" />
 
@@ -354,7 +354,7 @@
                     android:id="@+id/tvA11yStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Accessibility features removed"
+                    android:text="@string/home_accessibility_removed"
                     android:textColor="@color/aurora_disconnected"
                     android:textSize="12sp" />
 
@@ -363,7 +363,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="REMOVED"
+                    android:text="@string/home_removed"
                     android:textColor="@color/aurora_disconnected"
                     android:textSize="10sp"
                     android:textStyle="bold" />
@@ -375,7 +375,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="PHANToM GO - QR + HTTP Navigation"
+                android:text="@string/home_footer_legacy"
                 android:textColor="@color/aurora_silver"
                 android:textSize="11sp"
                 android:alpha="0.6" />

@@ -52,7 +52,7 @@ Optional permissions can be skipped, but their related features will remain unav
 
 ## Downloads and Web App
 
-- Stable APK: [Download PHANToM GO v1.0.14](https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.14/PHANToM_GO-v1.0.14.apk)
+- Stable APK: [Download PHANToM GO v1.0.17](https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.17/PHANToM_GO-v1.0.17.apk)
 - Landing page: [`docs/web/index.html`](docs/web/index.html)
 - Browser Web App: [`docs/web/webapp/index.html`](docs/web/webapp/index.html)
 
@@ -72,7 +72,7 @@ app/build/outputs/apk/debug/app-debug.apk
 
 - [Current app overview](docs/PHANTOM_GO_APP_OVERVIEW.md)
 - [Interactive workflow review](docs/PHANTOM_GO_WORKFLOW.html)
-- [Stable release review](docs/STABLE_RELEASE_REVIEW_v1.0.14.md)
+- [Latest stable release notes](docs/RELEASE_v1.0.17.md)
 - [Firebase Realtime Database rules](docs/firebase-realtime-database.rules.json)
 
 ## Important Limitations

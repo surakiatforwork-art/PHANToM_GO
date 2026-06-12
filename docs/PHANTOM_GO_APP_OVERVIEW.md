@@ -1,6 +1,6 @@
 # PHANToM GO - App Overview
 
-อัปเดตสำหรับ Stable Release `v1.0.14`
+อัปเดตสำหรับ Stable Release `v1.0.17`
 
 ## แอปนี้คืออะไร
 
@@ -129,21 +129,13 @@ PHANToM GO เป็นระบบส่งปลายทางและเส
 - Firebase Realtime Database ไม่มี TTL cleanup อัตโนมัติสำหรับ command/alert เก่า จึงควรวางแผน cleanup ฝั่ง backend ก่อนขยายผู้ใช้จำนวนมาก
 - ฝั่ง iOS ยังอยู่ในสถานะ scaffold/remote-CI readiness ไม่ใช่ runtime-validated release
 
-## Stable v1.0.14 Highlights
+## Stable v1.0.17 Highlights
 
-- แก้ Display Mode crash จาก LayoutParams cast
-- ทำให้ Display Foreground service รับ power event โดยตรง เพื่อหลบนโยบาย OEM ที่บล็อก manifest receiver
-- ตรวจและใช้สถานะพลังงานปัจจุบันทันทีเมื่อ Display service เริ่ม
-- ป้องกันการประมวลผล power event ซ้ำจาก receiver หลายช่องทาง
-- ป้องกัน power automation ทำงานบน Main Device
-- รักษาบทบาท Display เมื่อ service ถูกปิดโดยระบบ และเปลี่ยนกลับ Main เฉพาะผู้ใช้สั่งหยุด
-- รักษาสถานะ anti-theft เมื่อ Display service หยุดแบบไม่คาดคิด
-- กู้ Display service เมื่อ process เปิดใหม่
-- ซ่อม permission onboarding ไม่ให้ข้ามขั้นตอนโดยไม่ตั้งใจ
-- ป้องกัน pending route ซ้ำและแก้ race ระหว่าง retry callback
-- เพิ่ม package visibility สำหรับ Google Maps
-- แก้ Share receiver ให้คง MIME type/data ถูกต้อง
-- ปรับ accessibility ของปุ่ม Home และภาพสำคัญ
-- อัปเดต Landing Page ให้ชี้ stable release `v1.0.14`
+- ทำให้ภาษาไทยเป็นค่าเริ่มต้นของแอป และเพิ่ม `values-en` สำหรับภาษาอังกฤษ
+- ย้ายข้อความที่ผู้ใช้เห็นจาก code และ layout หลายหน้าเข้าสู่ string resources กลาง
+- แก้ปุ่ม action ที่พื้นหลัง custom ให้ข้อความยังอ่านออกชัดเมื่ออยู่ในสถานะ disabled
+- ตรวจซ้ำหน้า Home, Settings และ Security ทั้ง dark mode และ light mode บนอุปกรณ์ Samsung จริง
+- รักษา flow เดิมของ pairing, cloud relay, display mode, anti-theft, speedometer และ power automation ไว้เหมือนเดิม
+- อัปเดต Landing Page ให้ชี้ stable release `v1.0.17`
 
 ดูแผนภาพ workflow แบบ interactive ได้ที่ `docs/PHANTOM_GO_WORKFLOW.html`

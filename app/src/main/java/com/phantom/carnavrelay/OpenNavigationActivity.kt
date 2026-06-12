@@ -25,7 +25,7 @@ class OpenNavigationActivity : AppCompatActivity() {
         
         if (url.isNullOrEmpty()) {
             Log.e(TAG, "❌ No URL provided in intent")
-            Toast.makeText(this, "No navigation URL provided", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.open_nav_no_url), Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -67,13 +67,13 @@ class OpenNavigationActivity : AppCompatActivity() {
             } catch (e2: Exception) {
                 Log.e(TAG, "💥 Failed to open any app for URL: $url", e2)
                 PhantomLog.e("NAV openFail (OpenNavigationActivity): ${e2.message}", e2)
-                Toast.makeText(this, "Cannot open navigation URL", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.open_nav_cannot_open), Toast.LENGTH_LONG).show()
                 finish()
             }
         } catch (e: Exception) {
             Log.e(TAG, "💥 Error opening navigation URL: $url", e)
             PhantomLog.e("NAV openError (OpenNavigationActivity): ${e.message}", e)
-            Toast.makeText(this, "Error opening navigation", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.open_nav_error_opening), Toast.LENGTH_LONG).show()
             finish()
         }
     }

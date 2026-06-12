@@ -1,13 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#30FFFFFF">
-    <item>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false">
         <shape>
             <gradient
                 android:angle="0"
-                android:startColor="@color/display_button_start"
-                android:endColor="@color/display_button_end" />
+                android:startColor="@color/display_button_start_disabled"
+                android:endColor="@color/display_button_end_disabled" />
             <corners android:radius="22dp" />
         </shape>
     </item>
-</ripple>
+    <item>
+        <ripple android:color="#30FFFFFF">
+            <item>
+                <shape>
+                    <gradient
+                        android:angle="0"
+                        android:startColor="@color/display_button_start"
+                        android:endColor="@color/display_button_end" />
+                    <corners android:radius="22dp" />
+                </shape>
+            </item>
+        </ripple>
+    </item>
+</selector>

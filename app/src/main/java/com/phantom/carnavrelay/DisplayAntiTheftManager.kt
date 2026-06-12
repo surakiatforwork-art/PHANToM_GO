@@ -24,6 +24,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -270,9 +271,9 @@ object DisplayAntiTheftManager {
 
     fun arm(context: Context): String? {
         initialize(context)
-        if (!prefs.isAntiTheftEnabled()) return "Enable Anti-Theft in Settings first"
-        if (!prefs.hasAntiTheftPin()) return "Set a PIN first"
-        if (!headsetPlugged) return "Plug in a 3.5 mm headset trigger first"
+        if (!prefs.isAntiTheftEnabled()) return context.getString(R.string.at_enable_first)
+        if (!prefs.hasAntiTheftPin()) return context.getString(R.string.at_set_pin_first)
+        if (!headsetPlugged) return context.getString(R.string.at_plug_trigger_first)
         prefs.setAntiTheftArmed(true)
         state = AntiTheftState.ARMED
         prefs.setAntiTheftLastState(state.name)
@@ -716,7 +717,15 @@ object DisplayAntiTheftManager {
         )
         val notification = NotificationCompat.Builder(appContext, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_display_mode)
-            .setContentTitle(if (fullscreen) "Security lock active" else "Security verification required")
+            .setContentTitle(
+                string(
+                    if (fullscreen) {
+                        R.string.at_notification_lock_active
+                    } else {
+                        R.string.at_notification_verification_required
+                    }
+                )
+            )
             .setContentText(stateDetail(state))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -745,10 +754,10 @@ object DisplayAntiTheftManager {
         val manager = appContext.getSystemService(NotificationManager::class.java) ?: return
         val channel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
-            "Security Verification",
+            string(R.string.at_channel_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Security verification and lock notifications"
+            description = string(R.string.at_channel_desc)
             enableVibration(true)
             lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
         }
@@ -818,31 +827,39 @@ object DisplayAntiTheftManager {
 
     private fun stateHeadline(currentState: AntiTheftState): String {
         return when (currentState) {
-            AntiTheftState.DISABLED -> "Security monitoring off"
-            AntiTheftState.UNAVAILABLE_NO_JACK -> "Security trigger unavailable"
-            AntiTheftState.READY -> "Security monitoring ready"
-            AntiTheftState.READY_UNPLUGGED -> "Security trigger missing"
-            AntiTheftState.ARMED -> "Security monitoring armed"
-            AntiTheftState.CHALLENGE_1 -> "Security verification"
-            AntiTheftState.CHALLENGE_2 -> "Verification required"
-            AntiTheftState.POST_ALERT_COUNTDOWN -> "Security verification"
-            AntiTheftState.ALARM_ACTIVE -> "Security lock active"
-            AntiTheftState.FULLSCREEN_LOCK -> "Security lock active"
+            AntiTheftState.DISABLED -> string(R.string.at_state_disabled_headline)
+            AntiTheftState.UNAVAILABLE_NO_JACK -> string(R.string.at_state_unavailable_headline)
+            AntiTheftState.READY -> string(R.string.at_state_ready_headline)
+            AntiTheftState.READY_UNPLUGGED -> string(R.string.at_state_missing_headline)
+            AntiTheftState.ARMED -> string(R.string.at_state_armed_headline)
+            AntiTheftState.CHALLENGE_1 -> string(R.string.at_state_challenge_headline)
+            AntiTheftState.CHALLENGE_2 -> string(R.string.at_state_challenge_required_headline)
+            AntiTheftState.POST_ALERT_COUNTDOWN -> string(R.string.at_state_challenge_headline)
+            AntiTheftState.ALARM_ACTIVE -> string(R.string.at_state_lock_headline)
+            AntiTheftState.FULLSCREEN_LOCK -> string(R.string.at_state_lock_headline)
         }
     }
 
     private fun stateDetail(currentState: AntiTheftState): String {
         return when (currentState) {
-            AntiTheftState.DISABLED -> "Enable security monitoring in Settings to use this feature."
-            AntiTheftState.UNAVAILABLE_NO_JACK -> "This security mode requires a connected 3.5 mm trigger."
-            AntiTheftState.READY -> "A trigger is connected. Arm security monitoring when you are ready."
-            AntiTheftState.READY_UNPLUGGED -> "Reconnect the 3.5 mm trigger to arm protection again."
-            AntiTheftState.ARMED -> "The trigger is being monitored. Verification will be required if it is removed."
-            AntiTheftState.CHALLENGE_1 -> "Enter your security PIN within ${remainingSeconds()} seconds."
-            AntiTheftState.CHALLENGE_2 -> "Verification failed once. Enter the correct PIN within ${remainingSeconds()} seconds."
-            AntiTheftState.POST_ALERT_COUNTDOWN -> "A paired device has been notified. Enter the correct PIN before the security lock escalates in ${remainingSeconds()} seconds."
-            AntiTheftState.ALARM_ACTIVE -> "Security lock is active. Enter the correct PIN to continue."
-            AntiTheftState.FULLSCREEN_LOCK -> "Enter the correct security PIN to stop the lock and continue."
+            AntiTheftState.DISABLED -> string(R.string.at_state_disabled_detail)
+            AntiTheftState.UNAVAILABLE_NO_JACK -> string(R.string.at_state_unavailable_detail)
+            AntiTheftState.READY -> string(R.string.at_state_ready_detail)
+            AntiTheftState.READY_UNPLUGGED -> string(R.string.at_state_reconnect_detail)
+            AntiTheftState.ARMED -> string(R.string.at_state_armed_detail)
+            AntiTheftState.CHALLENGE_1 -> string(R.string.at_state_challenge_detail_fmt, remainingSeconds())
+            AntiTheftState.CHALLENGE_2 -> string(R.string.at_state_challenge_failed_detail_fmt, remainingSeconds())
+            AntiTheftState.POST_ALERT_COUNTDOWN -> string(R.string.at_state_post_alert_detail_fmt, remainingSeconds())
+            AntiTheftState.ALARM_ACTIVE -> string(R.string.at_state_alarm_detail)
+            AntiTheftState.FULLSCREEN_LOCK -> string(R.string.at_state_fullscreen_detail)
+        }
+    }
+
+    private fun string(@StringRes resId: Int, vararg args: Any): String {
+        return if (args.isEmpty()) {
+            appContext.getString(resId)
+        } else {
+            appContext.getString(resId, *args)
         }
     }
 

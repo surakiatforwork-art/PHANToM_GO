@@ -116,7 +116,9 @@
     <color name="soft_bg_end">#F2F4F6</color>
     <color name="soft_surface">#FFFFFFFF</color>
     <color name="soft_surface_alt">@color/ui_surface_alt</color>
+    <color name="soft_surface_disabled">#EEF2F6</color>
     <color name="soft_border">@color/ui_outline</color>
+    <color name="soft_border_disabled">#D8DEE8</color>
     <color name="soft_shadow">#190C2B63</color>
     <color name="soft_text_primary">@color/ui_text_primary</color>
     <color name="soft_text_secondary">@color/ui_text_secondary</color>
@@ -124,6 +126,11 @@
     <color name="soft_blue">@color/ui_primary</color>
     <color name="soft_blue_end">#2563EB</color>
     <color name="soft_blue_dark">@color/ui_primary</color>
+    <color name="soft_secondary_text_disabled">#5A6B84</color>
+    <color name="soft_secondary_danger_text_disabled">#9A6464</color>
+    <color name="soft_primary_fill_disabled">#CDD9EC</color>
+    <color name="soft_primary_fill_disabled_end">#C2D1E8</color>
+    <color name="soft_primary_text_disabled">#334C70</color>
     <color name="soft_success">@color/ui_success</color>
     <color name="soft_warning">@color/ui_warning</color>
     <color name="soft_danger">@color/ui_danger</color>
@@ -135,4 +142,7 @@
     <color name="display_panel_border">#28496C</color>
     <color name="display_button_start">#58A4FF</color>
     <color name="display_button_end">#2E7BEF</color>
+    <color name="display_button_start_disabled">#4679B6</color>
+    <color name="display_button_end_disabled">#365E8E</color>
+    <color name="display_button_text_disabled">#E7F0FB</color>
 </resources>

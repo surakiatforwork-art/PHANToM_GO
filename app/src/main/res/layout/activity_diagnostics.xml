@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:text="Diagnostics"
+            android:text="@string/diag_title"
             android:textColor="@color/text_primary"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -46,12 +46,12 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Self-Test" />
+            android:text="@string/diag_tab_self_test" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Crash Report" />
+            android:text="@string/diag_tab_crash_report" />
 
     </com.google.android.material.tabs.TabLayout>
 
@@ -76,7 +76,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="System Check"
+                    android:text="@string/diag_system_check"
                     android:textColor="@color/text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -85,7 +85,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Checking app health and permissions..."
+                    android:text="@string/diag_checking_health"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
 
@@ -117,7 +117,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="Run Test Again"
+                    android:text="@string/diag_run_test_again"
                     android:textColor="@color/ui_on_primary"
                     style="@style/Widget.CarNavRelay.Button" />
 
@@ -137,7 +137,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Last Crash Report"
+                android:text="@string/diag_last_crash_report"
                 android:textColor="@color/text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -146,7 +146,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="If app crashed, report appears here"
+                android:text="@string/diag_if_crashed"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 
@@ -169,7 +169,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:fontFamily="monospace"
-                        android:text="No crash report available"
+                        android:text="@string/diag_no_crash_report"
                         android:textColor="@color/text_primary"
                         android:textSize="12sp" />
 
@@ -190,7 +190,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
-                    android:text="Copy"
+                    android:text="@string/common_copy"
                     android:textColor="@color/aurora_cyan"
                     app:strokeColor="@color/aurora_cyan" />
 
@@ -201,7 +201,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="8dp"
                     android:layout_weight="1"
-                    android:text="Share"
+                    android:text="@string/common_share"
                     android:textColor="@color/aurora_cyan"
                     app:strokeColor="@color/aurora_cyan" />
 
@@ -211,7 +211,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="Clear"
+                    android:text="@string/common_clear"
                     android:textColor="@color/ui_on_primary"
                     app:backgroundTint="@color/aurora_warning"
                     app:cornerRadius="12dp" />

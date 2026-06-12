@@ -222,7 +222,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         if (requestCode == PERMISSION_REQUEST_CODE) {
             val allGranted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
             if (!allGranted) {
-                Toast.makeText(requireContext(), "Some permissions were denied. Features may not work properly.", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), getString(R.string.display_some_permissions_denied), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -257,41 +257,42 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         suppressDisplayModeToggleCallback = true
         switchDisplayMode.isChecked = isServiceRunning
         suppressDisplayModeToggleCallback = false
-        tvDisplayModeStatus.text = if (isServiceRunning) "ON" else "OFF"
+        tvDisplayModeStatus.text = if (isServiceRunning) getString(R.string.display_mode_on) else getString(R.string.display_mode_off)
         tvDisplayModeStatus.setTextColor(requireContext().getColor(if (isServiceRunning) R.color.success else R.color.gray_600))
 
         setMapLinkHandlerEnabled(!isServiceRunning, "DisplayFragment.updateUI")
 
-        tvServerInfo.text = if (isServiceRunning) "Server: $ip:$port" else "Server not running"
+        tvServerInfo.text = if (isServiceRunning) getString(R.string.display_server_fmt, "$ip:$port") else getString(R.string.display_server_not_running)
         updateBatteryStatus()
         updateSpeedUi()
         updateDisplayPriorityLayout(isPaired)
         updateAntiTheftUi()
 
         if (isPaired) {
-            val pairedName = prefsManager.getDisplayPairedMainName() ?: "Unknown"
+            val pairedName = prefsManager.getDisplayPairedMainName() ?: getString(R.string.display_unknown)
             val pairedAt = prefsManager.getDisplayPairedAt()
             val timeAgo = if (pairedAt > 0) {
                 val minutes = (System.currentTimeMillis() - pairedAt) / 60000
-                if (minutes < 60) "${minutes}m ago" else "${minutes / 60}h ago"
+                if (minutes < 60) getString(R.string.display_minutes_ago_fmt, minutes.toInt())
+                else getString(R.string.display_hours_ago_fmt, (minutes / 60).toInt())
             } else {
-                "Unknown"
+                getString(R.string.display_unknown)
             }
 
             appIcon.visibility = View.GONE
-            titleText.text = "Display Connected"
+            titleText.text = getString(R.string.display_connected)
             tvIpPort.visibility = View.GONE
             tvTokenHint.visibility = View.GONE
             buttonLayout.visibility = View.GONE
-            tvPairedInfo.text = "Main device: $pairedName  •  Paired $timeAgo"
-            tvConnectedHeadline.text = if (isMainActive) "Connected" else "Paired"
+            tvPairedInfo.text = getString(R.string.display_main_device_fmt, pairedName, timeAgo)
+            tvConnectedHeadline.text = if (isMainActive) getString(R.string.connected) else getString(R.string.display_paired_state)
             tvConnectedSubtext.text = if (isMainActive) {
-                "Ready to receive the latest route from $pairedName"
+                getString(R.string.display_ready_receive_fmt, pairedName)
             } else {
-                "Still paired with $pairedName"
+                getString(R.string.display_still_paired_fmt, pairedName)
             }
-            tvConnectedInstruction.text = "Tap disconnect below if you want to pair a different Main device."
-            btnResetPairing.text = "Disconnect Main Device"
+            tvConnectedInstruction.text = getString(R.string.display_tap_disconnect_hint)
+            btnResetPairing.text = getString(R.string.display_disconnect_main)
             layoutQR.visibility = View.GONE
             layoutConnected.visibility = View.VISIBLE
             ivConnectedIcon.visibility = View.VISIBLE
@@ -302,11 +303,11 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             tvIpPort.visibility = View.VISIBLE
             tvTokenHint.visibility = View.VISIBLE
             buttonLayout.visibility = View.VISIBLE
-            tvPairedInfo.text = "Scan this QR code with Main device"
-            tvConnectedHeadline.text = "Waiting for Pairing"
-            tvConnectedSubtext.text = "Show this screen on the car display, then scan from the Main device."
-            tvConnectedInstruction.text = "Once paired, this screen will switch to connected mode automatically."
-            btnResetPairing.text = "Disconnect / Reset"
+            tvPairedInfo.text = getString(R.string.display_scan_this_qr)
+            tvConnectedHeadline.text = getString(R.string.display_waiting_pairing)
+            tvConnectedSubtext.text = getString(R.string.display_show_on_car_hint)
+            tvConnectedInstruction.text = getString(R.string.display_auto_switch_hint)
+            btnResetPairing.text = getString(R.string.display_disconnect_reset)
             layoutQR.visibility = View.VISIBLE
             layoutConnected.visibility = View.VISIBLE
             ivConnectedIcon.visibility = View.GONE
@@ -324,8 +325,11 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         FirebaseManager.publishPairingCode(requireContext(), ip, port, token, "display-update-ui")
         val qrPayload = buildCloudPairPayload(displayDeviceId, cloudPairCode, ip, port, token)
 
+        // Keep the raw payload (which embeds the pairing token) out of plain sight.
+        // The QR code is the intended pairing channel; the Copy button still allows
+        // a manual fallback without showing the token on the car display.
         tvQrPayload.text = qrPayload
-        tvQrPayload.visibility = if (isPaired) View.GONE else View.VISIBLE
+        tvQrPayload.visibility = View.GONE
         btnCopyPayload.visibility = if (isPaired) View.GONE else View.VISIBLE
         generateQRCode(qrPayload)
     }
@@ -348,7 +352,11 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to start server [$reason]", e)
             switchDisplayMode.isChecked = false
-            Toast.makeText(requireContext(), "Failed to start server: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.display_failed_start_server_fmt, e.message ?: getString(R.string.common_unknown)),
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -393,11 +401,11 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         }
 
         if (isIgnoringBatteryOptimizations) {
-            tvBatteryStatus.text = "Battery optimization: OFF"
+            tvBatteryStatus.text = getString(R.string.display_battery_opt_off)
             tvBatteryStatus.setTextColor(requireContext().getColor(R.color.success))
             btnBatterySettings.visibility = View.GONE
         } else {
-            tvBatteryStatus.text = "Battery optimization: ON"
+            tvBatteryStatus.text = getString(R.string.display_battery_opt_on)
             tvBatteryStatus.setTextColor(requireContext().getColor(R.color.warning))
             btnBatterySettings.visibility = View.VISIBLE
         }
@@ -406,9 +414,9 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
     private fun requestBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             AlertDialog.Builder(requireContext())
-                .setTitle("Battery Optimization")
-                .setMessage("To ensure Display Mode works reliably in the background, please disable battery optimization for PHANToM GO.")
-                .setPositiveButton("Settings") { _, _ ->
+                .setTitle(R.string.display_battery_title)
+                .setMessage(R.string.display_battery_msg)
+                .setPositiveButton(R.string.display_settings) { _, _ ->
                     try {
                         val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                             data = Uri.parse("package:${requireContext().packageName}")
@@ -418,7 +426,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
                         startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
                     }
                 }
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton(R.string.cancel, null)
                 .show()
         }
     }
@@ -453,13 +461,13 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         val payload = tvQrPayload.text.toString()
         val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("PHANToM GO QR Payload", payload))
-        Toast.makeText(requireContext(), "QR Payload copied to clipboard", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.display_payload_copied), Toast.LENGTH_SHORT).show()
     }
 
     private fun openLastNavigation() {
         val lastUrl = prefsManager.getPrefs().getString("last_url", null)
         if (lastUrl.isNullOrEmpty()) {
-            Toast.makeText(requireContext(), "No recent navigation found", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.display_no_recent_nav), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -476,29 +484,29 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         prefsManager.refreshCloudPairCode()
         FirebaseManager.resetDisplayPairingSession(requireContext(), previousPairCode, "display-refresh-token")
         updateUI()
-        Toast.makeText(requireContext(), "Token refreshed", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.display_token_refreshed), Toast.LENGTH_SHORT).show()
     }
 
     private fun copyTokenToClipboard() {
         val token = prefsManager.getServerToken()
         val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("PHANToM GO Token", token))
-        Toast.makeText(requireContext(), "Token copied to clipboard", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.display_token_copied), Toast.LENGTH_SHORT).show()
     }
 
     private fun confirmResetPairing() {
         AlertDialog.Builder(requireContext())
-            .setTitle("Reset Pairing?")
-            .setMessage("This will remove the current pairing and generate a new token. The Main device will need to scan QR again.")
-            .setPositiveButton("Reset") { _, _ ->
+            .setTitle(R.string.display_reset_pairing_title)
+            .setMessage(R.string.display_reset_pairing_msg)
+            .setPositiveButton(R.string.common_reset) { _, _ ->
                 val previousPairCode = prefsManager.peekCloudPairCode()
                 prefsManager.refreshServerToken()
                 prefsManager.refreshCloudPairCode()
                 FirebaseManager.resetDisplayPairingSession(requireContext(), previousPairCode, "display-reset-pairing")
                 updateUI()
-                Toast.makeText(requireContext(), "Pairing reset and token refreshed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.display_pairing_reset), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -507,7 +515,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             statusDot.visibility = View.VISIBLE
             statusDot.setBackgroundResource(R.drawable.status_dot_cyan)
             statusGhost.visibility = View.GONE
-            tvStatus.text = "Connected (Wi‑Fi)"
+            tvStatus.text = getString(R.string.display_connected_wifi)
             tvStatus.setTextColor(requireContext().getColor(R.color.aurora_cyan))
             startStatusBlink()
         } else {
@@ -515,7 +523,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             statusDot.visibility = View.GONE
             statusGhost.visibility = View.VISIBLE
             statusGhost.text = "👻💤"
-            tvStatus.text = if (isPaired) "Main Disconnected" else "Disconnected"
+            tvStatus.text = if (isPaired) getString(R.string.display_main_disconnected) else getString(R.string.display_disconnected)
             tvStatus.setTextColor(requireContext().getColor(R.color.ghost_purple_dark))
         }
     }
@@ -641,15 +649,15 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
 
         tvSpeedValue.text = if (enabled && serviceRunning && hasPermission && locationEnabled && speed != null) speed.toString() else "--"
         tvSpeedStatus.text = when {
-            !enabled -> "Enable speedometer in Settings"
-            !serviceRunning -> "Turn on Display Mode to start speedometer"
-            !hasPermission -> "Location permission required"
-            !locationEnabled -> "Turn on device location"
-            !hasBackground -> "Allow all-time location in Settings"
-            speed == null || !hasFix -> "Waiting for GPS speed..."
+            !enabled -> getString(R.string.display_speed_enable_hint)
+            !serviceRunning -> getString(R.string.display_speed_turn_on_mode)
+            !hasPermission -> getString(R.string.display_speed_location_required)
+            !locationEnabled -> getString(R.string.display_speed_turn_on_location)
+            !hasBackground -> getString(R.string.display_speed_alltime)
+            speed == null || !hasFix -> getString(R.string.display_speed_waiting_gps)
             else -> {
                 val ageSec = ((System.currentTimeMillis() - updatedAt) / 1000L).coerceAtLeast(0L)
-                "Live via ${provider ?: "location"} • updated ${ageSec}s ago"
+                getString(R.string.display_speed_live_fmt, provider ?: getString(R.string.display_speed_provider_location), ageSec.toInt())
             }
         }
         tvSpeedStatus.setTextColor(
@@ -740,26 +748,26 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
 
         when {
             !snapshot.featureEnabled -> {
-                btnAntiTheftPrimary.text = "Open Settings"
-                btnAntiTheftSecondary.text = if (snapshot.hasPin) "Change PIN" else "Set PIN"
+                btnAntiTheftPrimary.text = getString(R.string.at_open_settings)
+                btnAntiTheftSecondary.text = if (snapshot.hasPin) getString(R.string.at_change_pin) else getString(R.string.at_set_pin)
                 btnAntiTheftPrimary.isEnabled = true
                 btnAntiTheftSecondary.isEnabled = true
             }
             !snapshot.hasPin -> {
-                btnAntiTheftPrimary.text = "Set PIN"
-                btnAntiTheftSecondary.text = "Open Settings"
+                btnAntiTheftPrimary.text = getString(R.string.at_set_pin)
+                btnAntiTheftSecondary.text = getString(R.string.at_open_settings)
                 btnAntiTheftPrimary.isEnabled = true
                 btnAntiTheftSecondary.isEnabled = true
             }
             snapshot.armed -> {
-                btnAntiTheftPrimary.text = "Disarm"
-                btnAntiTheftSecondary.text = "Change PIN"
+                btnAntiTheftPrimary.text = getString(R.string.at_disarm)
+                btnAntiTheftSecondary.text = getString(R.string.at_change_pin)
                 btnAntiTheftPrimary.isEnabled = true
                 btnAntiTheftSecondary.isEnabled = true
             }
             else -> {
-                btnAntiTheftPrimary.text = "Arm Anti-Theft"
-                btnAntiTheftSecondary.text = "Change PIN"
+                btnAntiTheftPrimary.text = getString(R.string.at_arm)
+                btnAntiTheftSecondary.text = getString(R.string.at_change_pin)
                 btnAntiTheftPrimary.isEnabled = snapshot.headsetPlugged
                 btnAntiTheftSecondary.isEnabled = true
             }
@@ -803,44 +811,44 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
     private fun promptAntiTheftPinChange() {
         val input = android.widget.EditText(requireContext()).apply {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = "PIN (4-6 digits)"
+            hint = getString(R.string.at_pin_hint)
         }
         AlertDialog.Builder(requireContext())
-            .setTitle("Set Anti-Theft PIN")
+            .setTitle(R.string.at_set_pin_title)
             .setView(input)
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton(R.string.common_save) { _, _ ->
                 val pin = input.text?.toString().orEmpty().trim()
                 val ok = DisplayAntiTheftManager.savePin(requireContext(), pin)
                 Toast.makeText(
                     requireContext(),
-                    if (ok) "Anti-Theft PIN saved" else "PIN must be 4-6 digits",
+                    if (ok) getString(R.string.at_pin_saved) else getString(R.string.at_pin_invalid),
                     Toast.LENGTH_SHORT
                 ).show()
                 updateAntiTheftUi()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
     private fun promptAntiTheftDisarm() {
         val input = android.widget.EditText(requireContext()).apply {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = "Enter PIN"
+            hint = getString(R.string.at_enter_pin_hint)
         }
         AlertDialog.Builder(requireContext())
-            .setTitle("Disarm Anti-Theft")
-            .setMessage("Enter your PIN to turn off anti-theft protection.")
+            .setTitle(R.string.at_disarm_title)
+            .setMessage(R.string.at_disarm_msg)
             .setView(input)
-            .setPositiveButton("Disarm") { _, _ ->
+            .setPositiveButton(R.string.at_disarm) { _, _ ->
                 val ok = DisplayAntiTheftManager.disarmWithPin(requireContext(), input.text?.toString().orEmpty())
                 Toast.makeText(
                     requireContext(),
-                    if (ok) "Anti-Theft disarmed" else "Wrong PIN",
+                    if (ok) getString(R.string.at_disarmed) else getString(R.string.at_wrong_pin),
                     Toast.LENGTH_SHORT
                 ).show()
                 updateAntiTheftUi()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 

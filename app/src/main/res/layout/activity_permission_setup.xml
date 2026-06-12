@@ -17,7 +17,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="First-Time Setup"
+            android:text="@string/setup_first_time_title"
             android:textColor="@color/white_soft"
             android:textSize="30sp"
             android:textStyle="bold" />
@@ -26,7 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="PHANToM GO will guide you through the permissions it needs on first launch. Camera and notifications use Android popups. Overlay and battery optimization open system pages."
+            android:text="@string/setup_intro"
             android:textColor="@color/gray_soft"
             android:textSize="14sp" />
 
@@ -41,7 +41,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Required / Recommended"
+                android:text="@string/setup_required_recommended"
                 android:textColor="@color/gray_soft"
                 android:textSize="12sp" />
 
@@ -49,7 +49,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Grant everything once so pairing, notifications, display mode, and overlay features work smoothly."
+                android:text="@string/setup_grant_once"
                 android:textColor="@color/white_soft"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -66,7 +66,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Camera"
+                android:text="@string/setup_camera"
                 android:textColor="@color/white_soft"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -76,7 +76,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Waiting"
+                android:text="@string/common_waiting"
                 android:textColor="@color/aurora_warning"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -85,7 +85,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Needed to scan the QR code when the Main device pairs with a Display device."
+                android:text="@string/setup_camera_desc"
                 android:textColor="@color/gray_soft"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -101,7 +101,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Notifications"
+                android:text="@string/setup_notifications"
                 android:textColor="@color/white_soft"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -111,7 +111,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Waiting"
+                android:text="@string/common_waiting"
                 android:textColor="@color/aurora_warning"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -120,7 +120,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Recommended so cloud send status and display service alerts appear reliably."
+                android:text="@string/setup_notifications_desc"
                 android:textColor="@color/gray_soft"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -136,7 +136,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Location"
+                android:text="@string/setup_location"
                 android:textColor="@color/white_soft"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -146,7 +146,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Waiting"
+                android:text="@string/common_waiting"
                 android:textColor="@color/aurora_warning"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -155,7 +155,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Used for the display speedometer and road-speed view in Display mode."
+                android:text="@string/setup_location_desc"
                 android:textColor="@color/gray_soft"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -171,7 +171,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="All-time Location"
+                android:text="@string/setup_all_time_location"
                 android:textColor="@color/white_soft"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -181,7 +181,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Waiting"
+                android:text="@string/common_waiting"
                 android:textColor="@color/aurora_warning"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -190,7 +190,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Recommended if you want speed tracking to keep working more reliably during Display mode."
+                android:text="@string/setup_all_time_location_desc"
                 android:textColor="@color/gray_soft"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -206,7 +206,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Overlay"
+                android:text="@string/setup_overlay"
                 android:textColor="@color/white_soft"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -216,7 +216,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Waiting"
+                android:text="@string/common_waiting"
                 android:textColor="@color/aurora_warning"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -225,7 +225,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Recommended if you want the floating navigation overlay above other apps."
+                android:text="@string/setup_overlay_desc"
                 android:textColor="@color/gray_soft"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -241,7 +241,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Modify System Settings"
+                android:text="@string/setup_modify_system"
                 android:textColor="@color/white_soft"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -251,7 +251,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Waiting"
+                android:text="@string/common_waiting"
                 android:textColor="@color/aurora_warning"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -260,7 +260,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Recommended so PHANToM GO can brighten the display before opening Maps and dim it when external power changes."
+                android:text="@string/setup_modify_system_desc"
                 android:textColor="@color/gray_soft"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -276,7 +276,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Device Admin"
+                android:text="@string/setup_device_admin"
                 android:textColor="@color/white_soft"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -286,7 +286,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Optional"
+                android:text="@string/common_optional"
                 android:textColor="@color/aurora_warning"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -295,7 +295,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Optional, but needed if you want PHANToM GO to lock the display device automatically when power is unplugged."
+                android:text="@string/setup_device_admin_desc"
                 android:textColor="@color/gray_soft"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -311,7 +311,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Battery Optimization"
+                android:text="@string/setup_battery_optimization"
                 android:textColor="@color/white_soft"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -321,7 +321,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Waiting"
+                android:text="@string/common_waiting"
                 android:textColor="@color/aurora_warning"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -330,7 +330,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Recommended on the Display device so the server and cloud listener stay alive in the background."
+                android:text="@string/setup_battery_optimization_desc"
                 android:textColor="@color/gray_soft"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -340,7 +340,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
-            android:text="You can change these later in Settings."
+            android:text="@string/setup_change_later"
             android:textColor="@color/gray_soft"
             android:textSize="13sp" />
 
@@ -352,7 +352,7 @@
             android:background="@drawable/main_action_button_background"
             android:backgroundTint="@null"
             app:backgroundTint="@null"
-            android:text="Grant Missing Permissions"
+            android:text="@string/setup_grant_missing_permissions"
             android:textAllCaps="false"
             android:textColor="@color/white_soft"
             android:textSize="16sp"
@@ -369,7 +369,7 @@
             android:background="@drawable/main_outline_action_background"
             android:backgroundTint="@null"
             app:backgroundTint="@null"
-            android:text="Continue to App"
+            android:text="@string/setup_continue_to_app"
             android:textAllCaps="false"
             android:textColor="@color/aurora_pink"
             android:textSize="15sp"

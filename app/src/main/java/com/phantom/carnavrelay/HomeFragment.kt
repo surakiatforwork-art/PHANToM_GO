@@ -208,7 +208,7 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
 
     private fun sendTestLocation() {
         if (!mainSender.isPaired()) {
-            Toast.makeText(requireContext(), "Not paired with Display device", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.home_not_paired_toast), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -216,13 +216,13 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         mainSender.sendOpenUrl(testUrl, object : MainSender.Companion.SendCallback {
             override fun onSuccess() {
                 activity?.runOnUiThread {
-                    Toast.makeText(requireContext(), "✅ Test location sent", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.home_test_sent), Toast.LENGTH_SHORT).show()
                 }
             }
 
             override fun onFailure(error: String, queued: Boolean, authFailed: Boolean) {
                 activity?.runOnUiThread {
-                    Toast.makeText(requireContext(), "❌ Failed to send test location", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.home_test_failed), Toast.LENGTH_SHORT).show()
                 }
             }
         })
@@ -230,27 +230,27 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
 
     private fun retryPending() {
         if (!mainSender.isPaired()) {
-            Toast.makeText(requireContext(), "Not paired with Display device", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.home_not_paired_toast), Toast.LENGTH_SHORT).show()
             return
         }
 
         val pending = prefsManager.getPendingQueue()
         if (pending.isEmpty()) {
-            Toast.makeText(requireContext(), "No pending URLs", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.home_no_pending), Toast.LENGTH_SHORT).show()
             return
         }
 
         mainSender.retryPending(object : MainSender.Companion.SendCallback {
             override fun onSuccess() {
                 activity?.runOnUiThread {
-                    Toast.makeText(requireContext(), "✅ All pending URLs sent", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.home_all_pending_sent), Toast.LENGTH_SHORT).show()
                     updateUI()
                 }
             }
 
             override fun onFailure(error: String, queued: Boolean, authFailed: Boolean) {
                 activity?.runOnUiThread {
-                    Toast.makeText(requireContext(), "❌ Some URLs failed: $error", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.home_some_failed_fmt, error), Toast.LENGTH_SHORT).show()
                     updateUI()
                 }
             }
@@ -259,7 +259,7 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
 
     private fun findDisplay() {
         if (!mainSender.isPaired()) {
-            Toast.makeText(requireContext(), "Not paired with Display device", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.home_not_paired_toast), Toast.LENGTH_SHORT).show()
             return
         }
         (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.SECURITY)
@@ -267,10 +267,10 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
 
     private fun confirmClearPairing() {
         AlertDialog.Builder(requireContext())
-            .setTitle("Clear Pairing")
-            .setMessage("Are you sure you want to clear the pairing with the Display device?")
-            .setPositiveButton("Clear") { _, _ -> clearPairing() }
-            .setNegativeButton("Cancel", null)
+            .setTitle(R.string.home_clear_pairing_title)
+            .setMessage(R.string.home_clear_pairing_msg)
+            .setPositiveButton(R.string.home_clear) { _, _ -> clearPairing() }
+            .setNegativeButton(R.string.cancel, null)
             .show()
     }
 
@@ -278,7 +278,7 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         FirebaseManager.clearMainPairing(requireContext(), "main-clear-pairing")
         prefsManager.clearPairing()
         mainSender.clearPending()
-        Toast.makeText(requireContext(), "✅ Pairing cleared", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.home_pairing_cleared), Toast.LENGTH_SHORT).show()
         updateUI()
     }
 
@@ -299,44 +299,44 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         val ctx = requireContext()
 
         if (isPaired) {
-            tvPairStatus.text = "Paired"
+            tvPairStatus.text = getString(R.string.home_paired)
             tvPairStatus.setTextColor(ctx.getColor(R.color.aurora_success))
             tvPairInfo.text = mainSender.getPairedInfo()
         } else {
-            tvPairStatus.text = "Not Paired"
+            tvPairStatus.text = getString(R.string.home_not_paired)
             tvPairStatus.setTextColor(ctx.getColor(R.color.aurora_warning))
-            tvPairInfo.text = "Scan a QR code from your Display device to connect."
+            tvPairInfo.text = getString(R.string.home_scan_hint)
         }
 
         when (state) {
             MainSender.STATE_AUTH_FAILED -> {
-                tvConnectionState.text = "Auth failed"
+                tvConnectionState.text = getString(R.string.home_state_auth_failed)
                 tvConnectionState.setTextColor(ctx.getColor(R.color.aurora_auth_failed))
                 tvConnectionState.setBackgroundResource(R.drawable.badge_error)
             }
             MainSender.STATE_OFFLINE -> {
-                tvConnectionState.text = "Disconnected"
+                tvConnectionState.text = getString(R.string.home_state_disconnected)
                 tvConnectionState.setTextColor(ctx.getColor(R.color.aurora_error))
                 tvConnectionState.setBackgroundResource(R.drawable.badge_error)
             }
             MainSender.STATE_CONNECTED -> {
-                tvConnectionState.text = "Connected"
+                tvConnectionState.text = getString(R.string.home_state_connected)
                 tvConnectionState.setTextColor(ctx.getColor(R.color.aurora_success))
                 tvConnectionState.setBackgroundResource(R.drawable.badge_success)
             }
             MainSender.STATE_PAIRING, MainSender.STATE_CONNECTING -> {
-                tvConnectionState.text = "Connecting"
+                tvConnectionState.text = getString(R.string.home_state_connecting)
                 tvConnectionState.setTextColor(ctx.getColor(R.color.aurora_warning))
                 tvConnectionState.setBackgroundResource(R.drawable.badge_warning)
             }
             else -> {
-                tvConnectionState.text = if (isPaired) "Waiting" else "Waiting for Pairing"
+                tvConnectionState.text = if (isPaired) getString(R.string.home_state_waiting) else getString(R.string.home_state_waiting_pairing)
                 tvConnectionState.setTextColor(ctx.getColor(R.color.aurora_waiting))
                 tvConnectionState.setBackgroundResource(R.drawable.badge_neutral)
             }
         }
 
-        tvPendingCount.text = "Pending: $pendingCount"
+        tvPendingCount.text = getString(R.string.home_pending_fmt, pendingCount)
         if (pendingCount > 0) {
             tvPendingCount.setTextColor(ctx.getColor(R.color.aurora_warning))
             tvPendingCount.setBackgroundResource(R.drawable.badge_warning)
@@ -443,14 +443,14 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
     private fun showAboutDialog() {
         val versionName = try {
             val pi = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-            pi.versionName ?: "unknown"
+            pi.versionName ?: getString(R.string.common_unknown)
         } catch (e: Exception) {
-            "unknown"
+            getString(R.string.common_unknown)
         }
         AlertDialog.Builder(requireContext())
-            .setTitle("About PHANToM GO")
-            .setMessage("Version: $versionName\n\nSend navigation from your main device to a display device with QR pairing and cloud relay.")
-            .setPositiveButton("OK", null)
+            .setTitle(R.string.home_about_title)
+            .setMessage(getString(R.string.home_about_msg_fmt, versionName))
+            .setPositiveButton(R.string.ok, null)
             .show()
     }
 
@@ -481,7 +481,7 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     startQRScan()
                 } else {
-                    Toast.makeText(requireContext(), "Camera permission required for QR scanning", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), getString(R.string.home_camera_required), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -508,8 +508,8 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
     }
 
     private fun showSecurityAlertDialog(intent: Intent) {
-        val eventType = intent.getStringExtra("eventType") ?: "unknown"
-        val displayName = intent.getStringExtra("displayName") ?: intent.getStringExtra("displayDeviceId") ?: "Display device"
+        val eventType = intent.getStringExtra("eventType") ?: getString(R.string.common_unknown)
+        val displayName = intent.getStringExtra("displayName") ?: intent.getStringExtra("displayDeviceId") ?: getString(R.string.home_display_device_fallback)
         val locationAvailable = intent.getBooleanExtra("locationAvailable", false)
         val lat = if (intent.hasExtra("lat")) intent.getDoubleExtra("lat", 0.0) else null
         val lng = if (intent.hasExtra("lng")) intent.getDoubleExtra("lng", 0.0) else null
@@ -520,12 +520,13 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
             append("\n\n")
             append(securityAlertEventLabel(eventType))
             if (speedKmh != null) {
-                append("\nSpeed: ")
-                append(speedKmh)
-                append(" km/h")
+                append("\n")
+                append(getString(R.string.home_speed_fmt, speedKmh))
             }
             if (locationAvailable && lat != null && lng != null) {
-                append("\nLocation: ")
+                append("\n")
+                append(getString(R.string.home_location_label))
+                append(": ")
                 append(lat)
                 append(", ")
                 append(lng)
@@ -533,12 +534,12 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
         }
 
         AlertDialog.Builder(requireContext())
-            .setTitle("Anti-Theft Alert")
+            .setTitle(R.string.home_security_alert_title)
             .setMessage(message)
-            .setPositiveButton("OK", null)
+            .setPositiveButton(R.string.ok, null)
             .apply {
                 if (locationAvailable && lat != null && lng != null) {
-                    setNeutralButton("Open Map") { _, _ ->
+                    setNeutralButton(R.string.home_open_map) { _, _ ->
                         val uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng")
                         startActivity(Intent(Intent.ACTION_VIEW, uri))
                     }
@@ -549,14 +550,14 @@ class HomeFragment : Fragment(R.layout.activity_main_drawer), BackPressHandler {
 
     private fun securityAlertEventLabel(eventType: String): String {
         return when (eventType) {
-            DisplayAntiTheftManager.ALERT_TIMEOUT_1 -> "No PIN was entered within 15 seconds."
-            DisplayAntiTheftManager.ALERT_REPLUG_DURING_CHALLENGE_1 -> "The 3.5 mm jack was replugged during the first challenge."
-            DisplayAntiTheftManager.ALERT_WRONG_PIN_1 -> "A wrong PIN was entered once."
-            DisplayAntiTheftManager.ALERT_WRONG_PIN_2 -> "A wrong PIN was entered twice."
-            DisplayAntiTheftManager.ALERT_ALARM_STARTED -> "The display device alarm has started."
-            DisplayAntiTheftManager.ALERT_ALARM_ESCALATED_FULLSCREEN -> "The display device escalated to full-screen PIN lock."
-            DisplayAntiTheftManager.ALERT_DISARMED_SUCCESS -> "The display device was disarmed successfully."
-            else -> "Event: $eventType"
+            DisplayAntiTheftManager.ALERT_TIMEOUT_1 -> getString(R.string.home_alert_timeout_1)
+            DisplayAntiTheftManager.ALERT_REPLUG_DURING_CHALLENGE_1 -> getString(R.string.home_alert_replug_1)
+            DisplayAntiTheftManager.ALERT_WRONG_PIN_1 -> getString(R.string.home_alert_wrong_pin_1)
+            DisplayAntiTheftManager.ALERT_WRONG_PIN_2 -> getString(R.string.home_alert_wrong_pin_2)
+            DisplayAntiTheftManager.ALERT_ALARM_STARTED -> getString(R.string.home_alert_alarm_started)
+            DisplayAntiTheftManager.ALERT_ALARM_ESCALATED_FULLSCREEN -> getString(R.string.home_alert_alarm_fullscreen)
+            DisplayAntiTheftManager.ALERT_DISARMED_SUCCESS -> getString(R.string.home_alert_disarmed)
+            else -> getString(R.string.home_alert_event_fmt, eventType)
         }
     }
 

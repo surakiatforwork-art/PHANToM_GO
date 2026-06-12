@@ -110,10 +110,10 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
             headline.text = snapshot.headline
             detail.text = snapshot.detail
             stateBadge.text = when {
-                alarmActive -> "ALARM"
-                snapshot.armed -> "ARMED"
-                snapshot.featureEnabled -> "READY"
-                else -> "OFF"
+                alarmActive -> getString(R.string.security_badge_alarm)
+                snapshot.armed -> getString(R.string.security_badge_armed)
+                snapshot.featureEnabled -> getString(R.string.security_badge_ready)
+                else -> getString(R.string.security_badge_off)
             }
             val color = when {
                 alarmActive -> R.color.ui_danger
@@ -131,16 +131,16 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
             statusCard.setBackgroundResource(
                 if (alarmActive) R.drawable.security_alert_card else R.drawable.security_safe_card
             )
-            primaryAction.text = "Manage Display security"
+            primaryAction.text = getString(R.string.security_manage_display)
         } else {
             val paired = prefsManager.getPairedDisplayDeviceId() != null
-            headline.text = if (paired) "Display security link ready" else "No Display paired"
+            headline.text = if (paired) getString(R.string.security_link_ready) else getString(R.string.security_no_display)
             detail.text = if (paired) {
-                "Security alerts and the Display's latest location are available on this page."
+                getString(R.string.security_alerts_available)
             } else {
-                "Pair a Display device from Home before using remote security monitoring."
+                getString(R.string.security_pair_first)
             }
-            stateBadge.text = if (paired) "MONITORING" else "OFFLINE"
+            stateBadge.text = if (paired) getString(R.string.security_badge_monitoring) else getString(R.string.security_badge_offline)
             stateBadge.setTextColor(
                 requireContext().getColor(if (paired) R.color.ui_success else R.color.ui_warning)
             )
@@ -150,26 +150,26 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
             statusCard.setBackgroundResource(
                 if (paired) R.drawable.security_safe_card else R.drawable.soft_card_background
             )
-            primaryAction.text = "Open security settings"
+            primaryAction.text = getString(R.string.security_open_settings)
         }
     }
 
     private fun refreshDisplayLocation() {
         if (prefsManager.getPairedDisplayDeviceId().isNullOrBlank()) {
             latestLocation = null
-            showNoLocation("Pair a Display device to see its last known location.")
+            showNoLocation(getString(R.string.security_pair_to_see_location))
             return
         }
 
         refreshButton.isEnabled = false
-        locationSummary.text = "Loading the Display's latest location..."
+        locationSummary.text = getString(R.string.security_loading_location)
         FirebaseManager.getPairedDisplayLocation(requireContext()) { info, error ->
             activity?.runOnUiThread {
                 if (!isAdded) return@runOnUiThread
                 refreshButton.isEnabled = true
                 latestLocation = info
                 if (info == null) {
-                    showNoLocation(error ?: "No location record is available yet.")
+                    showNoLocation(error ?: getString(R.string.security_no_location_record))
                 } else {
                     showLocation(info)
                 }
@@ -181,7 +181,7 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
         locationSummary.text = message
         mapView.visibility = View.GONE
         locationPlaceholder.visibility = View.VISIBLE
-        locationPlaceholder.text = "No location available yet"
+        locationPlaceholder.text = getString(R.string.security_no_location)
         openExternalMapButton.visibility = View.GONE
     }
 
@@ -190,24 +190,27 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
         val lng = info.lng
         val timestamp = info.locationUpdatedAt ?: info.lastOnlineAt ?: info.presenceUpdatedAt
         locationSummary.text = buildString {
-            append(if (info.connected) "Online now" else "Offline - showing latest recorded location")
+            append(if (info.connected) getString(R.string.security_online_now) else getString(R.string.security_offline_latest))
             append("\n")
             append(info.displayName ?: info.displayDeviceId)
             if (lat != null && lng != null) {
                 append("\n")
                 append(String.format(Locale.US, "%.6f, %.6f", lat, lng))
             }
-            info.speedKmh?.let { append("  •  $it km/h") }
+            info.speedKmh?.let {
+                append("  •  ")
+                append(getString(R.string.security_speed_fmt, it))
+            }
             timestamp?.let {
-                append("\nUpdated ")
-                append(DateFormat.getDateTimeInstance().format(Date(it)))
+                append("\n")
+                append(getString(R.string.security_updated_fmt, DateFormat.getDateTimeInstance().format(Date(it))))
             }
         }
 
         if (lat == null || lng == null) {
             mapView.visibility = View.GONE
             locationPlaceholder.visibility = View.VISIBLE
-            locationPlaceholder.text = "The Display is connected, but has not reported coordinates yet."
+            locationPlaceholder.text = getString(R.string.security_no_coords)
             openExternalMapButton.visibility = View.GONE
             return
         }
@@ -217,7 +220,7 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
         openExternalMapButton.visibility = View.VISIBLE
         mapView.loadDataWithBaseURL(
             "https://www.openstreetmap.org/",
-            mapHtml(lat, lng, info.displayName ?: "Display"),
+            mapHtml(lat, lng, info.displayName ?: getString(R.string.security_display_fallback)),
             "text/html",
             "UTF-8",
             null

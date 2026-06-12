@@ -69,8 +69,8 @@ object NotificationHelper {
     @SuppressLint("MissingPermission")
     fun showAntiTheftAlert(context: Context, alert: FirebaseManager.SecurityAlert) {
         ensureChannel(context)
-        val title = buildAntiTheftTitle(alert)
-        val body = buildAntiTheftBody(alert)
+        val title = buildAntiTheftTitle(context, alert)
+        val body = buildAntiTheftBody(context, alert)
 
         if (!canPostNotifications(context)) {
             Log.w(TAG, "🔕 Anti-theft notification blocked")
@@ -177,28 +177,28 @@ object NotificationHelper {
         }
     }
 
-    private fun buildAntiTheftTitle(alert: FirebaseManager.SecurityAlert): String {
-        val source = alert.displayName ?: alert.displayDeviceId ?: "Display device"
-        return "Anti-theft alert from $source"
+    private fun buildAntiTheftTitle(context: Context, alert: FirebaseManager.SecurityAlert): String {
+        val source = alert.displayName ?: alert.displayDeviceId ?: context.getString(R.string.at_notification_source_fallback)
+        return context.getString(R.string.at_notification_title_fmt, source)
     }
 
-    private fun buildAntiTheftBody(alert: FirebaseManager.SecurityAlert): String {
+    private fun buildAntiTheftBody(context: Context, alert: FirebaseManager.SecurityAlert): String {
         val eventLabel = when (alert.eventType) {
-            DisplayAntiTheftManager.ALERT_TIMEOUT_1 -> "No PIN entered within 15 seconds."
-            DisplayAntiTheftManager.ALERT_REPLUG_DURING_CHALLENGE_1 -> "3.5 mm jack was replugged during challenge."
-            DisplayAntiTheftManager.ALERT_WRONG_PIN_1 -> "Wrong PIN entered once."
-            DisplayAntiTheftManager.ALERT_WRONG_PIN_2 -> "Wrong PIN entered twice. Alarm is starting."
-            DisplayAntiTheftManager.ALERT_ALARM_STARTED -> "Alarm is active on the display device."
-            DisplayAntiTheftManager.ALERT_ALARM_ESCALATED_FULLSCREEN -> "Alarm escalated to full-screen lock."
-            DisplayAntiTheftManager.ALERT_DISARMED_SUCCESS -> "Display device was disarmed with the correct PIN."
-            else -> "Display anti-theft event: ${alert.eventType}"
+            DisplayAntiTheftManager.ALERT_TIMEOUT_1 -> context.getString(R.string.at_notification_timeout_1)
+            DisplayAntiTheftManager.ALERT_REPLUG_DURING_CHALLENGE_1 -> context.getString(R.string.at_notification_replug_during_challenge_1)
+            DisplayAntiTheftManager.ALERT_WRONG_PIN_1 -> context.getString(R.string.at_notification_wrong_pin_1)
+            DisplayAntiTheftManager.ALERT_WRONG_PIN_2 -> context.getString(R.string.at_notification_wrong_pin_2)
+            DisplayAntiTheftManager.ALERT_ALARM_STARTED -> context.getString(R.string.at_notification_alarm_started)
+            DisplayAntiTheftManager.ALERT_ALARM_ESCALATED_FULLSCREEN -> context.getString(R.string.at_notification_alarm_escalated_fullscreen)
+            DisplayAntiTheftManager.ALERT_DISARMED_SUCCESS -> context.getString(R.string.at_notification_disarmed_success)
+            else -> context.getString(R.string.at_notification_event_fallback_fmt, alert.eventType)
         }
         val locationLabel = if (alert.locationAvailable && alert.lat != null && alert.lng != null) {
-            " Location available."
+            context.getString(R.string.at_notification_location_available)
         } else {
             ""
         }
-        val speedLabel = alert.speedKmh?.let { " Speed $it km/h." } ?: ""
+        val speedLabel = alert.speedKmh?.let { context.getString(R.string.at_notification_speed_fmt, it) } ?: ""
         return "$eventLabel$locationLabel$speedLabel"
     }
 

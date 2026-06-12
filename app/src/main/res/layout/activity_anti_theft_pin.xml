@@ -30,7 +30,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="Security Verification"
+                android:text="@string/anti_theft_pin_screen_title"
                 android:textAlignment="center"
                 android:textColor="@color/text_primary"
                 android:textSize="26sp"
@@ -43,7 +43,7 @@
                 android:layout_marginTop="12dp"
                 android:gravity="center"
                 android:maxWidth="320dp"
-                android:text="Enter your security PIN to continue."
+                android:text="@string/anti_theft_pin_screen_subtitle"
                 android:textAlignment="center"
                 android:textColor="@color/text_secondary"
                 android:textSize="15sp" />
@@ -64,7 +64,7 @@
                 android:layout_marginTop="18dp"
                 android:background="@drawable/bg_code_block"
                 android:gravity="center"
-                android:hint="Security PIN"
+                android:hint="@string/anti_theft_pin_screen_hint"
                 android:importantForAutofill="no"
                 android:inputType="numberPassword"
                 android:maxLength="6"
@@ -79,7 +79,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:alpha="0"
-                android:text="Verification failed"
+                android:text="@string/anti_theft_pin_verification_failed"
                 android:textColor="@color/aurora_error"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -89,7 +89,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="18dp"
-                android:text="Verify"
+                android:text="@string/anti_theft_pin_verify"
                 android:textColor="@color/ui_on_primary"
                 style="@style/Widget.CarNavRelay.Button" />
 

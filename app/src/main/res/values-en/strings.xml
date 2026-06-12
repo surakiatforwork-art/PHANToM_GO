@@ -1,0 +1,627 @@
+<resources>
+  <!-- App Name -->
+  <string name="app_name">PHANToM GO</string>
+  <string name="brand_title_rocket">🚀 PHANToM GO</string>
+  <string name="app_name_main">PHANToM GO - Main</string>
+  <string name="app_name_display">PHANToM GO - Display</string>
+  <string name="pairing_qr_content_description">QR code for pairing this Display device</string>
+
+  <!-- Main Screen -->
+  <string name="select_mode">Select Mode</string>
+  <string name="mode_main">Main Device</string>
+  <string name="mode_main_desc">Send navigation to Display</string>
+  <string name="mode_display">Display Device</string>
+  <string name="mode_display_desc">Show received navigation</string>
+
+  <!-- Pairing -->
+  <string name="paired_devices">Paired Devices</string>
+  <string name="no_paired_devices">No paired devices\n\nPlease scan QR code from Display device</string>
+  <string name="enter_code">Enter Pairing Code</string>
+  <string name="enter_code_hint">6-digit code from Display</string>
+  <string name="connect">Connect</string>
+  <string name="cancel">Cancel</string>
+  <string name="ok">OK</string>
+  <string name="scan_qr">Scan QR Code</string>
+  <string name="scan_qr_hint">Point camera at QR code on Display device</string>
+
+  <!-- Display Mode -->
+  <string name="display_title">Display Mode</string>
+  <string name="display_code_label">Pairing Code</string>
+  <string name="display_code_hint">Use this code on Main device</string>
+  <string name="keep_screen_on">Screen will stay on</string>
+  <string name="waiting_connection">Waiting for connection</string>
+  <string name="connected">Connected</string>
+  <string name="copy_code">Copy Code</string>
+  <string name="refresh_token">Refresh Token</string>
+  <string name="copy_token">Copy Token</string>
+  <string name="server_running">Server Running</string>
+  <string name="server_error">Server Error</string>
+
+  <!-- HTTP/Network -->
+  <string name="ip_port_format">%1$s:%2$d</string>
+  <string name="token_hint_format">Token: %1$s</string>
+  <string name="not_paired">Not Paired</string>
+  <string name="paired_with">Paired with %1$s</string>
+  <string name="pending_count">Pending: %1$d</string>
+  <string name="send_test">Send Test Location</string>
+  <string name="retry_pending">Retry Pending</string>
+  <string name="clear_pairing">Clear Pairing</string>
+  <string name="scan_to_pair">Scan QR to Pair</string>
+
+  <!-- Permissions -->
+  <string name="camera_permission_title">Camera Permission Required</string>
+  <string name="camera_permission_message">Camera is needed to scan QR codes for pairing</string>
+  <string name="notification_permission_title">Notification Permission</string>
+  <string name="notification_permission_message">Notifications are needed for foreground service</string>
+
+  <!-- Notifications -->
+  <string name="main_connected">Connected - Ready to send</string>
+  <string name="main_connecting">Connecting...</string>
+  <string name="channel_main_name">PHANToM GO - Main</string>
+  <string name="channel_display_name">PHANToM GO - Display</string>
+  <string name="notification_connected">Connected</string>
+  <string name="notification_listening">Waiting for connection</string>
+  <string name="notification_sending">Ready to send location</string>
+  <string name="notification_server_running">HTTP Server running</string>
+
+  <!-- Toast Messages -->
+  <string name="toast_sent_success">Sent to display device!</string>
+  <string name="toast_queued_for_retry">Failed to send. Queued for retry.</string>
+  <string name="toast_auth_failed">Authentication failed. Check pairing.</string>
+  <string name="toast_paired_success">Paired successfully!</string>
+  <string name="toast_pairing_cleared">Pairing cleared</string>
+  <string name="toast_token_refreshed">Token refreshed!</string>
+  <string name="toast_copied">Copied to clipboard</string>
+  <string name="toast_no_pending">No pending commands</string>
+
+  <!-- Accessibility Service -->
+  <string name="a11y_desc">Captures map links/navigation buttons to send to the car display (you can turn it on/off).</string>
+  <string name="maps_auto_share_service_name">PHANToM GO Maps Auto Share</string>
+  <string name="maps_auto_share_accessibility_description">Helps send routes from Google Maps to the Display, acting only inside Google Maps and the share sheet during a session.</string>
+  <string name="maps_auto_share_notification_service_name">PHANToM GO Maps Navigation Signal</string>
+  <string name="maps_auto_share_title">Google Maps Auto Share</string>
+  <string name="maps_auto_share_status_active">Active</string>
+  <string name="maps_auto_share_status_limited">Limited</string>
+  <string name="maps_auto_share_status_inactive">Inactive</string>
+  <string name="maps_auto_share_details_active">Ready. Navigation notifications trigger fast, scoped automation inside Google Maps.</string>
+  <string name="maps_auto_share_details_limited">Accessibility assist is active. Allow notification access for the fastest route-start trigger.</string>
+  <string name="maps_auto_share_details_inactive">Enable PHANToM GO Maps Auto Share in Accessibility Settings. It only acts inside Maps and an active share sheet.</string>
+  <string name="maps_auto_share_enable_accessibility">Enable in Accessibility Settings</string>
+  <string name="maps_auto_share_manage_accessibility">Manage / Disable in Accessibility Settings</string>
+  <string name="maps_auto_share_allow_notification">Allow Maps notification signal</string>
+
+  <!-- Common -->
+  <string name="common_back">Back</string>
+  <string name="common_checking">Checking…</string>
+  <string name="common_on">On</string>
+  <string name="common_off">Off</string>
+  <string name="common_enabled">Enabled</string>
+  <string name="common_disabled">Disabled</string>
+  <string name="common_copy">Copy</string>
+  <string name="common_clear">Clear</string>
+  <string name="common_save">Save</string>
+  <string name="common_reset">Reset</string>
+  <string name="common_close">Close</string>
+  <string name="common_retry">Retry</string>
+  <string name="common_open_settings">Open Settings</string>
+  <string name="common_later">Later</string>
+
+  <!-- Bottom navigation -->
+  <string name="nav_home">Home</string>
+  <string name="nav_display">Display</string>
+  <string name="nav_settings">Settings</string>
+  <string name="nav_security">Security</string>
+
+  <!-- Home screen -->
+  <string name="home_paired">Paired</string>
+  <string name="home_not_paired">Not Paired</string>
+  <string name="home_scan_hint">Scan a QR code from your Display device to connect.</string>
+  <string name="home_state_auth_failed">Auth failed</string>
+  <string name="home_state_disconnected">Disconnected</string>
+  <string name="home_state_connected">Connected</string>
+  <string name="home_state_connecting">Connecting</string>
+  <string name="home_state_waiting">Waiting</string>
+  <string name="home_state_waiting_pairing">Waiting for Pairing</string>
+  <string name="home_pending_fmt">Pending: %1$d</string>
+  <string name="home_scan_qr">Scan QR</string>
+  <string name="home_send_test">Send Test</string>
+  <string name="home_retry_pending">Retry Pending</string>
+  <string name="home_find_display">Find Display</string>
+  <string name="home_not_paired_toast">Not paired with Display device</string>
+  <string name="home_test_sent">✅ Test location sent</string>
+  <string name="home_test_failed">❌ Failed to send test location</string>
+  <string name="home_no_pending">No pending URLs</string>
+  <string name="home_all_pending_sent">✅ All pending URLs sent</string>
+  <string name="home_some_failed_fmt">❌ Some URLs failed: %1$s</string>
+  <string name="home_clear_pairing_title">Clear Pairing</string>
+  <string name="home_clear_pairing_msg">Are you sure you want to clear the pairing with the Display device?</string>
+  <string name="home_clear">Clear</string>
+  <string name="home_pairing_cleared">✅ Pairing cleared</string>
+  <string name="home_camera_required">Camera permission required for QR scanning</string>
+  <string name="home_about_title">About PHANToM GO</string>
+  <string name="home_about_msg_fmt">Version: %1$s\n\nSend navigation from your main device to a display device with QR pairing and cloud relay.</string>
+  <string name="home_security_alert_title">Anti-Theft Alert</string>
+  <string name="home_open_map">Open Map</string>
+  <string name="home_alert_timeout_1">No PIN was entered within 15 seconds.</string>
+  <string name="home_alert_replug_1">The 3.5 mm jack was replugged during the first challenge.</string>
+  <string name="home_alert_wrong_pin_1">A wrong PIN was entered once.</string>
+  <string name="home_alert_wrong_pin_2">A wrong PIN was entered twice.</string>
+  <string name="home_alert_alarm_started">The display device alarm has started.</string>
+  <string name="home_alert_alarm_fullscreen">The display device escalated to full-screen PIN lock.</string>
+  <string name="home_alert_disarmed">The display device was disarmed successfully.</string>
+  <string name="home_alert_event_fmt">Event: %1$s</string>
+  <string name="home_speed_fmt">Speed: %1$d km/h</string>
+  <string name="home_location_label">Location</string>
+  <string name="home_maps_auto_share_section">Google Maps Auto Share</string>
+
+  <!-- Drawer menu -->
+  <string name="drawer_settings">Settings</string>
+  <string name="drawer_logs">Logs</string>
+  <string name="drawer_security">Security</string>
+  <string name="drawer_about">About</string>
+  <string name="drawer_switch_mode">Switch to Display</string>
+  <string name="drawer_menu">Menu</string>
+
+  <!-- Display screen -->
+  <string name="display_connected">Display Connected</string>
+  <string name="display_paired_state">Paired</string>
+  <string name="display_main_device_fmt">Main device: %1$s  •  Paired %2$s</string>
+  <string name="display_ready_receive_fmt">Ready to receive the latest route from %1$s</string>
+  <string name="display_still_paired_fmt">Still paired with %1$s</string>
+  <string name="display_tap_disconnect_hint">Tap disconnect below if you want to pair a different Main device.</string>
+  <string name="display_disconnect_main">Disconnect Main Device</string>
+  <string name="display_disconnect_reset">Disconnect / Reset</string>
+  <string name="display_scan_this_qr">Scan this QR code with Main device</string>
+  <string name="display_waiting_pairing">Waiting for Pairing</string>
+  <string name="display_show_on_car_hint">Show this screen on the car display, then scan from the Main device.</string>
+  <string name="display_auto_switch_hint">Once paired, this screen will switch to connected mode automatically.</string>
+  <string name="display_minutes_ago_fmt">%1$dm ago</string>
+  <string name="display_hours_ago_fmt">%1$dh ago</string>
+  <string name="display_unknown">Unknown</string>
+  <string name="display_main_disconnected">Main Disconnected</string>
+  <string name="display_disconnected">Disconnected</string>
+  <string name="display_connected_wifi">Connected (Wi‑Fi)</string>
+  <string name="display_mode_on">ON</string>
+  <string name="display_mode_off">OFF</string>
+  <string name="display_server_fmt">Server: %1$s</string>
+  <string name="display_server_not_running">Server not running</string>
+  <string name="display_battery_opt_off">Battery optimization: OFF</string>
+  <string name="display_battery_opt_on">Battery optimization: ON</string>
+  <string name="display_open_last_nav">Open Last Navigation</string>
+  <string name="display_current_speed">Current Speed</string>
+  <string name="display_no_recent_nav">No recent navigation found</string>
+  <string name="display_token_refreshed">Token refreshed</string>
+  <string name="display_token_copied">Token copied to clipboard</string>
+  <string name="display_payload_copied">QR Payload copied to clipboard</string>
+  <string name="display_reset_pairing_title">Reset Pairing?</string>
+  <string name="display_reset_pairing_msg">This will remove the current pairing and generate a new token. The Main device will need to scan QR again.</string>
+  <string name="display_pairing_reset">Pairing reset and token refreshed</string>
+  <string name="display_battery_title">Battery Optimization</string>
+  <string name="display_battery_msg">To ensure Display Mode works reliably in the background, please disable battery optimization for PHANToM GO.</string>
+  <string name="display_settings">Settings</string>
+  <string name="display_failed_start_server_fmt">Failed to start server: %1$s</string>
+  <string name="display_some_permissions_denied">Some permissions were denied. Features may not work properly.</string>
+  <string name="display_speed_enable_hint">Enable speedometer in Settings</string>
+  <string name="display_speed_turn_on_mode">Turn on Display Mode to start speedometer</string>
+  <string name="display_speed_location_required">Location permission required</string>
+  <string name="display_speed_turn_on_location">Turn on device location</string>
+  <string name="display_speed_alltime">Allow all-time location in Settings</string>
+  <string name="display_speed_waiting_gps">Waiting for GPS speed…</string>
+  <string name="display_speed_live_fmt">Live via %1$s • updated %2$ds ago</string>
+  <string name="display_speed_unit">km/h</string>
+  <string name="display_speed_label">Current Speed</string>
+  <string name="display_copy_payload">Copy Payload</string>
+  <string name="display_mode_title">Display Mode</string>
+  <string name="display_battery_fix">Fix</string>
+  <string name="at_security_lock">Security Lock</string>
+  <string name="at_status_off">Anti-Theft Off</string>
+  <string name="at_detail_plug">Plug in a 3.5 mm trigger to use this feature.</string>
+
+  <!-- Anti-Theft (Display card + PIN) -->
+  <string name="at_open_settings">Open Settings</string>
+  <string name="at_set_pin">Set PIN</string>
+  <string name="at_change_pin">Change PIN</string>
+  <string name="at_disarm">Disarm</string>
+  <string name="at_arm">Arm Anti-Theft</string>
+  <string name="at_set_pin_title">Set Anti-Theft PIN</string>
+  <string name="at_set_change_pin_title">Set / Change Anti-Theft PIN</string>
+  <string name="at_pin_hint">PIN (4-6 digits)</string>
+  <string name="at_enter_pin_hint">Enter PIN</string>
+  <string name="at_disarm_title">Disarm Anti-Theft</string>
+  <string name="at_disarm_msg">Enter your PIN to turn off anti-theft protection.</string>
+  <string name="at_pin_saved">Anti-Theft PIN saved</string>
+  <string name="at_pin_invalid">PIN must be 4-6 digits</string>
+  <string name="at_disarmed">Anti-Theft disarmed</string>
+  <string name="at_wrong_pin">Wrong PIN</string>
+  <string name="at_verify_failed">Verification failed</string>
+  <string name="at_time_left_fmt">Time left: %1$ds</string>
+  <string name="at_verification_required">Verification required</string>
+  <string name="at_confirm">Confirm</string>
+  <string name="at_alarm_test_started">Anti-Theft alarm test started</string>
+  <string name="at_alarm_sound_updated">Alarm sound updated</string>
+  <string name="at_enable_first">Enable Anti-Theft in Settings first</string>
+  <string name="at_set_pin_first">Set a PIN first</string>
+  <string name="at_plug_trigger_first">Plug in a 3.5 mm headset trigger first</string>
+  <string name="at_channel_name">Security Verification</string>
+  <string name="at_channel_desc">Security verification and lock notifications</string>
+  <string name="at_notification_verification_required">Security verification required</string>
+  <string name="at_notification_lock_active">Security lock active</string>
+  <string name="at_state_disabled_headline">Security monitoring off</string>
+  <string name="at_state_unavailable_headline">Security trigger unavailable</string>
+  <string name="at_state_ready_headline">Security monitoring ready</string>
+  <string name="at_state_missing_headline">Security trigger missing</string>
+  <string name="at_state_armed_headline">Security monitoring armed</string>
+  <string name="at_state_challenge_headline">Security verification</string>
+  <string name="at_state_challenge_required_headline">Verification required</string>
+  <string name="at_state_lock_headline">Security lock active</string>
+  <string name="at_state_disabled_detail">Enable security monitoring in Settings to use this feature.</string>
+  <string name="at_state_unavailable_detail">This security mode requires a connected 3.5 mm trigger.</string>
+  <string name="at_state_ready_detail">A trigger is connected. Arm security monitoring when you are ready.</string>
+  <string name="at_state_reconnect_detail">Reconnect the 3.5 mm trigger to arm protection again.</string>
+  <string name="at_state_armed_detail">The trigger is being monitored. Verification will be required if it is removed.</string>
+  <string name="at_state_challenge_detail_fmt">Enter your security PIN within %1$d seconds.</string>
+  <string name="at_state_challenge_failed_detail_fmt">Verification failed once. Enter the correct PIN within %1$d seconds.</string>
+  <string name="at_state_post_alert_detail_fmt">A paired device has been notified. Enter the correct PIN before the security lock escalates in %1$d seconds.</string>
+  <string name="at_state_alarm_detail">Security lock is active. Enter the correct PIN to continue.</string>
+  <string name="at_state_fullscreen_detail">Enter the correct security PIN to stop the lock and continue.</string>
+  <string name="at_notification_title_fmt">Anti-theft alert from %1$s</string>
+  <string name="at_notification_source_fallback">Display device</string>
+  <string name="at_notification_timeout_1">No PIN entered within 15 seconds.</string>
+  <string name="at_notification_replug_during_challenge_1">The 3.5 mm jack was replugged during the first challenge.</string>
+  <string name="at_notification_wrong_pin_1">Wrong PIN entered once.</string>
+  <string name="at_notification_wrong_pin_2">Wrong PIN entered twice. Alarm is starting.</string>
+  <string name="at_notification_alarm_started">Alarm is active on the Display device.</string>
+  <string name="at_notification_alarm_escalated_fullscreen">Alarm escalated to full-screen lock.</string>
+  <string name="at_notification_disarmed_success">Display device was disarmed with the correct PIN.</string>
+  <string name="at_notification_event_fallback_fmt">Display anti-theft event: %1$s</string>
+  <string name="at_notification_location_available"> Location available.</string>
+  <string name="at_notification_speed_fmt"> Speed %1$d km/h.</string>
+
+  <!-- Security tab -->
+  <string name="security_title">Security</string>
+  <string name="security_subtitle">Monitor protection and the paired Display\'s last known location.</string>
+  <string name="security_ready">Security ready</string>
+  <string name="security_safe">SAFE</string>
+  <string name="security_waiting_status">Waiting for security status.</string>
+  <string name="security_manage_settings">Manage security settings</string>
+  <string name="security_manage_display">Manage Display security</string>
+  <string name="security_open_settings">Open security settings</string>
+  <string name="security_badge_alarm">ALARM</string>
+  <string name="security_badge_armed">ARMED</string>
+  <string name="security_badge_ready">READY</string>
+  <string name="security_badge_off">OFF</string>
+  <string name="security_badge_monitoring">MONITORING</string>
+  <string name="security_badge_offline">OFFLINE</string>
+  <string name="security_link_ready">Display security link ready</string>
+  <string name="security_no_display">No Display paired</string>
+  <string name="security_alerts_available">Security alerts and the Display\'s latest location are available on this page.</string>
+  <string name="security_pair_first">Pair a Display device from Home before using remote security monitoring.</string>
+  <string name="security_find_display">Find Display</string>
+  <string name="security_refresh">Refresh</string>
+  <string name="security_pair_to_see_location">Pair a Display device to see its last known location.</string>
+  <string name="security_loading_location">Loading the Display\'s latest location…</string>
+  <string name="security_no_location">No location available yet</string>
+  <string name="security_no_location_record">No location record is available yet.</string>
+  <string name="security_online_now">Online now</string>
+  <string name="security_offline_latest">Offline - showing latest recorded location</string>
+  <string name="security_updated_fmt">Updated %1$s</string>
+  <string name="security_no_coords">The Display is connected, but has not reported coordinates yet.</string>
+  <string name="security_open_in_maps">Open in Maps</string>
+  <string name="security_speed_fmt">%1$d km/h</string>
+
+  <!-- Relay / action sheet -->
+  <string name="relay_sending">Sending to Display…</string>
+  <string name="relay_preparing">Preparing…</string>
+  <string name="relay_resolving">Resolving link…</string>
+  <string name="relay_sent_opening">Sent! Opening Google Maps…</string>
+  <string name="relay_sent">Sent to Car Display ✅</string>
+  <string name="relay_opening_maps">Opening Google Maps…</string>
+  <string name="relay_waiting_choice">Waiting for your choice…</string>
+  <string name="relay_display_mode_active">This device is in Display mode</string>
+  <string name="relay_no_data">No data received</string>
+  <string name="relay_invalid_link">Invalid link</string>
+  <string name="relay_not_paired">Not paired with Display device</string>
+  <string name="relay_send_failed_fmt">Send failed: %1$s</string>
+  <string name="relay_maps_not_found">Google Maps not found</string>
+  <string name="relay_link_copied">Link copied</string>
+  <string name="relay_sheet_type_fmt">Type: %1$s</string>
+  <string name="relay_type_navigation">Navigation</string>
+  <string name="relay_type_view_map">View map</string>
+  <string name="relay_type_unknown">Not sure</string>
+  <string name="relay_sheet_title">What do you want to do with this link?</string>
+  <string name="relay_send_to_display">Send to car display</string>
+  <string name="relay_send_and_open">Send to display + open Maps on Main</string>
+  <string name="relay_open_on_phone">Open Maps on Main</string>
+  <string name="relay_copy_link">Copy link</string>
+
+  <!-- Settings -->
+  <string name="settings_title">PHANToM GO Settings</string>
+  <string name="settings_subtitle">Manage notifications, Display, Main, and logs in one place</string>
+  <string name="settings_section_notifications">Notifications</string>
+  <string name="settings_notifications_desc">Keep this on so foreground service, cloud alerts, and route sending stay reliable</string>
+  <string name="settings_enable_notifications">Enable Notifications</string>
+  <string name="settings_section_display_device">Display Device</string>
+  <string name="settings_display_device_desc">Configure this section on the device used as the in-car display that receives destinations from the Main device</string>
+  <string name="settings_power_automation">Display Power Automation</string>
+  <string name="settings_profile_details">Profile details</string>
+  <string name="settings_wake_brighten">Wake and brighten before opening Maps</string>
+  <string name="settings_lock_on_disconnect">Lock device when external power disconnects</string>
+  <string name="settings_modify_system_required">Modify system settings required</string>
+  <string name="settings_grant_modify_system">Grant Modify System Settings</string>
+  <string name="settings_device_admin_optional">Device Admin optional</string>
+  <string name="settings_enable_device_admin">Enable Device Admin</string>
+  <string name="settings_overlay_widget">Overlay Widget</string>
+  <string name="settings_grant_overlay">Grant Overlay Permission</string>
+  <string name="settings_open_behavior">Display Open Behavior</string>
+  <string name="settings_preview_route">Preview Route</string>
+  <string name="settings_start_navigation">Start Navigation</string>
+  <string name="settings_nav_mode_car">Car</string>
+  <string name="settings_nav_mode_motorcycle">Motorcycle</string>
+  <string name="settings_speedometer">Display Speedometer</string>
+  <string name="settings_location_perm_not_granted">Location permission: not granted</string>
+  <string name="settings_allow_location_alltime">Allow location and all-time access</string>
+  <string name="settings_anti_theft">Display Anti-Theft</string>
+  <string name="settings_waiting_jack">Waiting for a 3.5 mm trigger</string>
+  <string name="settings_attach_location">Attach location in theft alerts</string>
+  <string name="settings_choose_alarm_sound">Choose Alarm Sound</string>
+  <string name="settings_test_alarm">Test Anti-Theft Alarm</string>
+  <string name="settings_section_main_device">Main Device</string>
+  <string name="settings_main_device_desc">Configure this section on the device that receives links and sends destinations to the display</string>
+  <string name="settings_map_link_hub">Map Link Hub</string>
+  <string name="settings_device_mode_fmt">Device mode: %1$s</string>
+  <string name="settings_map_link_hub_instruction">To auto-open into PHANToM GO, set Open by default in system settings</string>
+  <string name="settings_map_link_hub_paused">Map Link Hub is paused while this device runs as Display mode</string>
+  <string name="settings_map_link_hub_off">Off: map links will open Google Maps as usual</string>
+  <string name="settings_system_default_hint">System default: please set in system settings</string>
+  <string name="settings_open_by_default">Open by default settings</string>
+  <string name="settings_connection_transport">Connection Transport</string>
+  <string name="settings_current_transport_wifi">Current transport: WIFI</string>
+  <string name="settings_current_transport_wifi_bt_off">Current transport: WIFI (Bluetooth disabled)</string>
+  <string name="settings_transport_auto">AUTO</string>
+  <string name="settings_transport_wifi">Wi‑Fi Local (HTTP)</string>
+  <string name="settings_transport_wifi_recommended">Wi‑Fi Local (HTTP) - Recommended</string>
+  <string name="settings_transport_bluetooth">Bluetooth (RFCOMM)</string>
+  <string name="settings_bluetooth_disabled">Bluetooth transport disabled</string>
+  <string name="settings_bluetooth_disabled_kept_fmt">Bluetooth transport disabled (saved target kept: %1$s)</string>
+  <string name="settings_pick_bluetooth">Select Bluetooth device</string>
+  <string name="settings_clear_bluetooth">Clear Bluetooth device</string>
+  <string name="settings_smart_mode">Smart Mode</string>
+  <string name="settings_policy_auto_send_nav">Auto Send (Nav Only)</string>
+  <string name="settings_policy_always_ask">Always Ask</string>
+  <string name="settings_policy_always_send">Always Send</string>
+  <string name="settings_policy_always_open_phone">Always Open On Phone</string>
+  <string name="settings_after_send_exit">Exit after send</string>
+  <string name="settings_after_send_stay">Stay in app</string>
+  <string name="settings_open_maps_after_send">Open Google Maps on Main after send</string>
+  <string name="settings_logs_title">Logcat / System Logs</string>
+  <string name="settings_loading_logs">Loading logs…</string>
+  <string name="settings_paused_display_mode">Paused in Display Mode</string>
+  <string name="settings_overlay_permission_required">Permission Required</string>
+  <string name="settings_overlay_enabled">Overlay Enabled</string>
+  <string name="settings_overlay_disabled">Overlay Disabled</string>
+  <string name="settings_grant_overlay_toast">Grant overlay permission and return</string>
+  <string name="settings_grant_write_toast">Allow Modify system settings and return</string>
+  <string name="settings_motorcycle">Motorcycle</string>
+  <string name="settings_car">Car</string>
+  <string name="settings_start_navigation_status">Start navigation</string>
+  <string name="settings_preview_route_status">Show route preview</string>
+  <string name="settings_speed_need_location">Need location</string>
+  <string name="settings_speed_need_alltime">Need all-time access</string>
+  <string name="settings_speed_location_off">Location turned off</string>
+  <string name="settings_speed_perm_fmt">Location: %1$s • All-time: %2$s • GPS: %3$s</string>
+  <string name="settings_granted">granted</string>
+  <string name="settings_not_granted">not granted</string>
+  <string name="settings_required">required</string>
+  <string name="settings_gps_on">on</string>
+  <string name="settings_gps_off">off</string>
+  <string name="settings_power_conn_disc_on">Connected / disconnect automation on</string>
+  <string name="settings_power_wake_only">Wake-before-Maps only</string>
+  <string name="settings_profile_day">Profile: Day brightness</string>
+  <string name="settings_profile_night">Profile: Night brightness</string>
+  <string name="settings_armed_device_admin">Armed with Device Admin</string>
+  <string name="settings_needs_device_admin">Needs Device Admin</string>
+  <string name="settings_modify_granted">Modify system settings granted</string>
+  <string name="settings_device_admin_enabled">Device Admin enabled</string>
+  <string name="settings_device_admin_optional_lock">Device Admin optional (required for lock on disconnect)</string>
+  <string name="settings_anti_theft_armed">Armed</string>
+  <string name="settings_anti_theft_ready">Ready</string>
+  <string name="settings_anti_theft_need_pin">Need PIN</string>
+  <string name="settings_anti_theft_waiting_jack">Waiting for jack</string>
+  <string name="settings_pin_configured">configured</string>
+  <string name="settings_pin_not_set">not set</string>
+  <string name="settings_trigger_detected">3.5 mm detected</string>
+  <string name="settings_trigger_not_detected">not detected</string>
+  <string name="settings_sound_custom">Sound: custom</string>
+  <string name="settings_sound_default">Sound: default alarm</string>
+  <string name="settings_at_detail_fmt">%1$s\nPIN: %2$s • Trigger: %3$s%4$s</string>
+  <string name="settings_notifications_enabled">Notifications: Enabled</string>
+  <string name="settings_notifications_disabled">Notifications: Disabled</string>
+  <string name="settings_request_notification">🔔 Request Notification Permission</string>
+  <string name="settings_open_notification_settings">🔔 Open Notification Settings</string>
+  <string name="settings_enable_notifications_title">Enable Notifications</string>
+  <string name="settings_enable_notifications_msg">Notifications are disabled. Please enable them in App Settings.</string>
+  <string name="settings_allow_alltime_title">Allow all-time location</string>
+  <string name="settings_allow_alltime_msg">Speedometer in Display mode works best with all-time location access. Android will open App Settings so you can set Location to Allow all the time.</string>
+  <string name="settings_logs_copied">Logs copied to clipboard</string>
+  <string name="settings_clear_logs_title">Clear Logs</string>
+  <string name="settings_clear_logs_msg">Are you sure you want to clear all logs?</string>
+  <string name="settings_logs_cleared">Logs cleared</string>
+  <string name="settings_bt_target_cleared">Bluetooth target cleared</string>
+  <string name="settings_bt_not_supported">Device does not support Bluetooth</string>
+  <string name="settings_bt_enable_first">Please enable Bluetooth first</string>
+  <string name="settings_bt_perm_required">Bluetooth permission required to select device</string>
+  <string name="settings_bt_perm_denied">Bluetooth permission denied</string>
+  <string name="settings_bt_no_paired">No paired Bluetooth devices found</string>
+  <string name="settings_bt_select_title">Select Bluetooth Display</string>
+  <string name="settings_bt_selected_fmt">Selected %1$s</string>
+  <string name="settings_cannot_open_settings">Cannot open settings on this device</string>
+
+  <!-- Additional common / i18n cleanup -->
+  <string name="common_waiting">Waiting</string>
+  <string name="common_optional">Optional</string>
+  <string name="common_skip">Skip</string>
+  <string name="common_enable">Enable</string>
+  <string name="common_verify_action">Verify</string>
+  <string name="common_share">Share</string>
+  <string name="common_unknown">Unknown</string>
+  <string name="common_yes">Yes</string>
+  <string name="common_no">No</string>
+  <string name="common_locked">Locked</string>
+  <string name="common_unlocked">Unlocked</string>
+  <string name="common_scan_again">Scan Again</string>
+
+  <!-- Bluetooth dialogs / dormant flows -->
+  <string name="bt_not_supported_title">Bluetooth Not Supported</string>
+  <string name="bt_not_supported_message">This device does not support Bluetooth</string>
+  <string name="bt_disabled_title">Bluetooth Is Off</string>
+  <string name="bt_disabled_message">Please enable Bluetooth in Settings before using this mode</string>
+  <string name="bt_permission_title">Bluetooth Permission Required</string>
+  <string name="bt_permission_message">Please allow Bluetooth permission to use this mode</string>
+  <string name="bt_unknown_device">Unknown Device</string>
+  <string name="bt_connecting_device_fmt">Connecting to %1$s...</string>
+  <string name="bt_cannot_open_pair_fmt">Cannot open pairing screen: %1$s</string>
+
+  <!-- Home / legacy layouts -->
+  <string name="home_connection_status">Connection Status</string>
+  <string name="home_pending_zero">Pending: 0</string>
+  <string name="home_not_paired_decorated">❌ Not Paired</string>
+  <string name="home_scan_qr_decorated">📷  Scan QR</string>
+  <string name="home_send_test_decorated">📍 Send Test</string>
+  <string name="home_retry_pending_decorated">↻ Retry Pending</string>
+  <string name="home_clear_decorated">🗑️ Clear</string>
+  <string name="home_info_decorated">ℹ️ Info</string>
+  <string name="home_quick_actions">Quick Actions</string>
+  <string name="home_main_device_command_deck">PHANToM GO · Main device command deck</string>
+  <string name="home_check_connection">Check Connection</string>
+  <string name="home_auto_capture_navigation">Auto Capture Navigation</string>
+  <string name="home_auto_capture_navigation_desc">Capture navigation links from any app</string>
+  <string name="home_open_display_mode">Open Display Mode</string>
+  <string name="home_settings_decorated">⚙️ Settings</string>
+  <string name="home_footer_legacy">PHANToM GO - QR + HTTP Navigation</string>
+  <string name="home_accessibility_removed">Accessibility features removed</string>
+  <string name="home_removed">REMOVED</string>
+  <string name="home_display_device_fallback">Display device</string>
+
+  <!-- Permission setup -->
+  <string name="setup_first_time_title">First-Time Setup</string>
+  <string name="setup_intro">PHANToM GO will guide you through the permissions it needs on first launch. Camera and notifications use Android popups. Overlay and battery optimization open system pages.</string>
+  <string name="setup_required_recommended">Required / Recommended</string>
+  <string name="setup_grant_once">Grant everything once so pairing, notifications, display mode, and overlay features work smoothly.</string>
+  <string name="setup_camera">Camera</string>
+  <string name="setup_notifications">Notifications</string>
+  <string name="setup_location">Location</string>
+  <string name="setup_all_time_location">All-time Location</string>
+  <string name="setup_overlay">Overlay</string>
+  <string name="setup_modify_system">Modify System Settings</string>
+  <string name="setup_device_admin">Device Admin</string>
+  <string name="setup_battery_optimization">Battery Optimization</string>
+  <string name="setup_camera_desc">Needed to scan the QR code when the Main device pairs with a Display device.</string>
+  <string name="setup_notifications_desc">Recommended so cloud send status and display service alerts appear reliably.</string>
+  <string name="setup_location_desc">Used for the display speedometer and road-speed view in Display mode.</string>
+  <string name="setup_all_time_location_desc">Recommended if you want speed tracking to keep working more reliably during Display mode.</string>
+  <string name="setup_overlay_desc">Recommended if you want the floating navigation overlay above other apps.</string>
+  <string name="setup_modify_system_desc">Recommended so PHANToM GO can brighten the display before opening Maps and dim it when external power changes.</string>
+  <string name="setup_device_admin_desc">Optional, but needed if you want PHANToM GO to lock the display device automatically when power is unplugged.</string>
+  <string name="setup_battery_optimization_desc">Recommended on the Display device so the server and cloud listener stay alive in the background.</string>
+  <string name="setup_change_later">You can change these later in Settings.</string>
+  <string name="setup_grant_missing_permissions">Grant Missing Permissions</string>
+  <string name="setup_continue_to_app">Continue to App</string>
+  <string name="setup_granted">Granted</string>
+  <string name="setup_needs_action">Needs action</string>
+  <string name="setup_recommended">Recommended</string>
+  <string name="setup_enabled">Enabled</string>
+  <string name="setup_all_permissions_ready">All requested permissions are ready. You can start using the app now.</string>
+  <string name="setup_missing_attention_fmt">%1$d item(s) still need attention. You can continue now and adjust any remaining permission later in Settings.</string>
+  <string name="setup_all_permissions_button">All Permissions Ready</string>
+  <string name="setup_allow_overlay_title">Allow Overlay</string>
+  <string name="setup_allow_overlay_msg">PHANToM GO can show a floating navigation overlay above other apps. Open the system page to allow overlay access?</string>
+  <string name="setup_allow_modify_title">Allow Modify System Settings</string>
+  <string name="setup_allow_modify_msg">PHANToM GO can brighten and dim the display automatically before opening Google Maps and when power changes. Open the system page now?</string>
+  <string name="setup_optional_device_admin_title">Optional: Device Admin for Power Disconnect Lock</string>
+  <string name="setup_optional_device_admin_msg">Enable this only if you want PHANToM GO to lock the display device automatically when external power is disconnected.</string>
+  <string name="setup_disable_battery_title">Disable Battery Optimization</string>
+  <string name="setup_disable_battery_msg">Display mode works more reliably if Android does not optimize PHANToM GO in the background. Open the system page now?</string>
+  <string name="setup_open_app_settings_title">Open App Settings</string>
+  <string name="setup_open_app_settings_msg">Some Android permissions were denied permanently. Open App Settings to allow them manually.</string>
+  <string name="setup_allow_all_time_title">Allow all-time location</string>
+  <string name="setup_allow_all_time_msg">PHANToM GO can show live speed in Display mode. Android will open App Settings so you can set Location to Allow all the time.</string>
+
+  <!-- Anti-theft PIN screen -->
+  <string name="anti_theft_pin_screen_title">Security Verification</string>
+  <string name="anti_theft_pin_screen_subtitle">Enter your security PIN to continue.</string>
+  <string name="anti_theft_pin_screen_hint">Security PIN</string>
+  <string name="anti_theft_pin_verification_failed">Verification failed</string>
+  <string name="anti_theft_pin_verify">Verify</string>
+
+  <!-- Main pair screen -->
+  <string name="main_pair_device_name_label">Device Name</string>
+  <string name="main_pair_enter_code_help">Enter the 6-digit code from the car display</string>
+  <string name="main_pair_code_required">Please enter the 6-digit code</string>
+  <string name="main_pair_device_missing">Device not found</string>
+  <string name="main_pair_error_fmt">Error: %1$s</string>
+  <string name="main_pair_connecting">Connecting...</string>
+  <string name="main_pair_cannot_start_service_fmt">Could not start service: %1$s</string>
+  <string name="main_pair_unknown_device">Unknown Device</string>
+
+  <!-- Navigation overlay -->
+  <string name="nav_overlay_loading">Loading navigation...</string>
+  <string name="nav_overlay_open">🧭 OPEN</string>
+  <string name="nav_overlay_dismiss">✖ DISMISS</string>
+
+  <!-- Diagnostics -->
+  <string name="diag_title">Diagnostics</string>
+  <string name="diag_tab_self_test">Self-Test</string>
+  <string name="diag_tab_crash_report">Crash Report</string>
+  <string name="diag_system_check">System Check</string>
+  <string name="diag_check_name_placeholder">Check Name</string>
+  <string name="diag_status_message_placeholder">Status message</string>
+  <string name="diag_checking_health">Checking app health and permissions...</string>
+  <string name="diag_run_test_again">Run Test Again</string>
+  <string name="diag_last_crash_report">Last Crash Report</string>
+  <string name="diag_if_crashed">If the app crashed, the report appears here</string>
+  <string name="diag_no_crash_report">No crash report available</string>
+  <string name="diag_copied_clipboard">Copied to clipboard</string>
+  <string name="diag_cleared_report">Crash report cleared</string>
+
+  <!-- Pair scan -->
+  <string name="pair_scan_cancelled">Scan cancelled</string>
+  <string name="pair_scan_prompt">Scan QR code from Display device</string>
+  <string name="pair_invalid_toast">Invalid QR format</string>
+  <string name="pair_invalid_title">Invalid QR Format</string>
+  <string name="pair_invalid_message_fmt">The QR code could not be parsed. Format not recognized.\n\nRaw content:\n%1$s</string>
+  <string name="pair_copy_raw">Copy RAW</string>
+  <string name="pair_raw_copied">Raw content copied to clipboard</string>
+  <string name="pair_local_missing_data">QR code is missing local network pairing data.</string>
+  <string name="pair_progress_verifying">Verifying pairing...</string>
+  <string name="pair_error_cannot_reach">Cannot reach device. Check IP address.</string>
+  <string name="pair_error_conn_refused">Connection refused. Is Display mode running?</string>
+  <string name="pair_error_timeout">Connection timed out. Check network.</string>
+  <string name="pair_error_network_fmt">Network error: %1$s</string>
+  <string name="pair_paired_with_fmt">Paired with %1$s:%2$d!</string>
+  <string name="pair_auth_failed_message">Authentication failed. Token mismatch.\n\nPlease refresh QR code on Display device and scan again.</string>
+  <string name="pair_failed_reason_fmt">Pairing failed: %1$s\n\nPlease try again.</string>
+  <string name="pair_progress_claiming_cloud">Claiming pairing from Firebase...</string>
+  <string name="pair_cloud_paired_with_fmt">Cloud paired with %1$s</string>
+  <string name="pair_cloud_failed_fmt">Cloud pairing failed: %1$s</string>
+  <string name="pair_progress_title">Pairing</string>
+  <string name="pair_failed_title">Pairing Failed</string>
+  <string name="pair_reason_unknown">Unknown error</string>
+
+  <!-- Open navigation -->
+  <string name="open_nav_no_url">No navigation URL provided</string>
+  <string name="open_nav_cannot_open">Cannot open navigation URL</string>
+  <string name="open_nav_error_opening">Error opening navigation</string>
+
+  <!-- Settings runtime text -->
+  <string name="settings_map_link_hub_path_hint">Go to system Settings &gt; Apps &gt; Open by default &gt; choose PHANToM GO, then tap Always</string>
+  <string name="settings_device_mode_main_value">Main Device</string>
+  <string name="settings_device_mode_display_value">Display Device</string>
+  <string name="settings_power_detail_fmt">%1$s • Expected brightness: %2$d\nReady now: %3$s • Screen: %4$s • Lock: %5$s • Brightness: %6$s</string>
+  <string name="settings_choose_alarm_sound_title">Choose Anti-Theft Alarm Sound</string>
+
+  <!-- Display / Security runtime fallback -->
+  <string name="display_token_masked">Token: ****</string>
+  <string name="display_qr_payload_label">QR Payload</string>
+  <string name="display_speed_provider_location">location</string>
+  <string name="security_display_fallback">Display</string>
+</resources>

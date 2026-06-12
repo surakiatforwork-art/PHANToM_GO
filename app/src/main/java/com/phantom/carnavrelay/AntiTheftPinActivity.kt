@@ -70,7 +70,7 @@ class AntiTheftPinActivity : AppCompatActivity() {
                 finish()
             } else {
                 pinInput.text?.clear()
-                errorText.text = "Verification failed"
+                errorText.text = getString(R.string.at_verify_failed)
                 errorText.alpha = 1f
                 applyState()
             }
@@ -126,10 +126,10 @@ class AntiTheftPinActivity : AppCompatActivity() {
                 titleText.text = snapshot.headline
                 detailText.text = snapshot.detail
                 countdownText.text = if (snapshot.remainingMs > 0L) {
-                    "Time left: ${((snapshot.remainingMs + 999L) / 1000L)}s"
+                    getString(R.string.at_time_left_fmt, ((snapshot.remainingMs + 999L) / 1000L))
                 } else {
                     if (snapshot.state == AntiTheftState.ALARM_ACTIVE || snapshot.state == AntiTheftState.FULLSCREEN_LOCK) {
-                        "Verification required"
+                        getString(R.string.at_verification_required)
                     } else {
                         ""
                     }
