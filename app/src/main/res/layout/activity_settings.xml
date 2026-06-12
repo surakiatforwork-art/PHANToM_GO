@@ -32,6 +32,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@android:color/transparent"
+                    android:backgroundTint="@null"
                     android:minWidth="0dp"
                     android:paddingHorizontal="0dp"
                     android:text="Back"
@@ -101,9 +102,10 @@
                     android:layout_height="54dp"
                     android:layout_marginTop="14dp"
                     android:background="@drawable/soft_primary_button"
+                    android:backgroundTint="@null"
                     android:text="Enable Notifications"
                     android:textAllCaps="false"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/ui_on_primary"
                     android:visibility="gone" />
             </LinearLayout>
 
@@ -274,6 +276,7 @@
                         android:layout_height="50dp"
                         android:layout_marginTop="10dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Grant Modify System Settings"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />
@@ -293,6 +296,7 @@
                         android:layout_height="50dp"
                         android:layout_marginTop="10dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Enable Device Admin"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />
@@ -348,6 +352,7 @@
                         android:layout_height="50dp"
                         android:layout_marginTop="12dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Grant Overlay Permission"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark"
@@ -492,6 +497,7 @@
                         android:layout_height="50dp"
                         android:layout_marginTop="12dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Allow location and all-time access"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />
@@ -593,6 +599,7 @@
                         android:layout_height="50dp"
                         android:layout_marginTop="12dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Set / Change Anti-Theft PIN"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />
@@ -603,6 +610,7 @@
                         android:layout_height="50dp"
                         android:layout_marginTop="10dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Choose Alarm Sound"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />
@@ -613,6 +621,7 @@
                         android:layout_height="50dp"
                         android:layout_marginTop="10dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Test Anti-Theft Alarm"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />
@@ -721,6 +730,7 @@
                         android:layout_height="50dp"
                         android:layout_marginTop="12dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Open by default settings"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />
@@ -791,6 +801,7 @@
                         android:layout_height="48dp"
                         android:layout_marginTop="10dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="เลือกอุปกรณ์ Bluetooth"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />
@@ -801,6 +812,7 @@
                         android:layout_height="48dp"
                         android:layout_marginTop="8dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="ล้างอุปกรณ์ Bluetooth"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark"
@@ -940,6 +952,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="40dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Copy"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />
@@ -950,6 +963,7 @@
                         android:layout_height="40dp"
                         android:layout_marginStart="8dp"
                         android:background="@drawable/soft_secondary_button"
+                        android:backgroundTint="@null"
                         android:text="Clear"
                         android:textAllCaps="false"
                         android:textColor="@color/soft_blue_dark" />

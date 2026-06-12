@@ -33,6 +33,7 @@
         android:text="ส่งไปจอติดรถ"
         android:textColor="@color/white"
         android:background="@drawable/aurora_button_ripple"
+        android:backgroundTint="@null"
         android:layout_marginBottom="8dp" />
 
     <Button
@@ -43,6 +44,7 @@
         android:text="ส่งไปจอ + เปิด Maps บนเครื่องหลัก"
         android:textColor="@color/white"
         android:background="@drawable/aurora_button_ripple"
+        android:backgroundTint="@null"
         android:layout_marginBottom="8dp" />
 
     <Button
@@ -53,6 +55,7 @@
         android:text="เปิด Maps บนเครื่องหลัก"
         android:textColor="@color/white"
         android:background="@drawable/aurora_button_ripple"
+        android:backgroundTint="@null"
         android:layout_marginBottom="8dp" />
 
     <Button
@@ -63,6 +66,7 @@
         android:text="คัดลอกลิงก์"
         android:textColor="@color/white"
         android:background="@drawable/aurora_button_ripple"
+        android:backgroundTint="@null"
         android:layout_marginBottom="8dp" />
 
     <Button
@@ -72,6 +76,7 @@
         android:minHeight="48dp"
         android:text="ยกเลิก"
         android:textColor="@color/white"
-        android:background="@drawable/aurora_button_ripple" />
+        android:background="@drawable/aurora_button_ripple"
+        android:backgroundTint="@null" />
 
 </LinearLayout>

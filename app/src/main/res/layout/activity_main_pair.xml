@@ -110,7 +110,7 @@
         android:text="@string/connect"
         android:textSize="18sp"
         android:enabled="false"
-        android:textColor="@color/white"
+        android:textColor="@color/ui_on_primary"
         app:cornerRadius="16dp"
         style="@style/Widget.CarNavRelay.Button"
         app:layout_constraintEnd_toEndOf="parent"

@@ -118,7 +118,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:text="Run Test Again"
-                    android:textColor="@color/white"
+                    android:textColor="@color/ui_on_primary"
                     style="@style/Widget.CarNavRelay.Button" />
 
             </LinearLayout>
@@ -212,7 +212,7 @@
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:text="Clear"
-                    android:textColor="@color/text_primary"
+                    android:textColor="@color/ui_on_primary"
                     app:backgroundTint="@color/aurora_warning"
                     app:cornerRadius="12dp" />
 
