@@ -35,4 +35,13 @@ class MapsUiVocabularyTest {
         assertTrue(MapsUiVocabulary.isAllowedResolverPackage("android"))
         assertFalse(MapsUiVocabulary.isAllowedResolverPackage("com.example.bank"))
     }
+
+    @Test
+    fun resolverPackageExcludesMapsAndUnknown() {
+        assertTrue(MapsUiVocabulary.isResolverPackage("com.android.intentresolver"))
+        assertTrue(MapsUiVocabulary.isResolverPackage("com.samsung.android.app.sharelive"))
+        // Maps itself and arbitrary packages are not "the Share Sheet appeared" signals.
+        assertFalse(MapsUiVocabulary.isResolverPackage(MapsUiVocabulary.MAPS_PACKAGE))
+        assertFalse(MapsUiVocabulary.isResolverPackage(null))
+    }
 }

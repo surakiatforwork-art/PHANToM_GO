@@ -5,6 +5,9 @@ import java.util.Locale
 object MapsUiVocabulary {
     const val MAPS_PACKAGE = "com.google.android.apps.maps"
 
+    /** Literal used for the fast text query in the Share Sheet. */
+    const val PHANTOM_GO_SEARCH = "PHANToM GO"
+
     val shareLabels = setOf("แชร์", "share")
     val stopLabels = setOf(
         "ปิดการนำทาง",
@@ -65,5 +68,11 @@ object MapsUiVocabulary {
 
     fun isAllowedResolverPackage(packageName: String?): Boolean {
         return packageName != null && (packageName == MAPS_PACKAGE || packageName in resolverPackages)
+    }
+
+    /** A share-sheet resolver package (excludes Maps itself). Used to detect that the Share Sheet
+     *  actually appeared after clicking Share. */
+    fun isResolverPackage(packageName: String?): Boolean {
+        return packageName != null && packageName in resolverPackages
     }
 }

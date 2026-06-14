@@ -8,11 +8,22 @@ class ShareReceiverActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        forwardIncoming(intent)
+    }
 
-        val incoming = intent ?: run {
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        forwardIncoming(intent)
+    }
+
+    private fun forwardIncoming(incoming: Intent?) {
+        if (incoming == null) {
             finish()
             return
         }
+
+        MapsAutoShareCoordinator.onSharePayloadReceived()
 
         val forward = Intent(this, RelayActivity::class.java).apply {
             action = incoming.action
