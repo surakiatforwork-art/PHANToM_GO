@@ -184,6 +184,7 @@ object NotificationHelper {
 
     private fun buildAntiTheftBody(context: Context, alert: FirebaseManager.SecurityAlert): String {
         val eventLabel = when (alert.eventType) {
+            DisplayAntiTheftManager.ALERT_JACK_DISCONNECTED -> context.getString(R.string.at_notification_jack_disconnected)
             DisplayAntiTheftManager.ALERT_TIMEOUT_1 -> context.getString(R.string.at_notification_timeout_1)
             DisplayAntiTheftManager.ALERT_REPLUG_DURING_CHALLENGE_1 -> context.getString(R.string.at_notification_replug_during_challenge_1)
             DisplayAntiTheftManager.ALERT_WRONG_PIN_1 -> context.getString(R.string.at_notification_wrong_pin_1)

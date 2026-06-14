@@ -108,6 +108,62 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/displaySecurityControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:background="@drawable/soft_card_background"
+                android:elevation="3dp"
+                android:orientation="vertical"
+                android:padding="18dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/security_display_controls"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/securityJackStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/security_jack_disconnected"
+                    android:textColor="@color/ui_text_secondary"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSecurityPinAction"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/soft_secondary_button"
+                    android:backgroundTint="@null"
+                    android:text="@string/at_set_pin"
+                    android:textAllCaps="false"
+                    android:textColor="@color/soft_button_secondary_text"
+                    android:textStyle="bold"
+                    app:backgroundTint="@null" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSecurityAdvancedAction"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/soft_secondary_button"
+                    android:backgroundTint="@null"
+                    android:text="@string/security_advanced_settings"
+                    android:textAllCaps="false"
+                    android:textColor="@color/soft_button_secondary_text"
+                    android:textStyle="bold"
+                    app:backgroundTint="@null" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/findDisplayCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"

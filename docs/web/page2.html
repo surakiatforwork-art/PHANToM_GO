@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="th" class="no-js">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#070b16" />
+<title>PHANToM GO — เปลี่ยนมือถือเก่าให้เป็นจอนำทางติดรถ</title>
+<meta name="description" content="PHANToM GO ส่งเส้นทางจากมือถือเครื่องหลักไปยังมือถือหรือแท็บเล็ต Android อีกเครื่องที่ใช้เป็นจอติดรถ จับคู่ด้วย QR code ไม่ต้องสมัครสมาชิก พร้อม Web App สำหรับ iPhone" />
+<script>document.documentElement.classList.remove('no-js');document.documentElement.classList.add('js');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#070b16; --bg-2:#0a1020; --panel:#0e1626; --panel-2:#121c30;
+    --line:rgba(140,170,220,.14); --line-2:rgba(140,170,220,.28);
+    --ink:#eaf0ff; --ink-2:#aeb9d4; --ink-3:#7f8aa8;
+    --cyan:#34e3ff; --cyan-2:#13b8d8; --violet:#a78bff; --violet-2:#7c4dff;
+    --good:#5ce6a8; --warn:#ffce6b; --danger:#ff7b86;
+    --grad:linear-gradient(115deg,#34e3ff 0%,#37c6ff 35%,#a78bff 72%,#34e3ff 100%);
+    --r:18px; --r-lg:28px; --maxw:1180px;
+    --shadow:0 30px 70px -30px rgba(0,0,0,.7);
+    --glow:0 0 40px rgba(52,227,255,.25);
+    --fs-h1:clamp(2rem,6.4vw,4.2rem);
+    --fs-h2:clamp(1.55rem,4.4vw,3rem);
+    --fs-h3:clamp(1.15rem,2.6vw,1.6rem);
+    --fs-lead:clamp(1rem,2.3vw,1.22rem);
+    --font:"Noto Sans Thai","Space Grotesk",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --font-d:"Space Grotesk","Noto Sans Thai",system-ui,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:84px;-webkit-text-size-adjust:100%}
+  body{
+    margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);
+    line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;margin:0;font-weight:700;letter-spacing:-.01em}
+  p{margin:0}
+  a{color:inherit;text-decoration:none}
+  img,video{max-width:100%;display:block}
+  ::selection{background:rgba(52,227,255,.3);color:#fff}
+  .wrap{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 clamp(18px,4vw,34px)}
+  .eyebrow{font-family:var(--font-d);font-size:.72rem;letter-spacing:.32em;text-transform:uppercase;color:var(--cyan)}
+  .grad-text{background:var(--grad);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:hue 7s linear infinite}
+  .muted{color:var(--ink-2)}
+  .dim{color:var(--ink-3)}
+  @keyframes hue{to{background-position:200% center}}
+
+  /* ===== Aurora background ===== */
+  .aurora{position:fixed;inset:0;z-index:-2;overflow:hidden;background:
+    radial-gradient(120% 80% at 50% -10%,#0c1730 0%,var(--bg) 60%)}
+  .aurora span{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;mix-blend-mode:screen}
+  .aurora .a1{width:46vw;height:46vw;left:-8vw;top:-6vw;background:radial-gradient(circle,#1f8fff,transparent 65%);animation:drift1 20s ease-in-out infinite}
+  .aurora .a2{width:42vw;height:42vw;right:-10vw;top:8vw;background:radial-gradient(circle,#7c4dff,transparent 65%);animation:drift2 26s ease-in-out infinite}
+  .aurora .a3{width:50vw;height:50vw;left:18vw;bottom:-18vw;background:radial-gradient(circle,#19d6e6,transparent 65%);animation:drift1 30s ease-in-out infinite reverse}
+  .grid-veil{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background-image:linear-gradient(rgba(140,170,220,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(140,170,220,.05) 1px,transparent 1px);
+    background-size:54px 54px;
+    -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 30%,transparent 75%);
+    mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 30%,transparent 75%)}
+  @keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,30px) scale(1.12)}}
+  @keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-50px,24px) scale(1.16)}}
+
+  /* ===== Cursor glow ===== */
+  .cursor-glow{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(360px circle at var(--cx,-300px) var(--cy,-300px),rgba(52,227,255,.08),transparent 70%)}
+
+  /* ===== Scroll progress ===== */
+  .progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:120;background:var(--grad);background-size:200% auto;box-shadow:0 0 14px rgba(52,227,255,.7);animation:hue 5s linear infinite}
+
+  /* ===== Nav ===== */
+  header.nav{position:fixed;top:0;left:0;width:100%;z-index:100;transition:background .3s,backdrop-filter .3s,box-shadow .3s}
+  .nav-row{display:flex;align-items:center;justify-content:space-between;height:74px;transition:height .3s}
+  header.nav.scrolled{background:rgba(7,11,22,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 10px 40px -18px rgba(0,0,0,.8);border-bottom:1px solid var(--line)}
+  header.nav.scrolled .nav-row{height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-d);font-weight:700;font-size:1.15rem;letter-spacing:-.02em}
+  .brand .dot{width:11px;height:11px;border-radius:50%;background:var(--grad);box-shadow:var(--glow);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.7);opacity:.6}}
+  .nav-links{display:none;gap:30px;align-items:center}
+  .nav-links a{position:relative;font-family:var(--font-d);font-size:.82rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);transition:color .25s;padding:6px 0}
+  .nav-links a::after{content:"";position:absolute;left:0;bottom:-2px;height:2px;width:0;background:var(--grad);transition:width .3s}
+  .nav-links a:hover,.nav-links a.active{color:#fff}
+  .nav-links a:hover::after,.nav-links a.active::after{width:100%}
+  .nav .nav-cta{display:none}
+  .burger{display:inline-flex;flex-direction:column;gap:5px;background:none;border:0;cursor:pointer;padding:10px;margin:-10px}
+  .burger span{width:24px;height:2px;background:var(--ink);border-radius:2px;transition:transform .3s,opacity .3s}
+  body.menu-open .burger span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+  body.menu-open .burger span:nth-child(2){opacity:0}
+  body.menu-open .burger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+  /* Mobile menu sheet */
+  .menu{position:fixed;inset:0 0 0 auto;width:min(82vw,340px);z-index:99;background:rgba(10,16,32,.96);backdrop-filter:blur(20px);
+    border-left:1px solid var(--line);transform:translateX(100%);transition:transform .4s cubic-bezier(.2,.8,.2,1);
+    display:flex;flex-direction:column;gap:6px;padding:96px 26px 30px}
+  body.menu-open .menu{transform:translateX(0)}
+  .menu a{font-family:var(--font-d);font-size:1.1rem;color:var(--ink-2);padding:14px 12px;border-radius:12px;letter-spacing:.04em;transition:background .2s,color .2s}
+  .menu a:hover{background:rgba(52,227,255,.08);color:#fff}
+  .menu .menu-dl{margin-top:14px;text-align:center}
+  .scrim{position:fixed;inset:0;z-index:98;background:rgba(3,6,14,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+  body.menu-open .scrim{opacity:1;pointer-events:auto}
+
+  /* ===== Buttons ===== */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-family:var(--font-d);font-weight:600;
+    font-size:1rem;padding:15px 26px;border-radius:14px;cursor:pointer;border:1px solid transparent;transition:transform .25s,box-shadow .3s,background .3s;white-space:nowrap}
+  .btn:active{transform:scale(.97)}
+  .btn .ic{width:20px;height:20px;flex:none}
+  .btn-primary{position:relative;overflow:hidden;color:#06121a;background:var(--grad);background-size:200% auto;box-shadow:0 14px 40px -12px rgba(52,227,255,.5);animation:hue 7s linear infinite}
+  .btn-primary:hover{transform:translateY(-3px);box-shadow:0 20px 50px -12px rgba(52,227,255,.6)}
+  .btn-primary::before{content:"";position:absolute;top:0;left:-130%;width:55%;height:100%;transform:skewX(-20deg);
+    background:linear-gradient(120deg,transparent,rgba(255,255,255,.55),transparent);transition:left .6s}
+  .btn-primary:hover::before{left:150%}
+  .btn-ghost{color:var(--ink);background:rgba(255,255,255,.04);border-color:var(--line-2)}
+  .btn-ghost:hover{background:rgba(255,255,255,.09);transform:translateY(-3px)}
+  .btn-light{background:#eef3ff;color:#0a1020}
+  .btn-light:hover{transform:translateY(-3px);background:#fff}
+
+  /* ===== Sections / cards ===== */
+  section{position:relative;padding:clamp(64px,9vw,120px) 0}
+  .sec-head{max-width:680px;margin:0 auto clamp(36px,5vw,60px);text-align:center}
+  .sec-head h2{font-size:var(--fs-h2);margin-top:12px}
+  .sec-head p{margin-top:16px;color:var(--ink-2);font-size:var(--fs-lead)}
+  .card{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.015));
+    border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(22px,3vw,30px);
+    transition:transform .4s cubic-bezier(.2,.8,.2,1),border-color .4s,box-shadow .4s}
+  .card:hover{transform:translateY(-6px);border-color:var(--line-2);box-shadow:var(--shadow),var(--glow)}
+  .glass{background:rgba(14,22,38,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+  .ic-badge{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;background:rgba(52,227,255,.12);border:1px solid rgba(52,227,255,.25);color:var(--cyan)}
+  .ic-badge.v{background:rgba(167,139,255,.12);border-color:rgba(167,139,255,.28);color:var(--violet)}
+  .ic-badge svg{width:26px;height:26px}
+
+  /* ===== Reveal ===== */
+  .js .reveal{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ===== Hero ===== */
+  .hero{padding-top:clamp(110px,16vw,170px)}
+  .hero-grid{display:grid;gap:clamp(36px,6vw,60px);align-items:center}
+  .badge{display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:999px;border:1px solid var(--line-2);
+    background:rgba(255,255,255,.03);font-family:var(--font-d);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+  .badge .lv{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 10px var(--good);animation:pulse 2s infinite}
+  .hero h1{font-size:var(--fs-h1);margin:22px 0 18px}
+  .hero .lead{font-size:var(--fs-lead);color:var(--ink-2);max-width:560px}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:30px}
+  .trust{display:flex;flex-wrap:wrap;gap:18px;margin-top:26px;color:var(--ink-3);font-size:.85rem}
+  .trust span{display:inline-flex;align-items:center;gap:7px}
+  .trust svg{width:16px;height:16px;color:var(--cyan)}
+
+  /* Hero phones + route beam */
+  .stage{position:relative;display:flex;justify-content:center;align-items:center;gap:clamp(10px,3vw,26px);padding:18px 0}
+  .phone{width:clamp(140px,40%,210px);aspect-ratio:9/19;border-radius:30px;padding:7px;background:linear-gradient(160deg,#1a2640,#0c1322);
+    border:1px solid var(--line-2);box-shadow:var(--shadow);position:relative}
+  .phone img{width:100%;height:100%;object-fit:cover;border-radius:24px;background:#000}
+  .phone .tag{position:absolute;left:50%;transform:translateX(-50%);bottom:-12px;font-family:var(--font-d);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;
+    padding:4px 11px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
+  .phone.main{rotate:-6deg;z-index:2;animation:floaty 6s ease-in-out infinite}
+  .phone.disp{rotate:6deg;z-index:3;animation:floaty 6s ease-in-out infinite .8s}
+  @keyframes floaty{0%,100%{translate:0 0}50%{translate:0 -12px}}
+  .beam{position:absolute;top:50%;left:18%;width:64%;height:2px;transform:translateY(-50%);z-index:1;
+    background:linear-gradient(90deg,transparent,rgba(52,227,255,.5),rgba(167,139,255,.5),transparent)}
+  .beam .comet{position:absolute;top:50%;left:0;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:#bff6ff;
+    box-shadow:0 0 18px 5px rgba(52,227,255,.8);animation:run 2.6s linear infinite}
+  @keyframes run{0%{left:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{left:100%;opacity:0}}
+  .stage-glow{position:absolute;inset:-12% 0;z-index:0;background:radial-gradient(50% 50% at 50% 50%,rgba(52,227,255,.16),transparent 70%);filter:blur(10px)}
+
+  /* ===== Problem / solution bento ===== */
+  .bento{display:grid;gap:18px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .chip{font-family:var(--font-d);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;padding:6px 12px;border-radius:999px;border:1px solid var(--line-2);color:var(--cyan);background:rgba(52,227,255,.06)}
+  .xlist{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:13px}
+  .xlist li{display:flex;gap:11px;color:var(--ink-2)}
+  .xlist svg{width:19px;height:19px;flex:none;color:var(--danger);margin-top:2px}
+  .ghost-watermark{position:absolute;right:-10px;bottom:-30px;font-size:13rem;line-height:1;opacity:.05;pointer-events:none}
+
+  /* ===== Steps ===== */
+  .steps{display:grid;gap:30px;position:relative}
+  .step{text-align:center;position:relative}
+  .step .num{width:74px;height:74px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-d);font-weight:700;font-size:1.5rem;
+    color:var(--cyan);background:var(--panel);border:1px solid var(--line-2);box-shadow:inset 0 0 22px rgba(52,227,255,.12)}
+  .step h4{font-size:var(--fs-h3);margin-bottom:10px}
+  .step p{color:var(--ink-2)}
+
+  /* ===== Feature grid ===== */
+  .feat-grid{display:grid;gap:18px}
+  .feat h4{font-size:1.18rem;margin:18px 0 8px}
+  .feat p{color:var(--ink-2);font-size:.96rem}
+
+  /* ===== Video ===== */
+  .video-wrap{position:relative;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);background:#000;box-shadow:var(--shadow)}
+  .video-wrap video{width:100%;height:auto;display:block}
+
+  /* ===== Gallery ===== */
+  .rail{display:flex;gap:18px;overflow-x:auto;padding:6px 4px 26px;scroll-snap-type:x mandatory;-ms-overflow-style:none;scrollbar-width:none}
+  .rail::-webkit-scrollbar{display:none}
+  .shot{flex:0 0 auto;width:min(70vw,260px);scroll-snap-align:center}
+  .shot .frame{aspect-ratio:9/16;border-radius:22px;overflow:hidden;border:1px solid var(--line-2);background:var(--panel)}
+  .shot img{width:100%;height:100%;object-fit:cover}
+  .shot p{margin-top:12px;text-align:center;font-family:var(--font-d);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+  .rail-hint{text-align:center;color:var(--ink-3);font-size:.8rem;margin-top:-6px}
+
+  /* ===== Web app / install ===== */
+  .two{display:grid;gap:30px;align-items:center}
+  .ministep{display:flex;gap:16px;align-items:flex-start}
+  .ministep .n{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:var(--font-d);font-weight:700;background:var(--panel-2);border:1px solid var(--line-2);color:var(--cyan)}
+  .ministep h4{font-size:1.1rem;margin-bottom:4px}
+  .ministep p{color:var(--ink-2);font-size:.94rem}
+  .perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+  .perm{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .perm b{font-family:var(--font-d);font-weight:600}
+  .perm p{color:var(--ink-2);font-size:.82rem;margin-top:5px}
+
+  /* ===== CTA ===== */
+  .cta{text-align:center}
+  .cta h2{font-size:var(--fs-h2)}
+  .cta .lead{max-width:620px;margin:18px auto 0;color:var(--ink-2);font-size:var(--fs-lead)}
+  .cta-row{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:34px}
+
+  /* ===== Footer ===== */
+  footer{border-top:1px solid var(--line);padding:54px 0 120px;color:var(--ink-3)}
+  .foot-grid{display:grid;gap:30px}
+  .foot-links{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .foot-links h5{font-family:var(--font-d);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin:0 0 12px}
+  .foot-links a{display:block;color:var(--ink-3);font-size:.9rem;padding:5px 0;transition:color .2s,transform .2s}
+  .foot-links a:hover{color:#fff;transform:translateX(3px)}
+
+  /* ===== Sticky mobile CTA ===== */
+  .mobile-bar{position:fixed;left:0;right:0;bottom:0;z-index:90;display:flex;gap:10px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+    background:rgba(8,12,24,.92);backdrop-filter:blur(16px);border-top:1px solid var(--line);transform:translateY(120%);transition:transform .4s}
+  .mobile-bar.show{transform:translateY(0)}
+  .mobile-bar .btn{flex:1;padding:13px 14px;font-size:.92rem}
+
+  /* ===== Back to top ===== */
+  .top{position:fixed;right:16px;bottom:84px;z-index:91;width:46px;height:46px;border-radius:50%;border:1px solid var(--line-2);
+    background:rgba(14,22,38,.9);color:var(--ink);display:grid;place-items:center;cursor:pointer;opacity:0;transform:translateY(14px);pointer-events:none;transition:opacity .3s,transform .3s,background .3s}
+  .top.show{opacity:1;transform:none;pointer-events:auto}
+  .top:hover{background:var(--panel-2)}
+
+  /* ===== Responsive ===== */
+  @media(min-width:680px){
+    .perm-grid{grid-template-columns:repeat(2,1fr)}
+    .bento{grid-template-columns:1fr 1fr}
+    .feat-grid{grid-template-columns:1fr 1fr}
+    .steps{grid-template-columns:repeat(3,1fr);gap:40px}
+    .steps::before{content:"";position:absolute;top:37px;left:12%;right:12%;height:2px;background:linear-gradient(90deg,transparent,var(--line-2),transparent)}
+    .shot{width:280px}
+  }
+  @media(min-width:900px){
+    .nav-links{display:flex}
+    .nav .nav-cta{display:inline-flex}
+    .burger{display:none}
+    .mobile-bar{display:none}
+    .hero-grid{grid-template-columns:1.05fr .95fr}
+    .hero .lead,.hero .badge{margin-left:0}
+    .bento{grid-template-columns:1.1fr 1.5fr 1.5fr 1.1fr;grid-auto-rows:auto}
+    .bento .b-prob{grid-column:span 1}
+    .bento .b-1{grid-column:span 3}
+    .bento .b-2{grid-column:span 3}
+    .bento .b-3{grid-column:span 1}
+    .feat-grid{grid-template-columns:repeat(3,1fr)}
+    .two{grid-template-columns:1fr 1fr;gap:50px}
+    .foot-grid{grid-template-columns:1.4fr 1fr}
+    .top{bottom:24px}
+  }
+  @media(min-width:1100px){ .feat-grid{grid-template-columns:repeat(3,1fr)} }
+
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .js .reveal{opacity:1!important;transform:none!important;transition:none}
+    .grad-text,.aurora span,.btn-primary,.progress,.phone.main,.phone.disp,.beam .comet,.brand .dot,.badge .lv{animation:none!important}
+    .cursor-glow{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+<div class="grid-veil"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+<div class="progress" id="progress"></div>
+<span id="top"></span>
+
+<!-- NAV -->
+<header class="nav" id="nav">
+  <div class="wrap nav-row">
+    <a class="brand" href="#top"><span class="dot"></span> PHANToM&nbsp;GO</a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#demo">Demo</a>
+      <a href="#webapp">Web App</a>
+      <a href="#install">Install</a>
+    </nav>
+    <a class="btn btn-primary nav-cta" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.19/PHANToM_GO-v1.0.19.apk">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l4-4m-4 4l-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      Download APK
+    </a>
+    <button class="burger" id="burger" aria-label="เปิดเมนู" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+</header>
+<div class="scrim" id="scrim"></div>
+<aside class="menu" id="menu">
+  <a href="#features">Features</a>
+  <a href="#how">How it works</a>
+  <a href="#demo">Demo</a>
+  <a href="#webapp">Web App</a>
+  <a href="#install">Install</a>
+  <a class="btn btn-primary menu-dl" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.19/PHANToM_GO-v1.0.19.apk">ดาวน์โหลด APK</a>
+</aside>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="badge reveal"><span class="lv"></span> Latest Release v1.0.19</span>
+      <h1 class="reveal">เปลี่ยนมือถือ Android เครื่องเก่า <span class="grad-text">ให้เป็นจอนำทางติดรถ</span> แล้วส่งเส้นทางจากเครื่องหลักได้ทันที</h1>
+      <p class="lead reveal">ส่งปลายทางจากมือถือเครื่องหลักไปยังมือถือหรือแท็บเล็ต Android อีกเครื่องที่ใช้เป็นจอแสดงแผนที่บนรถ จับคู่ด้วย QR code ไม่ต้องสมัครสมาชิก และมี Web App สำหรับ iPhone หรืออุปกรณ์ที่ไม่สะดวกติดตั้ง APK</p>
+      <div class="hero-cta reveal">
+        <a class="btn btn-primary" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.19/PHANToM_GO-v1.0.19.apk">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l4-4m-4 4l-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          ดาวน์โหลด APK
+        </a>
+        <a class="btn btn-ghost" href="./webapp/">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18"/></svg>
+          เปิด Web App
+        </a>
+      </div>
+      <div class="trust reveal">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> ไม่ต้องสมัครสมาชิก</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Android 6.0+</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> มี Web App สำหรับ iOS</span>
+      </div>
+    </div>
+    <div class="reveal">
+      <div class="stage">
+        <div class="stage-glow"></div>
+        <div class="phone main"><img src="./assets/main-home.jpg" alt="หน้าจอเครื่องหลัก PHANToM GO" loading="lazy"><span class="tag">Main Device</span></div>
+        <div class="beam"><span class="comet"></span></div>
+        <div class="phone disp"><img src="./assets/display-maps.png" alt="หน้าจอเครื่องจอแสดงแผนที่" loading="lazy"><span class="tag">Display Device</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES / PROBLEM-SOLUTION -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Why PHANToM GO</span>
+      <h2>ออกแบบมาเพื่อคนใช้ Android <span class="grad-text">สองเครื่อง</span></h2>
+      <p>แยกเครื่องกดงานออกจากเครื่องดูแผนที่ ลดความร้อนของมือถือหลัก และเลิกพิมพ์ปลายทางซ้ำ</p>
+    </div>
+    <div class="bento">
+      <div class="card b-prob reveal">
+        <div class="ic-badge" style="background:rgba(255,123,134,.12);border-color:rgba(255,123,134,.28);color:var(--danger)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+        </div>
+        <h4 style="margin-top:18px;font-size:1.15rem">ปัญหาที่เจอประจำ</h4>
+        <ul class="xlist">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg> มือถือหลักร้อนง่ายเมื่อติดหน้ารถ</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg> สลับแอปงานกับ Maps จนงงเส้นทาง</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg> ต้องพิมพ์ปลายทางซ้ำบนเครื่องจอ</li>
+        </ul>
+      </div>
+      <div class="card b-1 reveal" style="overflow:hidden">
+        <div class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg></div>
+        <h4 style="margin-top:18px;font-size:1.5rem">ถนอมมือถือเครื่องหลัก</h4>
+        <p class="muted" style="margin-top:10px;max-width:460px">เก็บมือถือหลักไว้กับตัว แล้วใช้มือถือหรือแท็บเล็ต Android เครื่องเก่าเป็นจอแสดงแผนที่แทน ลดความเสี่ยงจากแดด ความร้อน และฝน</p>
+        <div class="chips"><span class="chip">Old Device Reuse</span><span class="chip">Main Phone Protection</span></div>
+        <div class="ghost-watermark">👻</div>
+      </div>
+      <div class="card b-2 glass reveal">
+        <div class="ic-badge v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9c-2.5 0-4.8-1-6.4-2.6M3 12a9 9 0 0 1 9-9c2.5 0 4.8 1 6.4 2.6M3 8V4h4M21 16v4h-4"/></svg></div>
+        <h4 style="margin-top:18px;font-size:1.5rem">ส่งเส้นทางผ่านคลาวด์ทันที</h4>
+        <p class="muted" style="margin-top:10px">กด Share จากเครื่องหลัก ปลายทางจะถูกส่งไปเครื่องจอทันทีผ่าน cloud pairing และ route relay พร้อม Wi‑Fi fallback ในเครือข่ายเดียวกัน</p>
+      </div>
+      <div class="card b-3 reveal" style="background:linear-gradient(160deg,rgba(52,227,255,.1),rgba(167,139,255,.1));border-color:rgba(52,227,255,.25);text-align:center">
+        <div class="ic-badge" style="margin:0 auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></div>
+        <h4 style="margin-top:16px;font-size:1.2rem">เพื่อไรเดอร์</h4>
+        <p class="muted" style="margin-top:8px;font-size:.92rem">แยกเครื่องกดออเดอร์ออกจากเครื่องดูแผนที่ได้ชัดเจน เหมาะกับงานหลายจุด</p>
+      </div>
+    </div>
+
+    <div class="feat-grid" style="margin-top:18px">
+      <div class="card feat reveal"><div class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3m4 4v-7h-7v7h3"/></svg></div><h4>จับคู่ด้วย QR เร็ว</h4><p>สแกนครั้งเดียวเชื่อมต่อทันที ไม่ต้องล็อกอินหรือสมัครสมาชิก</p></div>
+      <div class="card feat reveal"><div class="ic-badge v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6m0 0 3-3m-3 3L9 5M5 12a7 7 0 0 0 14 0M3 12h2m14 0h2"/></svg></div><h4>มาตรวัดความเร็ว</h4><p>โชว์ความเร็วจาก GPS บนเครื่องจอ อ่านง่ายขณะขับ</p></div>
+      <div class="card feat reveal"><div class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M9 12l2 2 4-4"/></svg></div><h4>กันขโมยผ่านแจ็ค 3.5</h4><p>ถอดสายแล้วแจ้งเตือนเครื่องหลักพร้อมตำแหน่งล่าสุดและเสียงเตือน</p></div>
+      <div class="card feat reveal"><div class="ic-badge v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></div><h4>ค้นหาเครื่องจอ</h4><p>ดูตำแหน่งล่าสุดของเครื่องจอที่จับคู่จากเครื่องหลักได้</p></div>
+      <div class="card feat reveal"><div class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2h10l-1 7h3L9 22l1-9H6l1-11Z"/></svg></div><h4>เสียบชาร์จเปิดจอ</h4><p>เสียบสายชาร์จแล้วเปิดหน้าจออัตโนมัติ ถอดสายแล้วล็อกเครื่องทันที</p></div>
+      <div class="card feat reveal"><div class="ic-badge v"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg></div><h4>มี Web App สำหรับ iOS</h4><p>ใช้งานผ่านเบราว์เซอร์ได้ทันทีโดยไม่ต้องติดตั้ง APK</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Operational Protocol</span>
+      <h2>เริ่มใช้งานใน <span class="grad-text">3 ขั้นตอน</span></h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="num">01</div><h4>เปิด Display Mode</h4><p>เปิดแอปบนเครื่องที่ใช้เป็นจอติดรถ แล้วเข้า Display Mode เพื่อสร้าง QR code สำหรับจับคู่</p></div>
+      <div class="step reveal"><div class="num">02</div><h4>สแกน QR แล้ว Pair</h4><p>ใช้เครื่องหลักสแกน QR จากเครื่องจอ ระบบเชื่อมต่อให้ทันทีโดยไม่ต้องล็อกอิน</p></div>
+      <div class="step reveal"><div class="num">03</div><h4>แชร์เส้นทางไปยังจอ</h4><p>ค้นหาปลายทางบน Google Maps แล้วกด Share ไปที่ PHANToM GO เครื่องจอจะเปิดเส้นทางให้อัตโนมัติ</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section id="demo">
+  <div class="wrap two">
+    <div class="reveal">
+      <span class="eyebrow">Video Demo</span>
+      <h2 style="font-size:var(--fs-h2);margin:12px 0 16px">ดูวิธีเชื่อมต่อและใช้งานจริงแบบเต็ม Flow</h2>
+      <p class="muted">คลิปความยาว 2:46 พาไล่ตั้งแต่เปิด Display Mode, สแกน QR เพื่อจับคู่, แชร์ปลายทางจากเครื่องหลัก จนเครื่องจอเปิด Google Maps ให้อัตโนมัติ — เห็นการใช้งานจริงก่อนติดตั้ง</p>
+      <div class="trust" style="margin-top:22px">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> มีคำบรรยายไทย</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Runtime 2:46</span>
+      </div>
+    </div>
+    <div class="reveal">
+      <div class="video-wrap">
+        <video controls playsinline preload="none" poster="./assets/connection-usage-poster.png">
+          <source src="./assets/connection-usage-tutorial.mp4" type="video/mp4" />
+          <track default kind="captions" label="Thai captions" srclang="th" src="./assets/connection-usage-tutorial.vtt" />
+          เบราว์เซอร์นี้ไม่รองรับการเล่นวิดีโอ
+        </video>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOTS -->
+<section id="screens">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Interface</span>
+      <h2>หน้าจอจริงของ <span class="grad-text">PHANToM GO</span></h2>
+      <p>ตั้งแต่การจับคู่ไปจนถึงการเปิดแผนที่บนเครื่องจอ</p>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="rail" id="rail">
+      <div class="shot reveal"><div class="frame"><img src="./assets/main-home.jpg" alt="หน้าหลักเครื่องหลัก" loading="lazy"></div><p>System Overview</p></div>
+      <div class="shot reveal"><div class="frame"><img src="./assets/scan-qr.jpg" alt="สแกน QR" loading="lazy"></div><p>Pairing Protocol</p></div>
+      <div class="shot reveal"><div class="frame"><img src="./assets/share-sheet.png" alt="แชร์ไป PHANToM GO" loading="lazy"></div><p>Share To App</p></div>
+      <div class="shot reveal"><div class="frame"><img src="./assets/display-qr.jpg" alt="QR บนเครื่องจอ" loading="lazy"></div><p>Display QR</p></div>
+      <div class="shot reveal"><div class="frame"><img src="./assets/display-connected.jpg" alt="เครื่องจอเชื่อมต่อแล้ว" loading="lazy"></div><p>Connected</p></div>
+      <div class="shot reveal"><div class="frame"><img src="./assets/display-maps.png" alt="แผนที่บนเครื่องจอ" loading="lazy"></div><p>Maps On Display</p></div>
+    </div>
+    <p class="rail-hint">← ปัดเพื่อดูเพิ่มเติม →</p>
+  </div>
+</section>
+
+<!-- WEB APP -->
+<section id="webapp">
+  <div class="wrap two">
+    <div class="reveal">
+      <span class="eyebrow">Web App Access</span>
+      <h2 style="font-size:var(--fs-h2);margin:12px 0 16px">ใช้งานผ่านเบราว์เซอร์ได้ <span class="grad-text">สำหรับ iPhone</span></h2>
+      <p class="muted">ถ้าฝั่งใดไม่สะดวกติดตั้ง APK ใช้ PHANToM GO ผ่านเบราว์เซอร์ได้ มีหน้า Home, Display และ Settings ในหน้าเดียว จับคู่กับ APK หรือ browser อีกฝั่งแบบทีละคู่</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="./webapp/">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18"/></svg>
+          เปิด Web App
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/tag/v1.0.19">Release v1.0.19</a>
+      </div>
+    </div>
+    <div class="card glass reveal">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+        <div><h3 style="font-size:var(--fs-h3)">Browser Mode</h3><p class="muted" style="margin-top:6px;font-size:.92rem">เหมาะกับ iOS หรือเครื่องที่อยากลองใช้เร็ว ๆ โดยไม่ติดตั้ง APK</p></div>
+        <div class="ic-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
+      </div>
+      <div class="perm-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="perm"><b style="color:var(--cyan)">1</b><b style="display:block;margin-top:2px">Home</b><p>จับคู่และส่งลิงก์ Maps</p></div>
+        <div class="perm"><b style="color:var(--cyan)">2</b><b style="display:block;margin-top:2px">Display</b><p>รับเส้นทางแล้วแตะเปิดแผนที่</p></div>
+        <div class="perm"><b style="color:var(--cyan)">3</b><b style="display:block;margin-top:2px">Settings</b><p>เลือกโหมดรถ/มอเตอร์ไซค์</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="wrap two">
+    <div class="card glass reveal">
+      <h3 style="font-size:var(--fs-h2)">ติดตั้งยังไง</h3>
+      <div style="display:grid;gap:22px;margin-top:24px">
+        <div class="ministep"><div class="n">1</div><div><h4>ดาวน์โหลด APK</h4><p>กดปุ่ม Download APK แล้วอนุญาตติดตั้งจากแหล่งภายนอกถ้าระบบถาม</p></div></div>
+        <div class="ministep"><div class="n">2</div><div><h4>ติดตั้งทั้งสองเครื่อง</h4><p>เครื่องแรกเป็น Main สำหรับค้นหา/แชร์ อีกเครื่องเป็น Display สำหรับแสดงแผนที่</p></div></div>
+        <div class="ministep"><div class="n">3</div><div><h4>เปิด permission ที่จำเป็น</h4><p>ครั้งแรกแอปจะพา setup สิทธิ์ เช่น กล้อง การแจ้งเตือน Overlay และการประหยัดพลังงาน</p></div></div>
+        <div class="ministep"><div class="n">4</div><div><h4>จับคู่ด้วย QR แล้วเริ่มใช้</h4><p>เปิด Display Mode บนเครื่องจอ ให้เครื่องหลักสแกน QR แล้วแชร์ลิงก์แผนที่ได้เลย</p></div></div>
+      </div>
+    </div>
+    <div style="display:grid;gap:18px">
+      <div class="card reveal">
+        <h3 style="font-size:var(--fs-h3)">Permission ที่แอปขอ</h3>
+        <div class="perm-grid">
+          <div class="perm"><b>Camera</b><p>สแกน QR ตอนจับคู่</p></div>
+          <div class="perm"><b>Notifications</b><p>ให้ foreground service เสถียร</p></div>
+          <div class="perm"><b>Overlay</b><p>widget ลอยบนเครื่องจอบางกรณี</p></div>
+          <div class="perm"><b>Battery</b><p>ลดการถูกปิดเบื้องหลัง</p></div>
+        </div>
+      </div>
+      <div class="card reveal" style="background:linear-gradient(160deg,rgba(52,227,255,.1),rgba(167,139,255,.1));border-color:rgba(52,227,255,.22)">
+        <h3 style="font-size:var(--fs-h3)">เหมาะกับใคร</h3>
+        <ul class="xlist" style="margin-top:14px">
+          <li style="color:var(--ink-2)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> คนที่มี Android 2 เครื่อง อยากแยกเครื่องค้นหากับเครื่องแสดงผล</li>
+          <li style="color:var(--ink-2)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> ไรเดอร์/คนส่งของที่ต้องดูออเดอร์กับแผนที่พร้อมกัน</li>
+          <li style="color:var(--ink-2)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> คนที่อยากนำมือถือ/แท็บเล็ตเก่ากลับมาใช้เป็นจอติดรถ</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="wrap reveal">
+    <span class="eyebrow">Ready?</span>
+    <h2 style="margin-top:12px">พร้อมอัปเกรดการเดินทาง<span class="grad-text">ของคุณแล้วหรือยัง</span></h2>
+    <p class="lead">ดาวน์โหลด PHANToM GO แล้วเปลี่ยนมือถือ Android เครื่องเก่าให้กลายเป็นจอติดรถที่ใช้งานได้จริง</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.19/PHANToM_GO-v1.0.19.apk">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l4-4m-4 4l-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        ดาวน์โหลด APK
+      </a>
+      <a class="btn btn-ghost" href="./webapp/">เปิด Web App</a>
+      <a class="btn btn-light" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/tag/v1.0.19">Latest Release</a>
+    </div>
+    <p class="dim" style="margin-top:22px;font-family:var(--font-d);font-size:.74rem;letter-spacing:.18em;text-transform:uppercase">Current Stable v1.0.19 • Android 6.0+ • Web App Available</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <div class="brand" style="font-size:1.1rem"><span class="dot"></span> PHANToM GO</div>
+      <p class="muted" style="margin-top:14px;max-width:340px;font-size:.9rem">Android route relay เปลี่ยนมือถือเก่าให้เป็นจอติดรถ และส่งปลายทางจากเครื่องหลักไปยังเครื่องจอได้ทันที</p>
+      <p class="dim" style="margin-top:18px;font-size:.82rem">© <span id="yr"></span> PHANToM GO.</p>
+    </div>
+    <div class="foot-links">
+      <div><h5>Download</h5>
+        <a href="https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.19/PHANToM_GO-v1.0.19.apk">Direct APK</a>
+        <a href="https://github.com/Phantomguy7845/PHANToM_GO/releases/tag/v1.0.19">Latest Release</a>
+        <a href="./webapp/">Web App</a>
+      </div>
+      <div><h5>Project</h5>
+        <a href="https://github.com/Phantomguy7845/PHANToM_GO">GitHub Repository</a>
+        <a href="#install">Installation Guide</a>
+        <a href="#features">Features</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Sticky mobile CTA -->
+<div class="mobile-bar" id="mobileBar">
+  <a class="btn btn-ghost" href="./webapp/">Web App</a>
+  <a class="btn btn-primary" href="https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.19/PHANToM_GO-v1.0.19.apk">ดาวน์โหลด APK</a>
+</div>
+
+<button class="top" id="toTop" aria-label="กลับขึ้นบน">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg>
+</button>
+
+<script>
+(function(){
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var doc = document.documentElement;
+
+  /* Mobile menu */
+  var burger = document.getElementById('burger');
+  var scrim = document.getElementById('scrim');
+  function closeMenu(){ document.body.classList.remove('menu-open'); burger.setAttribute('aria-expanded','false'); }
+  function toggleMenu(){ var o=document.body.classList.toggle('menu-open'); burger.setAttribute('aria-expanded', o?'true':'false'); }
+  burger.addEventListener('click', toggleMenu);
+  scrim.addEventListener('click', closeMenu);
+  document.querySelectorAll('#menu a').forEach(function(a){ a.addEventListener('click', closeMenu); });
+
+  /* Reveal — scroll based, robust (never leaves content hidden) */
+  var reveals = [].slice.call(document.querySelectorAll('.reveal'));
+  function revealVisible(){
+    var vh = innerHeight || doc.clientHeight;
+    reveals.forEach(function(el){
+      if(el.classList.contains('in')) return;
+      var r = el.getBoundingClientRect();
+      if(r.top < vh*0.92 && r.bottom > -60){
+        var i = el.parentElement ? [].indexOf.call(el.parentElement.children, el) : 0;
+        el.style.transitionDelay = Math.min(i,6)*65 + 'ms';
+        el.classList.add('in');
+      }
+    });
+  }
+  if(reduce){ reveals.forEach(function(el){ el.classList.add('in'); }); }
+
+  /* Scroll-driven UI */
+  var nav = document.getElementById('nav');
+  var prog = document.getElementById('progress');
+  var toTop = document.getElementById('toTop');
+  var mbar = document.getElementById('mobileBar');
+  var links = [].slice.call(document.querySelectorAll('.nav-links a'));
+  var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  var ticking = false;
+  function onScroll(){
+    if(ticking) return; ticking = true;
+    requestAnimationFrame(function(){
+      var sc = doc.scrollTop || document.body.scrollTop;
+      var max = doc.scrollHeight - doc.clientHeight;
+      if(prog) prog.style.width = (max>0 ? sc/max*100 : 0) + '%';
+      nav.classList.toggle('scrolled', sc > 20);
+      toTop.classList.toggle('show', sc > 560);
+      if(mbar) mbar.classList.toggle('show', sc > 480);
+      var pos = sc + innerHeight*0.32, idx = -1;
+      secs.forEach(function(s,i){ if(s && s.offsetTop <= pos) idx = i; });
+      links.forEach(function(a,i){ a.classList.toggle('active', i===idx); });
+      if(!reduce) revealVisible();
+      ticking = false;
+    });
+  }
+  addEventListener('scroll', onScroll, {passive:true});
+  addEventListener('resize', onScroll);
+  addEventListener('load', onScroll);
+  onScroll();
+  if(!reduce) revealVisible();
+
+  toTop.addEventListener('click', function(){ scrollTo({top:0, behavior: reduce?'auto':'smooth'}); });
+
+  /* Cursor glow (fine pointers) */
+  var glow = document.getElementById('cursorGlow');
+  if(glow && !reduce && matchMedia('(pointer:fine)').matches){
+    addEventListener('pointermove', function(e){
+      glow.style.setProperty('--cx', e.clientX+'px');
+      glow.style.setProperty('--cy', e.clientY+'px');
+    }, {passive:true});
+  }
+
+  /* Tilt on cards (fine pointers) */
+  if(!reduce && matchMedia('(pointer:fine)').matches){
+    document.querySelectorAll('.card').forEach(function(c){
+      c.addEventListener('pointermove', function(e){
+        var r = c.getBoundingClientRect();
+        var rx = ((e.clientY-r.top)/r.height - .5) * -5;
+        var ry = ((e.clientX-r.left)/r.width - .5) * 5;
+        c.style.transform = 'translateY(-6px) perspective(800px) rotateX('+rx+'deg) rotateY('+ry+'deg)';
+      });
+      c.addEventListener('pointerleave', function(){ c.style.transform=''; });
+    });
+  }
+
+  document.getElementById('yr').textContent = new Date().getFullYear();
+})();
+</script>
+</body>
+</html>

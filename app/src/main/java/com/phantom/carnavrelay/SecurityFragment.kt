@@ -7,10 +7,14 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
+import android.text.InputType
 import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
@@ -29,6 +33,11 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
     private lateinit var locationPlaceholder: TextView
     private lateinit var mapView: WebView
     private lateinit var primaryAction: MaterialButton
+    private lateinit var displaySecurityControls: View
+    private lateinit var findDisplayCard: View
+    private lateinit var jackStatus: TextView
+    private lateinit var pinAction: MaterialButton
+    private lateinit var advancedAction: MaterialButton
     private lateinit var refreshButton: MaterialButton
     private lateinit var openExternalMapButton: MaterialButton
 
@@ -56,13 +65,24 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
         locationPlaceholder = view.findViewById(R.id.displayLocationPlaceholder)
         mapView = view.findViewById(R.id.displayLocationMap)
         primaryAction = view.findViewById(R.id.btnSecurityPrimaryAction)
+        displaySecurityControls = view.findViewById(R.id.displaySecurityControls)
+        findDisplayCard = view.findViewById(R.id.findDisplayCard)
+        jackStatus = view.findViewById(R.id.securityJackStatus)
+        pinAction = view.findViewById(R.id.btnSecurityPinAction)
+        advancedAction = view.findViewById(R.id.btnSecurityAdvancedAction)
         refreshButton = view.findViewById(R.id.btnSecurityRefresh)
         openExternalMapButton = view.findViewById(R.id.btnSecurityOpenExternalMap)
 
         configureMap()
         primaryAction.setOnClickListener {
-            (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.SETTINGS)
+            if (prefsManager.getDeviceMode() == PrefsManager.MODE_DISPLAY) {
+                handleDisplaySecurityPrimaryAction()
+            } else {
+                openSettings()
+            }
         }
+        pinAction.setOnClickListener { promptPinChange() }
+        advancedAction.setOnClickListener { openSettings() }
         refreshButton.setOnClickListener { refreshDisplayLocation() }
         openExternalMapButton.setOnClickListener { openLatestLocationExternally() }
 
@@ -131,7 +151,20 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
             statusCard.setBackgroundResource(
                 if (alarmActive) R.drawable.security_alert_card else R.drawable.security_safe_card
             )
-            primaryAction.text = getString(R.string.security_manage_display)
+            displaySecurityControls.visibility = View.VISIBLE
+            findDisplayCard.visibility = View.GONE
+            jackStatus.text = getString(
+                if (snapshot.headsetPlugged) R.string.security_jack_connected else R.string.security_jack_disconnected
+            )
+            pinAction.text = getString(if (snapshot.hasPin) R.string.at_change_pin else R.string.at_set_pin)
+            primaryAction.text = when {
+                !snapshot.featureEnabled -> getString(R.string.common_enable)
+                !snapshot.hasPin -> getString(R.string.at_set_pin)
+                snapshot.armed -> getString(R.string.at_disarm)
+                else -> getString(R.string.at_arm)
+            }
+            primaryAction.isEnabled = !snapshot.featureEnabled || !snapshot.hasPin || snapshot.armed || snapshot.headsetPlugged
+            primaryAction.alpha = if (primaryAction.isEnabled) 1f else 0.55f
         } else {
             val paired = prefsManager.getPairedDisplayDeviceId() != null
             headline.text = if (paired) getString(R.string.security_link_ready) else getString(R.string.security_no_display)
@@ -150,8 +183,78 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
             statusCard.setBackgroundResource(
                 if (paired) R.drawable.security_safe_card else R.drawable.soft_card_background
             )
+            displaySecurityControls.visibility = View.GONE
+            findDisplayCard.visibility = View.VISIBLE
             primaryAction.text = getString(R.string.security_open_settings)
+            primaryAction.isEnabled = true
+            primaryAction.alpha = 1f
         }
+    }
+
+    private fun handleDisplaySecurityPrimaryAction() {
+        val snapshot = DisplayAntiTheftManager.snapshot(requireContext())
+        when {
+            !snapshot.featureEnabled -> {
+                DisplayAntiTheftManager.setFeatureEnabled(requireContext(), true)
+                if (!snapshot.hasPin) promptPinChange()
+            }
+            !snapshot.hasPin -> promptPinChange()
+            snapshot.armed -> promptDisarm()
+            else -> {
+                val error = DisplayAntiTheftManager.arm(requireContext())
+                if (error != null) {
+                    Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        updateSecurityState()
+    }
+
+    private fun promptPinChange() {
+        val input = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            hint = getString(R.string.at_pin_hint)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.at_set_pin_title)
+            .setView(input)
+            .setPositiveButton(R.string.common_save) { _, _ ->
+                val saved = DisplayAntiTheftManager.savePin(requireContext(), input.text?.toString().orEmpty())
+                Toast.makeText(
+                    requireContext(),
+                    if (saved) getString(R.string.at_pin_saved) else getString(R.string.at_pin_invalid),
+                    Toast.LENGTH_SHORT
+                ).show()
+                updateSecurityState()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun promptDisarm() {
+        val input = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            hint = getString(R.string.at_enter_pin_hint)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.at_disarm_title)
+            .setMessage(R.string.at_disarm_msg)
+            .setView(input)
+            .setPositiveButton(R.string.at_disarm) { _, _ ->
+                val disarmed = DisplayAntiTheftManager.disarmWithPin(requireContext(), input.text?.toString().orEmpty())
+                Toast.makeText(
+                    requireContext(),
+                    if (disarmed) getString(R.string.at_disarmed) else getString(R.string.at_wrong_pin),
+                    Toast.LENGTH_SHORT
+                ).show()
+                updateSecurityState()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun openSettings() {
+        (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.SETTINGS)
     }
 
     private fun refreshDisplayLocation() {

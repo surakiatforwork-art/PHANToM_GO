@@ -118,6 +118,10 @@ class PrefsManager(context: Context) {
         private const val KEY_DISPLAY_POWER_AUTOMATION_ENABLED = "display_power_automation_enabled"
         private const val KEY_DISPLAY_WAKE_BEFORE_MAPS_ENABLED = "display_wake_before_maps_enabled"
         private const val KEY_DISPLAY_LOCK_ON_POWER_DISCONNECT = "display_lock_on_power_disconnect"
+        private const val KEY_DISPLAY_POWER_STATE_KNOWN = "display_power_state_known"
+        private const val KEY_DISPLAY_POWER_PLUGGED = "display_power_plugged"
+        private const val KEY_DISPLAY_POWER_STATE_UPDATED_AT = "display_power_state_updated_at"
+        private const val KEY_DISPLAY_POWER_DISCONNECT_LOCK_PENDING = "display_power_disconnect_lock_pending"
 
         // Display anti-theft
         private const val KEY_ANTI_THEFT_ENABLED = "anti_theft_enabled"
@@ -129,6 +133,7 @@ class PrefsManager(context: Context) {
         private const val KEY_ANTI_THEFT_ALARM_SOUND_URI = "anti_theft_alarm_sound_uri"
         private const val KEY_ANTI_THEFT_LAST_STATE = "anti_theft_last_state"
         private const val KEY_ANTI_THEFT_LAST_HEADSET_PLUGGED = "anti_theft_last_headset_plugged"
+        private const val KEY_ANTI_THEFT_COUNTDOWN_DEADLINE_AT = "anti_theft_countdown_deadline_at"
         private const val KEY_ANTI_THEFT_SESSION_ID = "anti_theft_session_id"
         private const val KEY_ANTI_THEFT_WRONG_ATTEMPTS = "anti_theft_wrong_attempts"
         private const val KEY_ANTI_THEFT_ALARM_STARTED_AT = "anti_theft_alarm_started_at"
@@ -656,6 +661,30 @@ class PrefsManager(context: Context) {
         prefs.edit().putBoolean(KEY_DISPLAY_LOCK_ON_POWER_DISCONNECT, enabled).apply()
     }
 
+    fun hasDisplayPowerState(): Boolean {
+        return prefs.getBoolean(KEY_DISPLAY_POWER_STATE_KNOWN, false)
+    }
+
+    fun isDisplayPowerPlugged(): Boolean {
+        return prefs.getBoolean(KEY_DISPLAY_POWER_PLUGGED, false)
+    }
+
+    fun setDisplayPowerState(plugged: Boolean) {
+        prefs.edit()
+            .putBoolean(KEY_DISPLAY_POWER_STATE_KNOWN, true)
+            .putBoolean(KEY_DISPLAY_POWER_PLUGGED, plugged)
+            .putLong(KEY_DISPLAY_POWER_STATE_UPDATED_AT, System.currentTimeMillis())
+            .apply()
+    }
+
+    fun setDisplayDisconnectLockPending(pending: Boolean) {
+        prefs.edit().putBoolean(KEY_DISPLAY_POWER_DISCONNECT_LOCK_PENDING, pending).apply()
+    }
+
+    fun isDisplayDisconnectLockPending(): Boolean {
+        return prefs.getBoolean(KEY_DISPLAY_POWER_DISCONNECT_LOCK_PENDING, false)
+    }
+
     fun isAntiTheftEnabled(): Boolean {
         return prefs.getBoolean(KEY_ANTI_THEFT_ENABLED, false)
     }
@@ -739,6 +768,14 @@ class PrefsManager(context: Context) {
 
     fun setAntiTheftHeadsetPlugged(plugged: Boolean) {
         prefs.edit().putBoolean(KEY_ANTI_THEFT_LAST_HEADSET_PLUGGED, plugged).apply()
+    }
+
+    fun getAntiTheftCountdownDeadlineAt(): Long {
+        return prefs.getLong(KEY_ANTI_THEFT_COUNTDOWN_DEADLINE_AT, 0L)
+    }
+
+    fun setAntiTheftCountdownDeadlineAt(deadlineAt: Long) {
+        prefs.edit().putLong(KEY_ANTI_THEFT_COUNTDOWN_DEADLINE_AT, deadlineAt).apply()
     }
 
     fun getAntiTheftSessionId(): String? {

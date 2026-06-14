@@ -1,5 +1,6 @@
 package com.phantom.carnavrelay
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -766,17 +767,21 @@ class DisplayServerService : Service() {
         }
     }
     
+    @SuppressLint("WakelockTimeout")
     private fun acquireWakeLock() {
         try {
+            if (wakeLock?.isHeld == true) return
             val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
             wakeLock = powerManager.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK,
                 WAKE_LOCK_TAG
             ).apply {
                 setReferenceCounted(false)
-                acquire(10*60*1000L) // 10 minutes
+                // Display mode must keep its command listener and power watchdog alive while
+                // the screen is off. The lock is always released when the service stops.
+                acquire()
             }
-            Log.d(TAG, "✅ Wake lock acquired")
+            Log.d(TAG, "✅ Persistent Display service wake lock acquired")
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to acquire wake lock", e)
         }

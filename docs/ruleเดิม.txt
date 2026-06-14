@@ -1,0 +1,46 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "devices": {
+      "$deviceId": {
+        ".read": "auth != null && data.child('authUid').val() == auth.uid",
+        ".write": "auth != null && (!data.exists() ? newData.child('authUid').val() == auth.uid : data.child('authUid').val() == auth.uid)"
+      }
+    },
+    "presence": {
+      "$deviceId": {
+        ".read": "auth != null && (data.child('authUid').val() == auth.uid || root.child('pairings/byDisplay').child($deviceId).child('mainAuthUid').val() == auth.uid)",
+        ".write": "auth != null && (!data.exists() ? newData.child('authUid').val() == auth.uid : data.child('authUid').val() == auth.uid)"
+      }
+    },
+    "pairingCodes": {
+      "$pairCode": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((!data.exists() && newData.child('displayAuthUid').val() == auth.uid && newData.child('pairCode').val() == $pairCode) || (data.exists() && data.child('displayAuthUid').val() == auth.uid) || (data.exists() && newData.exists() && newData.child('displayAuthUid').val() == data.child('displayAuthUid').val() && newData.child('displayDeviceId').val() == data.child('displayDeviceId').val() && newData.child('pairCode').val() == data.child('pairCode').val() && newData.child('displayName').val() == data.child('displayName').val() && newData.child('localIp').val() == data.child('localIp').val() && newData.child('localPort').val() == data.child('localPort').val() && newData.child('localToken').val() == data.child('localToken').val() && newData.child('platform').val() == data.child('platform').val()))"
+      }
+    },
+    "pairings": {
+      "byDisplay": {
+        "$displayDeviceId": {
+          ".read": "auth != null && (!data.exists() || data.child('mainAuthUid').val() == auth.uid || data.child('displayAuthUid').val() == auth.uid)",
+          ".write": "auth != null && ((!data.exists() && newData.child('mainAuthUid').val() == auth.uid && newData.child('displayAuthUid').isString() && newData.child('displayDeviceId').val() == $displayDeviceId) || (data.exists() && data.child('mainAuthUid').val() == auth.uid) || (data.exists() && data.child('displayAuthUid').val() == auth.uid))"
+        }
+      },
+      "byMain": {
+        "$mainDeviceId": {
+          ".read": "auth != null && (!data.exists() || data.child('mainAuthUid').val() == auth.uid || data.child('displayAuthUid').val() == auth.uid)",
+          ".write": "auth != null && ((!data.exists() && newData.child('mainAuthUid').val() == auth.uid && newData.child('displayAuthUid').isString() && newData.child('mainDeviceId').val() == $mainDeviceId) || (data.exists() && data.child('mainAuthUid').val() == auth.uid) || (data.exists() && data.child('displayAuthUid').val() == auth.uid))"
+        }
+      }
+    },
+    "commands": {
+      "$displayDeviceId": {
+        ".read": "auth != null && (root.child('devices').child($displayDeviceId).child('authUid').val() == auth.uid || root.child('pairings/byDisplay').child($displayDeviceId).child('mainAuthUid').val() == auth.uid)",
+        "$commandId": {
+          ".write": "auth != null && ((!data.exists() && root.child('pairings/byDisplay').child($displayDeviceId).child('mainAuthUid').val() == auth.uid && newData.child('fromMainAuthUid').val() == auth.uid && newData.child('fromMainDeviceId').val() == root.child('pairings/byDisplay').child($displayDeviceId).child('mainDeviceId').val()) || (data.exists() && root.child('devices').child($displayDeviceId).child('authUid').val() == auth.uid && data.child('fromMainAuthUid').val() == newData.child('fromMainAuthUid').val() && data.child('fromMainDeviceId').val() == newData.child('fromMainDeviceId').val() && data.child('url').val() == newData.child('url').val() && data.child('createdAt').val() == newData.child('createdAt').val()))"
+        }
+      }
+    }
+  }
+}

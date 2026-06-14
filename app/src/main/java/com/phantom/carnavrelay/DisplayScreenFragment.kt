@@ -32,6 +32,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -88,16 +89,10 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
     private lateinit var btnBatterySettings: Button
     private lateinit var tvQrPayload: TextView
     private lateinit var btnCopyPayload: Button
-    private lateinit var antiTheftCard: MaterialCardView
-    private lateinit var tvAntiTheftStatus: TextView
-    private lateinit var tvAntiTheftDetail: TextView
-    private lateinit var btnAntiTheftPrimary: Button
-    private lateinit var btnAntiTheftSecondary: Button
     private var statusBlinkAnimator: ObjectAnimator? = null
     private var suppressDisplayModeToggleCallback = false
     private var pairingReceiverRegistered = false
     private var speedReceiverRegistered = false
-    private var antiTheftReceiverRegistered = false
     private val mainPingHandler = Handler(Looper.getMainLooper())
     private val mainPingRunnable = object : Runnable {
         override fun run() {
@@ -121,14 +116,6 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == DisplayServerService.ACTION_SPEED_UPDATED) {
                 activity?.runOnUiThread { updateSpeedUi() }
-            }
-        }
-    }
-
-    private val antiTheftReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == DisplayAntiTheftManager.ACTION_STATE_CHANGED) {
-                activity?.runOnUiThread { updateAntiTheftUi() }
             }
         }
     }
@@ -180,11 +167,6 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         btnBatterySettings = root.findViewById(R.id.btnBatterySettings)
         tvQrPayload = root.findViewById(R.id.tvQrPayload)
         btnCopyPayload = root.findViewById(R.id.btnCopyPayload)
-        antiTheftCard = root.findViewById(R.id.antiTheftCard)
-        tvAntiTheftStatus = root.findViewById(R.id.tvAntiTheftStatus)
-        tvAntiTheftDetail = root.findViewById(R.id.tvAntiTheftDetail)
-        btnAntiTheftPrimary = root.findViewById(R.id.btnAntiTheftPrimary)
-        btnAntiTheftSecondary = root.findViewById(R.id.btnAntiTheftSecondary)
 
         btnRefreshToken.setOnClickListener { refreshToken() }
         btnCopyToken.setOnClickListener { copyTokenToClipboard() }
@@ -192,8 +174,6 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         btnResetPairing.setOnClickListener { confirmResetPairing() }
         btnBatterySettings.setOnClickListener { requestBatteryOptimization() }
         btnCopyPayload.setOnClickListener { copyPayloadToClipboard() }
-        btnAntiTheftPrimary.setOnClickListener { handleAntiTheftPrimaryAction() }
-        btnAntiTheftSecondary.setOnClickListener { handleAntiTheftSecondaryAction() }
 
         switchDisplayMode.setOnCheckedChangeListener { _, isChecked ->
             if (suppressDisplayModeToggleCallback) return@setOnCheckedChangeListener
@@ -231,13 +211,11 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         super.onStart()
         registerPairingReceiverIfNeeded()
         registerSpeedReceiverIfNeeded()
-        registerAntiTheftReceiverIfNeeded()
     }
 
     override fun onStop() {
         unregisterPairingReceiverIfNeeded()
         unregisterSpeedReceiverIfNeeded()
-        unregisterAntiTheftReceiverIfNeeded()
         super.onStop()
     }
 
@@ -264,9 +242,9 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
 
         tvServerInfo.text = if (isServiceRunning) getString(R.string.display_server_fmt, "$ip:$port") else getString(R.string.display_server_not_running)
         updateBatteryStatus()
+        speedometerCard.visibility = if (isPaired) View.VISIBLE else View.GONE
         updateSpeedUi()
         updateDisplayPriorityLayout(isPaired)
-        updateAntiTheftUi()
 
         if (isPaired) {
             val pairedName = prefsManager.getDisplayPairedMainName() ?: getString(R.string.display_unknown)
@@ -285,6 +263,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             tvTokenHint.visibility = View.GONE
             buttonLayout.visibility = View.GONE
             tvPairedInfo.text = getString(R.string.display_main_device_fmt, pairedName, timeAgo)
+            tvPairedInfo.visibility = View.GONE
             tvConnectedHeadline.text = if (isMainActive) getString(R.string.connected) else getString(R.string.display_paired_state)
             tvConnectedSubtext.text = if (isMainActive) {
                 getString(R.string.display_ready_receive_fmt, pairedName)
@@ -295,8 +274,9 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             btnResetPairing.text = getString(R.string.display_disconnect_main)
             layoutQR.visibility = View.GONE
             layoutConnected.visibility = View.VISIBLE
-            ivConnectedIcon.visibility = View.VISIBLE
+            ivConnectedIcon.visibility = View.GONE
             layoutConnectedActions.visibility = View.VISIBLE
+            tvConnectedInstruction.visibility = View.GONE
         } else {
             appIcon.visibility = View.VISIBLE
             titleText.text = getString(R.string.app_name_display)
@@ -304,6 +284,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             tvTokenHint.visibility = View.VISIBLE
             buttonLayout.visibility = View.VISIBLE
             tvPairedInfo.text = getString(R.string.display_scan_this_qr)
+            tvPairedInfo.visibility = View.VISIBLE
             tvConnectedHeadline.text = getString(R.string.display_waiting_pairing)
             tvConnectedSubtext.text = getString(R.string.display_show_on_car_hint)
             tvConnectedInstruction.text = getString(R.string.display_auto_switch_hint)
@@ -312,6 +293,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             layoutConnected.visibility = View.VISIBLE
             ivConnectedIcon.visibility = View.GONE
             layoutConnectedActions.visibility = View.GONE
+            tvConnectedInstruction.visibility = View.VISIBLE
         }
 
         updateConnectionIndicator(isPaired, isMainActive)
@@ -511,21 +493,28 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
     }
 
     private fun updateConnectionIndicator(isPaired: Boolean, isMainActive: Boolean) {
-        if (isPaired && isMainActive) {
-            statusDot.visibility = View.VISIBLE
-            statusDot.setBackgroundResource(R.drawable.status_dot_cyan)
-            statusGhost.visibility = View.GONE
-            tvStatus.text = getString(R.string.display_connected_wifi)
-            tvStatus.setTextColor(requireContext().getColor(R.color.aurora_cyan))
-            startStatusBlink()
-        } else {
+        if (isPaired) {
             stopStatusBlink()
             statusDot.visibility = View.GONE
-            statusGhost.visibility = View.VISIBLE
-            statusGhost.text = "👻💤"
-            tvStatus.text = if (isPaired) getString(R.string.display_main_disconnected) else getString(R.string.display_disconnected)
-            tvStatus.setTextColor(requireContext().getColor(R.color.ghost_purple_dark))
+            statusGhost.visibility = View.GONE
+            tvStatus.visibility = View.GONE
+            val pairedName = prefsManager.getDisplayPairedMainName() ?: getString(R.string.display_unknown)
+            tvConnectedHeadline.text = if (isMainActive) getString(R.string.connected) else getString(R.string.display_paired_state)
+            tvConnectedSubtext.text = if (isMainActive) {
+                getString(R.string.display_ready_receive_fmt, pairedName)
+            } else {
+                getString(R.string.display_still_paired_fmt, pairedName)
+            }
+            return
         }
+
+        tvStatus.visibility = View.VISIBLE
+        stopStatusBlink()
+        statusDot.visibility = View.GONE
+        statusGhost.visibility = View.VISIBLE
+        statusGhost.text = "👻💤"
+        tvStatus.text = getString(R.string.display_disconnected)
+        tvStatus.setTextColor(requireContext().getColor(R.color.ghost_purple_dark))
     }
 
     private fun isMainRecentlyConnected(): Boolean {
@@ -541,7 +530,6 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         if (prefsManager.isSpeedometerEnabled() && isServiceRunning(DisplayServerService::class.java)) {
             DisplayServerService.requestSpeedometerRefresh(requireContext())
         }
-        updateAntiTheftUi()
     }
 
     override fun onPause() {
@@ -568,7 +556,6 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
     override fun onDestroyView() {
         unregisterPairingReceiverIfNeeded()
         unregisterSpeedReceiverIfNeeded()
-        unregisterAntiTheftReceiverIfNeeded()
         statusBlinkAnimator?.cancel()
         super.onDestroyView()
     }
@@ -615,27 +602,6 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         speedReceiverRegistered = false
     }
 
-    private fun registerAntiTheftReceiverIfNeeded() {
-        if (antiTheftReceiverRegistered) return
-        val filter = IntentFilter(DisplayAntiTheftManager.ACTION_STATE_CHANGED)
-        ContextCompat.registerReceiver(
-            requireContext(),
-            antiTheftReceiver,
-            filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-        antiTheftReceiverRegistered = true
-    }
-
-    private fun unregisterAntiTheftReceiverIfNeeded() {
-        if (!antiTheftReceiverRegistered) return
-        try {
-            requireContext().unregisterReceiver(antiTheftReceiver)
-        } catch (_: Exception) {
-        }
-        antiTheftReceiverRegistered = false
-    }
-
     private fun updateSpeedUi() {
         val enabled = prefsManager.isSpeedometerEnabled()
         val hasPermission = DisplaySpeedMonitor.hasLocationPermission(requireContext())
@@ -647,7 +613,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         val provider = prefsManager.getLastSpeedProvider()
         val updatedAt = prefsManager.getLastSpeedUpdatedAt()
 
-        tvSpeedValue.text = if (enabled && serviceRunning && hasPermission && locationEnabled && speed != null) speed.toString() else "--"
+        tvSpeedValue.text = if (enabled && serviceRunning && hasPermission && locationEnabled && speed != null) speed.coerceIn(0, 999).toString() else "--"
         tvSpeedStatus.text = when {
             !enabled -> getString(R.string.display_speed_enable_hint)
             !serviceRunning -> getString(R.string.display_speed_turn_on_mode)
@@ -672,6 +638,15 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
     }
 
     private fun updateDisplayPriorityLayout(isPaired: Boolean) {
+        val parent = connectedStateCard.parent as? ViewGroup
+        if (parent != null && isPaired) {
+            val speedIndex = parent.indexOfChild(speedometerCard)
+            val connectionIndex = parent.indexOfChild(connectedStateCard)
+            if (speedIndex > connectionIndex) {
+                parent.removeView(speedometerCard)
+                parent.addView(speedometerCard, connectionIndex)
+            }
+        }
         updateSpeedometerLayout(isPaired)
         updatePairingCardLayout(isPaired)
     }
@@ -683,7 +658,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             topMargin = (if (isPaired) 10 else 18).dp(density)
         }
 
-        speedometerContent.minimumHeight = (if (isPaired) 360 else 128).dp(density)
+        speedometerContent.minimumHeight = (if (isPaired) 330 else 128).dp(density)
         speedometerContent.updatePadding(
             left = speedometerContent.paddingLeft,
             top = (if (isPaired) 30 else 18).dp(density),
@@ -692,14 +667,15 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         )
 
         tvSpeedLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 18f else 14f)
-        tvSpeedValue.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 128f else 46f)
-        tvSpeedUnit.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 28f else 15f)
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+            tvSpeedValue,
+            if (isPaired) 72 else 40,
+            if (isPaired) 150 else 54,
+            2,
+            TypedValue.COMPLEX_UNIT_SP
+        )
+        tvSpeedUnit.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 24f else 15f)
         tvSpeedStatus.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 16f else 12f)
-
-        tvSpeedUnit.updateLayoutParams<LinearLayout.LayoutParams> {
-            marginStart = (if (isPaired) 14 else 10).dp(density)
-            bottomMargin = (if (isPaired) 22 else 9).dp(density)
-        }
     }
 
     private fun updatePairingCardLayout(isPaired: Boolean) {
@@ -720,136 +696,21 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             topMargin = (if (isPaired) 10 else 16).dp(density)
         }
 
-        connectedStateContent.minimumHeight = (if (isPaired) 220 else 320).dp(density)
+        connectedStateContent.minimumHeight = (if (isPaired) 128 else 320).dp(density)
         connectedStateContent.updatePadding(
             left = connectedStateContent.paddingLeft,
-            top = (if (isPaired) 20 else 28).dp(density),
+            top = (if (isPaired) 14 else 28).dp(density),
             right = connectedStateContent.paddingRight,
-            bottom = (if (isPaired) 20 else 28).dp(density)
+            bottom = (if (isPaired) 14 else 28).dp(density)
         )
 
         ivConnectedIcon.updateLayoutParams<LinearLayout.LayoutParams> {
             width = (if (isPaired) 64 else 92).dp(density)
             height = (if (isPaired) 64 else 92).dp(density)
         }
-        tvConnectedHeadline.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 24f else 30f)
-        tvConnectedSubtext.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 16f else 18f)
+        tvConnectedHeadline.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 18f else 30f)
+        tvConnectedSubtext.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 13f else 18f)
         tvConnectedInstruction.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isPaired) 13f else 14f)
-    }
-
-    private fun updateAntiTheftUi() {
-        val snapshot = DisplayAntiTheftManager.snapshot(requireContext())
-        val visible = DisplayAntiTheftManager.isVisibleOnDisplay(requireContext())
-        antiTheftCard.visibility = if (visible) View.VISIBLE else View.GONE
-        if (!visible) return
-
-        tvAntiTheftStatus.text = snapshot.headline
-        tvAntiTheftDetail.text = snapshot.detail
-
-        when {
-            !snapshot.featureEnabled -> {
-                btnAntiTheftPrimary.text = getString(R.string.at_open_settings)
-                btnAntiTheftSecondary.text = if (snapshot.hasPin) getString(R.string.at_change_pin) else getString(R.string.at_set_pin)
-                btnAntiTheftPrimary.isEnabled = true
-                btnAntiTheftSecondary.isEnabled = true
-            }
-            !snapshot.hasPin -> {
-                btnAntiTheftPrimary.text = getString(R.string.at_set_pin)
-                btnAntiTheftSecondary.text = getString(R.string.at_open_settings)
-                btnAntiTheftPrimary.isEnabled = true
-                btnAntiTheftSecondary.isEnabled = true
-            }
-            snapshot.armed -> {
-                btnAntiTheftPrimary.text = getString(R.string.at_disarm)
-                btnAntiTheftSecondary.text = getString(R.string.at_change_pin)
-                btnAntiTheftPrimary.isEnabled = true
-                btnAntiTheftSecondary.isEnabled = true
-            }
-            else -> {
-                btnAntiTheftPrimary.text = getString(R.string.at_arm)
-                btnAntiTheftSecondary.text = getString(R.string.at_change_pin)
-                btnAntiTheftPrimary.isEnabled = snapshot.headsetPlugged
-                btnAntiTheftSecondary.isEnabled = true
-            }
-        }
-
-        btnAntiTheftPrimary.alpha = if (btnAntiTheftPrimary.isEnabled) 1f else 0.55f
-        btnAntiTheftSecondary.alpha = if (btnAntiTheftSecondary.isEnabled) 1f else 0.55f
-    }
-
-    private fun handleAntiTheftPrimaryAction() {
-        val snapshot = DisplayAntiTheftManager.snapshot(requireContext())
-        when {
-            !snapshot.featureEnabled -> {
-                (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.SETTINGS)
-            }
-            !snapshot.hasPin -> {
-                promptAntiTheftPinChange()
-            }
-            snapshot.armed -> {
-                promptAntiTheftDisarm()
-            }
-            else -> {
-                val error = DisplayAntiTheftManager.arm(requireContext())
-                if (error != null) {
-                    Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
-                }
-                updateAntiTheftUi()
-            }
-        }
-    }
-
-    private fun handleAntiTheftSecondaryAction() {
-        val snapshot = DisplayAntiTheftManager.snapshot(requireContext())
-        if (!snapshot.featureEnabled && !snapshot.hasPin) {
-            (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.SETTINGS)
-        } else {
-            promptAntiTheftPinChange()
-        }
-    }
-
-    private fun promptAntiTheftPinChange() {
-        val input = android.widget.EditText(requireContext()).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = getString(R.string.at_pin_hint)
-        }
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.at_set_pin_title)
-            .setView(input)
-            .setPositiveButton(R.string.common_save) { _, _ ->
-                val pin = input.text?.toString().orEmpty().trim()
-                val ok = DisplayAntiTheftManager.savePin(requireContext(), pin)
-                Toast.makeText(
-                    requireContext(),
-                    if (ok) getString(R.string.at_pin_saved) else getString(R.string.at_pin_invalid),
-                    Toast.LENGTH_SHORT
-                ).show()
-                updateAntiTheftUi()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-    }
-
-    private fun promptAntiTheftDisarm() {
-        val input = android.widget.EditText(requireContext()).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = getString(R.string.at_enter_pin_hint)
-        }
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.at_disarm_title)
-            .setMessage(R.string.at_disarm_msg)
-            .setView(input)
-            .setPositiveButton(R.string.at_disarm) { _, _ ->
-                val ok = DisplayAntiTheftManager.disarmWithPin(requireContext(), input.text?.toString().orEmpty())
-                Toast.makeText(
-                    requireContext(),
-                    if (ok) getString(R.string.at_disarmed) else getString(R.string.at_wrong_pin),
-                    Toast.LENGTH_SHORT
-                ).show()
-                updateAntiTheftUi()
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
     }
 
     private fun Int.dp(density: Float): Int = (this * density).toInt()

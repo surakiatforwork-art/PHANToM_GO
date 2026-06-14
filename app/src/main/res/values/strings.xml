@@ -266,6 +266,7 @@
   <string name="at_state_fullscreen_detail">ใส่ PIN ความปลอดภัยที่ถูกต้องเพื่อหยุดการล็อกและใช้งานต่อ</string>
   <string name="at_notification_title_fmt">แจ้งเตือนกันขโมยจาก %1$s</string>
   <string name="at_notification_source_fallback">เครื่องจอ</string>
+  <string name="at_notification_jack_disconnected">ตรวจพบการถอดสาย Jack 3.5 ครั้งแรก</string>
   <string name="at_notification_timeout_1">ไม่มีการใส่ PIN ภายใน 15 วินาที</string>
   <string name="at_notification_replug_during_challenge_1">มีการเสียบแจ็ค 3.5 มม. กลับระหว่างช่วงยืนยันครั้งแรก</string>
   <string name="at_notification_wrong_pin_1">ใส่ PIN ผิด 1 ครั้ง</string>
@@ -285,6 +286,10 @@
   <string name="security_waiting_status">กำลังรอสถานะความปลอดภัย</string>
   <string name="security_manage_settings">จัดการการตั้งค่าความปลอดภัย</string>
   <string name="security_manage_display">จัดการความปลอดภัยของจอ</string>
+  <string name="security_display_controls">การควบคุมระบบกันขโมย</string>
+  <string name="security_jack_connected">สาย Jack 3.5 เชื่อมต่ออยู่ พร้อมตรวจจับการถอดสาย</string>
+  <string name="security_jack_disconnected">ไม่พบสาย Jack 3.5 กรุณาเสียบสายก่อนเปิดระบบกันขโมย</string>
+  <string name="security_advanced_settings">การตั้งค่าความปลอดภัยเพิ่มเติม</string>
   <string name="security_open_settings">เปิดการตั้งค่าความปลอดภัย</string>
   <string name="security_badge_alarm">เตือนภัย</string>
   <string name="security_badge_armed">เปิดใช้งาน</string>

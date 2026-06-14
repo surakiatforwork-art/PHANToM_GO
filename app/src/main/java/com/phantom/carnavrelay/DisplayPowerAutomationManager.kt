@@ -40,18 +40,39 @@ object DisplayPowerAutomationManager {
     private const val READY_DELAY_MS = 900L
     private const val POWER_EVENT_DEBOUNCE_MS = 1_000L
     private const val SCREEN_WAKE_TIMEOUT_MS = 8_000L
+    private const val POWER_STATE_MONITOR_INTERVAL_MS = 2_000L
+    private const val LOCK_VERIFY_DELAY_MS = 350L
+    private const val MAX_LOCK_ATTEMPTS = 3
 
     private lateinit var appContext: Context
     private lateinit var prefs: PrefsManager
     private val handler = Handler(Looper.getMainLooper())
     private var initialized = false
     private var pendingPreparationToken = 0L
+    private var pendingNavigationRunnable: Runnable? = null
     private var screenWakeLock: PowerManager.WakeLock? = null
     private var lastPowerEventAction: String? = null
     private var lastPowerEventAtElapsed = 0L
+    private var displayServiceStarted = false
+    private var powerMonitorRunning = false
 
     // Edge detector for ACTION_BATTERY_CHANGED. Null means "unknown yet".
     @Volatile private var lastPluggedState: Boolean? = null
+
+    private val powerMonitorRunnable = object : Runnable {
+        override fun run() {
+            if (!powerMonitorRunning || !displayServiceStarted) return
+            observeCurrentPowerState("power-watchdog")
+            if (
+                prefs.isDisplayPowerAutomationEnabled() &&
+                prefs.isDisplayDisconnectLockPending() &&
+                lastPluggedState == false
+            ) {
+                verifyDisconnectLock("power-watchdog")
+            }
+            handler.postDelayed(this, POWER_STATE_MONITOR_INTERVAL_MS)
+        }
+    }
 
     fun initialize(context: Context) {
         if (initialized) return
@@ -62,10 +83,14 @@ object DisplayPowerAutomationManager {
 
     fun onDisplayServiceStarted(context: Context) {
         initialize(context)
+        displayServiceStarted = true
+        startPowerMonitoring("display-service-start", recoverMissedEdge = true)
     }
 
     fun onDisplayServiceStopped() {
         if (!initialized) return
+        displayServiceStarted = false
+        stopPowerMonitoring()
         cancelPendingNavigationPreparation()
         releaseScreenWakeLock()
     }
@@ -77,21 +102,7 @@ object DisplayPowerAutomationManager {
      */
     fun reconcileCurrentPowerState(context: Context, source: String) {
         initialize(context)
-        val batteryIntent = appContext.registerReceiver(
-            null,
-            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        )
-        if (batteryIntent == null) {
-            PhantomLog.w("DISPLAY POWER reconcile skipped: battery state unavailable source=$source")
-            return
-        }
-        val plugged = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
-        lastPluggedState = plugged
-        if (plugged) {
-            handlePowerEvent(appContext, Intent.ACTION_POWER_CONNECTED, "$source-reconcile")
-        } else {
-            PhantomLog.i("DISPLAY POWER reconcile: unplugged at start (source=$source), no action")
-        }
+        startPowerMonitoring("$source-reconcile", recoverMissedEdge = true)
     }
 
     /**
@@ -103,9 +114,20 @@ object DisplayPowerAutomationManager {
         initialize(context)
         val previous = lastPluggedState
         lastPluggedState = plugged
-        if (previous == null || previous == plugged) return
-        val action = if (plugged) Intent.ACTION_POWER_CONNECTED else Intent.ACTION_POWER_DISCONNECTED
-        handlePowerEvent(appContext, action, "battery-changed")
+        if (previous == null) {
+            val persistedPrevious = if (prefs.hasDisplayPowerState()) prefs.isDisplayPowerPlugged() else null
+            prefs.setDisplayPowerState(plugged)
+            val recoveredEdge = DisplayPowerStatePolicy.edge(persistedPrevious, plugged) ?: return
+            handlePowerEdge(recoveredEdge, "battery-changed-recovery")
+            return
+        } else if (DisplayPowerStatePolicy.edge(previous, plugged) == null) {
+            prefs.setDisplayPowerState(plugged)
+            return
+        }
+        handlePowerEdge(
+            if (plugged) DisplayPowerEdge.CONNECTED else DisplayPowerEdge.DISCONNECTED,
+            "battery-changed"
+        )
     }
 
     fun handlePowerEvent(context: Context, action: String, source: String) {
@@ -115,7 +137,12 @@ object DisplayPowerAutomationManager {
         }
         // Keep the edge detector in sync no matter which source delivered the event, so the
         // ACTION_BATTERY_CHANGED path does not re-fire the same edge.
-        lastPluggedState = action == Intent.ACTION_POWER_CONNECTED
+        val plugged = action == Intent.ACTION_POWER_CONNECTED
+        lastPluggedState = plugged
+        prefs.setDisplayPowerState(plugged)
+        if (plugged) {
+            prefs.setDisplayDisconnectLockPending(false)
+        }
 
         val now = SystemClock.elapsedRealtime()
         val duplicate = synchronized(this) {
@@ -178,6 +205,28 @@ object DisplayPowerAutomationManager {
     fun setPowerAutomationEnabled(context: Context, enabled: Boolean) {
         initialize(context)
         prefs.setDisplayPowerAutomationEnabled(enabled)
+        synchronized(this) {
+            lastPowerEventAction = null
+            lastPowerEventAtElapsed = 0L
+        }
+        if (enabled) {
+            if (displayServiceStarted) {
+                startPowerMonitoring("settings-enabled", recoverMissedEdge = false)
+            } else if (prefs.getDeviceMode() == PrefsManager.MODE_DISPLAY) {
+                runCatching {
+                    androidx.core.content.ContextCompat.startForegroundService(
+                        appContext,
+                        Intent(appContext, DisplayServerService::class.java)
+                    )
+                    PhantomLog.i("DISPLAY POWER requested Display service restart after enable")
+                }.onFailure {
+                    PhantomLog.e("DISPLAY POWER failed to restart Display service after enable", it)
+                }
+            }
+        } else {
+            prefs.setDisplayDisconnectLockPending(false)
+            stopPowerMonitoring()
+        }
     }
 
     fun isWakeBeforeMapsEnabled(context: Context): Boolean {
@@ -198,6 +247,9 @@ object DisplayPowerAutomationManager {
     fun setLockOnPowerDisconnectEnabled(context: Context, enabled: Boolean) {
         initialize(context)
         prefs.setDisplayLockOnPowerDisconnectEnabled(enabled)
+        if (!enabled) {
+            prefs.setDisplayDisconnectLockPending(false)
+        }
     }
 
     fun canWriteSystemSettings(context: Context): Boolean {
@@ -264,16 +316,19 @@ object DisplayPowerAutomationManager {
         applyConnectedProfile("navigation-prepare", wakeScreen = true)
         val token = System.currentTimeMillis()
         pendingPreparationToken = token
-        handler.postDelayed({
+        val runnable = Runnable {
             if (pendingPreparationToken == token) {
                 onReady()
             }
-        }, READY_DELAY_MS)
+        }
+        pendingNavigationRunnable = runnable
+        handler.postDelayed(runnable, READY_DELAY_MS)
     }
 
     fun cancelPendingNavigationPreparation() {
         pendingPreparationToken = 0L
-        handler.removeCallbacksAndMessages(null)
+        pendingNavigationRunnable?.let(handler::removeCallbacks)
+        pendingNavigationRunnable = null
     }
 
     fun applyConnectedProfile(reason: String, wakeScreen: Boolean) {
@@ -291,36 +346,32 @@ object DisplayPowerAutomationManager {
             return
         }
         if (prefs.isDisplayLockOnPowerDisconnectEnabled()) {
-            val lockResult = lockDevice()
-            Log.d(TAG, "🔐 Disconnect lock [$reason]: $lockResult")
-            if (lockResult == "device locked") {
-                PhantomLog.i("DISPLAY POWER disconnect lock: $lockResult")
-            } else {
-                PhantomLog.w("DISPLAY POWER disconnect lock: $lockResult")
-            }
+            prefs.setDisplayDisconnectLockPending(true)
+            requestLockWithVerification(reason, attempt = 1)
         } else {
+            prefs.setDisplayDisconnectLockPending(false)
             Log.d(TAG, "Disconnect lock [$reason] skipped: lock-on-disconnect disabled")
         }
     }
 
     /**
-     * Turn the display screen on reliably. The screen is woken by launching the Display screen
-     * with setTurnScreenOn()/setShowWhenLocked() flags (handled in MainActivity); the legacy
-     * wake lock below is only a best-effort assist for very old devices.
+     * Turn the display screen on without changing the app/page the user was viewing.
+     * DisplayWakeActivity is transparent and immediately finishes after requesting the wake.
      */
     private fun wakeDisplayScreen(reason: String): String {
         acquireLegacyWake()
         return runCatching {
-            val intent = MainActivity.createIntent(appContext, BottomNavHelper.Tab.DISPLAY).apply {
+            val intent = Intent(appContext, DisplayWakeActivity::class.java).apply {
                 addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                        Intent.FLAG_ACTIVITY_NO_ANIMATION
                 )
-                putExtra(MainActivity.EXTRA_WAKE_SCREEN, true)
+                putExtra(DisplayWakeActivity.EXTRA_REASON, reason)
             }
             appContext.startActivity(intent)
-            "screen wake requested via Display activity"
+            "screen wake requested without changing foreground app"
         }.getOrElse { "screen wake failed: ${it.message}" }
     }
 
@@ -341,7 +392,41 @@ object DisplayPowerAutomationManager {
         runCatching { wakeLock.acquire(SCREEN_WAKE_TIMEOUT_MS) }
     }
 
-    private fun lockDevice(): String {
+    private fun requestLockWithVerification(reason: String, attempt: Int) {
+        if (!prefs.isDisplayDisconnectLockPending() || lastPluggedState == true) return
+        if (!isDeviceAdminActive(appContext)) {
+            prefs.setDisplayDisconnectLockPending(false)
+            PhantomLog.w("DISPLAY POWER lock skipped: Device administrator is disabled")
+            return
+        }
+        val lockResult = lockDeviceOnce()
+        PhantomLog.i("DISPLAY POWER lock attempt=$attempt reason=$reason result=$lockResult")
+        handler.postDelayed({
+            if (lastPluggedState == true || !prefs.isDisplayDisconnectLockPending()) {
+                return@postDelayed
+            }
+            val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            if (powerManager?.isInteractive != true) {
+                prefs.setDisplayDisconnectLockPending(false)
+                PhantomLog.i("DISPLAY POWER disconnect lock confirmed after attempt=$attempt")
+            } else if (attempt < MAX_LOCK_ATTEMPTS) {
+                requestLockWithVerification(reason, attempt + 1)
+            } else {
+                PhantomLog.w("DISPLAY POWER lock requested $MAX_LOCK_ATTEMPTS times; screen still interactive")
+            }
+        }, LOCK_VERIFY_DELAY_MS)
+    }
+
+    private fun verifyDisconnectLock(reason: String) {
+        val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        if (powerManager?.isInteractive == true) {
+            requestLockWithVerification(reason, attempt = 1)
+        } else {
+            prefs.setDisplayDisconnectLockPending(false)
+        }
+    }
+
+    private fun lockDeviceOnce(): String {
         releaseScreenWakeLock()
         val manager = appContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
         val admin = ComponentName(appContext, PhantomDisplayDeviceAdminReceiver::class.java)
@@ -361,6 +446,65 @@ object DisplayPowerAutomationManager {
             }
         }
         screenWakeLock = null
+    }
+
+    private fun startPowerMonitoring(source: String, recoverMissedEdge: Boolean) {
+        if (!displayServiceStarted || !prefs.isDisplayPowerAutomationEnabled()) return
+        val current = readCurrentPluggedState()
+        if (current != null) {
+            val previous = if (prefs.hasDisplayPowerState()) prefs.isDisplayPowerPlugged() else null
+            lastPluggedState = current
+            prefs.setDisplayPowerState(current)
+            val recoveredEdge = DisplayPowerStatePolicy.edge(previous, current)
+            if (recoverMissedEdge && recoveredEdge != null) {
+                PhantomLog.w("DISPLAY POWER recovered missed edge: $previous -> $current source=$source")
+                handlePowerEdge(recoveredEdge, "$source-recovery")
+            } else if (current == false && prefs.isDisplayDisconnectLockPending()) {
+                verifyDisconnectLock("$source-pending")
+            }
+        }
+        if (!powerMonitorRunning) {
+            powerMonitorRunning = true
+            handler.postDelayed(powerMonitorRunnable, POWER_STATE_MONITOR_INTERVAL_MS)
+            PhantomLog.i("DISPLAY POWER monitor started source=$source")
+        }
+    }
+
+    private fun stopPowerMonitoring() {
+        powerMonitorRunning = false
+        handler.removeCallbacks(powerMonitorRunnable)
+    }
+
+    private fun observeCurrentPowerState(source: String) {
+        val plugged = readCurrentPluggedState() ?: return
+        val previous = lastPluggedState
+        if (previous == null) {
+            lastPluggedState = plugged
+            prefs.setDisplayPowerState(plugged)
+            return
+        }
+        val edge = DisplayPowerStatePolicy.edge(previous, plugged) ?: return
+        handlePowerEdge(edge, source)
+    }
+
+    private fun readCurrentPluggedState(): Boolean? {
+        val batteryIntent = appContext.registerReceiver(
+            null,
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        ) ?: return null
+        return batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+    }
+
+    private fun handlePowerEdge(edge: DisplayPowerEdge, source: String) {
+        handlePowerEvent(
+            appContext,
+            if (edge == DisplayPowerEdge.CONNECTED) {
+                Intent.ACTION_POWER_CONNECTED
+            } else {
+                Intent.ACTION_POWER_DISCONNECTED
+            },
+            source
+        )
     }
 
     private fun isAntiTheftBlocking(): Boolean {

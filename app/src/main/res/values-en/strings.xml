@@ -266,6 +266,7 @@
   <string name="at_state_fullscreen_detail">Enter the correct security PIN to stop the lock and continue.</string>
   <string name="at_notification_title_fmt">Anti-theft alert from %1$s</string>
   <string name="at_notification_source_fallback">Display device</string>
+  <string name="at_notification_jack_disconnected">The 3.5 mm security cable was disconnected.</string>
   <string name="at_notification_timeout_1">No PIN entered within 15 seconds.</string>
   <string name="at_notification_replug_during_challenge_1">The 3.5 mm jack was replugged during the first challenge.</string>
   <string name="at_notification_wrong_pin_1">Wrong PIN entered once.</string>
@@ -285,6 +286,10 @@
   <string name="security_waiting_status">Waiting for security status.</string>
   <string name="security_manage_settings">Manage security settings</string>
   <string name="security_manage_display">Manage Display security</string>
+  <string name="security_display_controls">Anti-Theft Controls</string>
+  <string name="security_jack_connected">The 3.5 mm cable is connected and removal detection is ready.</string>
+  <string name="security_jack_disconnected">No 3.5 mm cable detected. Connect it before arming Anti-Theft.</string>
+  <string name="security_advanced_settings">Advanced security settings</string>
   <string name="security_open_settings">Open security settings</string>
   <string name="security_badge_alarm">ALARM</string>
   <string name="security_badge_armed">ARMED</string>

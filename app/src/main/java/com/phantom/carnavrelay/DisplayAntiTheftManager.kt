@@ -1,6 +1,7 @@
 package com.phantom.carnavrelay
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -19,6 +20,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -82,6 +84,7 @@ object DisplayAntiTheftManager {
     private const val HEADSET_DEBOUNCE_MS = 750L
     private const val LOCATION_MAX_AGE_MS = 30_000L
 
+    const val ALERT_JACK_DISCONNECTED = "jack_disconnected"
     const val ALERT_TIMEOUT_1 = "timeout_1"
     const val ALERT_REPLUG_DURING_CHALLENGE_1 = "replug_during_challenge_1"
     const val ALERT_WRONG_PIN_1 = "wrong_pin_1"
@@ -103,6 +106,7 @@ object DisplayAntiTheftManager {
     private var speechLoopActive = false
     private var mediaPlayer: MediaPlayer? = null
     private var tts: TextToSpeech? = null
+    private var securityWakeLock: PowerManager.WakeLock? = null
 
     private val countdownTickRunnable = object : Runnable {
         override fun run() {
@@ -157,6 +161,7 @@ object DisplayAntiTheftManager {
     private val headsetReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != AudioManager.ACTION_HEADSET_PLUG) return
+            ensureSecurityWakeLock()
             val plugged = intent.getIntExtra("state", -1) == 1
             scheduleHeadsetStateApply(plugged)
         }
@@ -181,16 +186,36 @@ object DisplayAntiTheftManager {
         registerHeadsetReceiverIfNeeded()
         headsetPlugged = isHeadsetPluggedNow(appContext)
         prefs.setAntiTheftHeadsetPlugged(headsetPlugged)
-        state = when (prefs.getAntiTheftLastState()) {
-            AntiTheftState.ALARM_ACTIVE.name,
-            AntiTheftState.FULLSCREEN_LOCK.name -> {
+        val persistedState = prefs.getAntiTheftLastState()?.let {
+            runCatching { AntiTheftState.valueOf(it) }.getOrNull()
+        }
+        state = when (persistedState) {
+            AntiTheftState.ALARM_ACTIVE,
+            AntiTheftState.FULLSCREEN_LOCK -> {
                 prefs.setAntiTheftLastState(AntiTheftState.ALARM_ACTIVE.name)
                 startAlarmInternal(resumeExisting = true, sendAlert = false)
                 return
             }
+            AntiTheftState.CHALLENGE_1,
+            AntiTheftState.CHALLENGE_2,
+            AntiTheftState.POST_ALERT_COUNTDOWN -> {
+                if (prefs.isAntiTheftArmed() && !headsetPlugged) {
+                    restoreChallengeState(persistedState)
+                    return
+                }
+                idleStateForCurrentInputs()
+            }
+            AntiTheftState.ARMED -> {
+                if (prefs.isAntiTheftArmed() && !headsetPlugged) {
+                    startChallenge1()
+                    return
+                }
+                idleStateForCurrentInputs()
+            }
             else -> idleStateForCurrentInputs()
         }
         prefs.setAntiTheftLastState(state.name)
+        syncSecurityWakeLock()
         broadcastState()
     }
 
@@ -244,6 +269,7 @@ object DisplayAntiTheftManager {
             prefs.setAntiTheftSessionId(null)
             state = AntiTheftState.DISABLED
         } else {
+            ensureDisplayServiceRunningForProtection()
             state = idleStateForCurrentInputs()
         }
         prefs.setAntiTheftLastState(state.name)
@@ -274,6 +300,7 @@ object DisplayAntiTheftManager {
         if (!prefs.isAntiTheftEnabled()) return context.getString(R.string.at_enable_first)
         if (!prefs.hasAntiTheftPin()) return context.getString(R.string.at_set_pin_first)
         if (!headsetPlugged) return context.getString(R.string.at_plug_trigger_first)
+        ensureDisplayServiceRunningForProtection()
         prefs.setAntiTheftArmed(true)
         state = AntiTheftState.ARMED
         prefs.setAntiTheftLastState(state.name)
@@ -374,6 +401,13 @@ object DisplayAntiTheftManager {
 
     private fun scheduleHeadsetStateApply(plugged: Boolean) {
         pendingHeadsetApply?.let(handler::removeCallbacks)
+        pendingHeadsetApply = null
+        if (!plugged && prefs.isAntiTheftArmed() && state == AntiTheftState.ARMED) {
+            // A first unplug while armed is security-sensitive: notify Main immediately
+            // instead of waiting for the normal headset signal debounce window.
+            applyStableHeadsetState(plugged = false)
+            return
+        }
         val applyRunnable = Runnable {
             applyStableHeadsetState(plugged)
         }
@@ -419,6 +453,7 @@ object DisplayAntiTheftManager {
         prefs.setAntiTheftWrongAttempts(0)
         state = AntiTheftState.CHALLENGE_1
         prefs.setAntiTheftLastState(state.name)
+        sendSecurityAlert(ALERT_JACK_DISCONNECTED)
         scheduleCountdown(CHALLENGE_TIMEOUT_MS)
         showPinChallengeUi(fullscreen = false)
         broadcastState()
@@ -491,19 +526,31 @@ object DisplayAntiTheftManager {
     }
 
     private fun scheduleCountdown(durationMs: Long) {
+        scheduleCountdownUntil(System.currentTimeMillis() + durationMs)
+    }
+
+    private fun scheduleCountdownUntil(deadlineAt: Long) {
         cancelCountdown()
-        countdownDeadlineAt = System.currentTimeMillis() + durationMs
+        countdownDeadlineAt = deadlineAt
+        prefs.setAntiTheftCountdownDeadlineAt(deadlineAt)
         handler.post(countdownTickRunnable)
     }
 
     private fun cancelCountdown() {
         countdownDeadlineAt = 0L
+        prefs.setAntiTheftCountdownDeadlineAt(0L)
         handler.removeCallbacks(countdownTickRunnable)
     }
 
     private fun scheduleFullscreenEscalation() {
         handler.removeCallbacks(fullscreenEscalationRunnable)
-        handler.postDelayed(fullscreenEscalationRunnable, ALARM_ESCALATION_MS)
+        val alarmStartedAt = prefs.getAntiTheftAlarmStartedAt()
+        val delay = if (alarmStartedAt > 0L) {
+            (alarmStartedAt + ALARM_ESCALATION_MS - System.currentTimeMillis()).coerceAtLeast(0L)
+        } else {
+            ALARM_ESCALATION_MS
+        }
+        handler.postDelayed(fullscreenEscalationRunnable, delay)
     }
 
     private fun cancelAllTimers() {
@@ -518,6 +565,20 @@ object DisplayAntiTheftManager {
     private fun remainingMs(): Long {
         if (countdownDeadlineAt <= 0L) return 0L
         return (countdownDeadlineAt - System.currentTimeMillis()).coerceAtLeast(0L)
+    }
+
+    private fun restoreChallengeState(restoredState: AntiTheftState) {
+        state = restoredState
+        val persistedDeadline = prefs.getAntiTheftCountdownDeadlineAt()
+        ensureSecurityWakeLock()
+        if (persistedDeadline > System.currentTimeMillis()) {
+            scheduleCountdownUntil(persistedDeadline)
+        } else {
+            handler.post { onCountdownExpired() }
+        }
+        showPinChallengeUi(fullscreen = false)
+        broadcastState()
+        PhantomLog.w("Anti-theft challenge restored after Display service restart: ${restoredState.name}")
     }
 
     private fun registerHeadsetReceiverIfNeeded() {
@@ -567,6 +628,48 @@ object DisplayAntiTheftManager {
         mediaPlayer = null
         runCatching { tts?.stop() }
         cancelNotifications()
+    }
+
+    private fun syncSecurityWakeLock() {
+        val mustStayAwake = prefs.isAntiTheftArmed() || when (state) {
+            AntiTheftState.CHALLENGE_1,
+            AntiTheftState.CHALLENGE_2,
+            AntiTheftState.POST_ALERT_COUNTDOWN,
+            AntiTheftState.ALARM_ACTIVE,
+            AntiTheftState.FULLSCREEN_LOCK -> true
+            else -> false
+        }
+        if (mustStayAwake) {
+            ensureSecurityWakeLock()
+        } else {
+            releaseSecurityWakeLock()
+        }
+    }
+
+    @SuppressLint("WakelockTimeout")
+    private fun ensureSecurityWakeLock() {
+        if (securityWakeLock?.isHeld == true) return
+        val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
+        securityWakeLock = runCatching {
+            powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "${appContext.packageName}:antiTheftGuard"
+            ).apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        }.onFailure {
+            PhantomLog.e("Anti-theft wake lock acquisition failed", it)
+        }.getOrNull()
+    }
+
+    private fun releaseSecurityWakeLock() {
+        securityWakeLock?.let { wakeLock ->
+            if (wakeLock.isHeld) {
+                runCatching { wakeLock.release() }
+            }
+        }
+        securityWakeLock = null
     }
 
     private fun startMediaAlarm() {
@@ -825,6 +928,19 @@ object DisplayAntiTheftManager {
         )
     }
 
+    private fun ensureDisplayServiceRunningForProtection() {
+        if (prefs.getDeviceMode() != PrefsManager.MODE_DISPLAY) return
+        runCatching {
+            ContextCompat.startForegroundService(
+                appContext,
+                Intent(appContext, DisplayServerService::class.java)
+            )
+            PhantomLog.i("Anti-theft requested Display service for background protection")
+        }.onFailure {
+            PhantomLog.e("Anti-theft failed to request Display service", it)
+        }
+    }
+
     private fun stateHeadline(currentState: AntiTheftState): String {
         return when (currentState) {
             AntiTheftState.DISABLED -> string(R.string.at_state_disabled_headline)
@@ -873,6 +989,7 @@ object DisplayAntiTheftManager {
 
     private fun broadcastState() {
         if (!initialized) return
+        syncSecurityWakeLock()
         val snapshot = snapshot(appContext)
         val intent = Intent(ACTION_STATE_CHANGED).apply {
             setPackage(appContext.packageName)
