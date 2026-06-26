@@ -23,6 +23,22 @@
         android:textColor="@color/text_secondary"
         android:textSize="14sp" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/shareRecentButton"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/dashcam_share_recent" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/exportRangeButton"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/dashcam_export_range" />
+
     <TextView
         android:id="@+id/clipsEmptyText"
         android:layout_width="match_parent"

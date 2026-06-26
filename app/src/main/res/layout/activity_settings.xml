@@ -1025,14 +1025,6 @@
                         android:text="@string/settings_dashcam_mode_dual" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
 
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/dashcamPreviewSwitch"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/settings_dashcam_preview"
-                    android:textColor="@color/soft_text_primary" />
-
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

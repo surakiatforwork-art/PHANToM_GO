@@ -38,6 +38,17 @@
             android:label="@string/dashcam_clips_title"
             android:theme="@style/Theme.GoCam" />
 
+        <!-- Shares merged "last N minutes" exports from the app cache. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.dashcamfileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/dashcam_file_paths" />
+        </provider>
+
         <service
             android:name="com.phantom.dashcam.DashcamRecordingService"
             android:exported="false"

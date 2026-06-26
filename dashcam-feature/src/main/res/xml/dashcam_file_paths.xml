@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path name="dashcam_share" path="share/" />
+    <external-files-path name="dashcam_external_movies" path="Movies/" />
+    <files-path name="dashcam_internal_files" path="dashcam/" />
+</paths>

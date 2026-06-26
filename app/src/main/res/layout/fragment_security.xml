@@ -269,11 +269,11 @@
                     android:textStyle="bold" />
 
                 <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/dashcamEnableSwitch"
+                    android:id="@+id/dashcamAutoRecordSwitch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
-                    android:text="@string/security_dashcam_enable"
+                    android:text="@string/security_dashcam_autorecord"
                     android:textColor="@color/ui_text_primary"
                     android:textSize="16sp" />
 
@@ -285,15 +285,6 @@
                     android:text="@string/security_dashcam_state_off"
                     android:textColor="@color/ui_warning"
                     android:textSize="14sp" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/dashcamAutoRecordSwitch"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/security_dashcam_autorecord"
-                    android:textColor="@color/ui_text_primary"
-                    android:textSize="16sp" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -312,6 +303,19 @@
                     android:textSize="13sp" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/dashcamStartStopButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/soft_primary_button"
+                    android:backgroundTint="@null"
+                    app:backgroundTint="@null"
+                    android:text="@string/security_dashcam_start"
+                    android:textAllCaps="false"
+                    android:textColor="@color/soft_button_primary_text"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/dashcamGrantButton"
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
@@ -320,6 +324,20 @@
                     android:backgroundTint="@null"
                     app:backgroundTint="@null"
                     android:text="@string/security_dashcam_grant"
+                    android:textAllCaps="false"
+                    android:textColor="@color/soft_button_secondary_text"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/dashcamBatteryOptButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/soft_secondary_button"
+                    android:backgroundTint="@null"
+                    app:backgroundTint="@null"
+                    android:text="@string/security_dashcam_battery_opt"
                     android:textAllCaps="false"
                     android:textColor="@color/soft_button_secondary_text"
                     android:textStyle="bold"

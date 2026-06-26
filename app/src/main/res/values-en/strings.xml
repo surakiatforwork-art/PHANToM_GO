@@ -632,7 +632,7 @@
 
   <!-- Dashcam (GO Cam) integration -->
   <string name="settings_dashcam_title">Dashcam</string>
-  <string name="settings_dashcam_hint">Configure dashcam video recording. Clips are saved to Movies/PHANToM GO Cam with a burned-in timestamp.</string>
+  <string name="settings_dashcam_hint">Configure dashcam video recording. Clips stay in the app\'s private storage with a burned-in timestamp until the user chooses to download or share them.</string>
   <string name="settings_dashcam_camera_mode">Camera mode</string>
   <string name="settings_dashcam_mode_rear">Rear</string>
   <string name="settings_dashcam_mode_front">Front</string>
@@ -653,7 +653,11 @@
   <string name="security_dashcam_need_permission">Camera and microphone permission required</string>
   <string name="security_dashcam_detail_fmt">Permission: %1$s • Charging: %2$s • Background watch: %3$s</string>
   <string name="security_dashcam_grant">Grant camera/microphone</string>
+  <string name="security_dashcam_battery_opt">Ignore battery optimization (for uninterrupted recording)</string>
   <string name="security_dashcam_view_clips">View recorded clips</string>
+  <string name="security_dashcam_start">Start recording</string>
+  <string name="security_dashcam_stop">Stop recording</string>
+  <string name="security_dashcam_starting">Starting…</string>
 
   <!-- Open app after send -->
   <string name="settings_after_send_app_title">Open app after sending</string>

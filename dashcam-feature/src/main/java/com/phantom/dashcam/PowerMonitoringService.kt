@@ -24,7 +24,10 @@ class PowerMonitoringService : Service() {
     private val watchdogRunnable = object : Runnable {
         override fun run() {
             if (!watchdogRunning) return
+            // 1) catch a missed connect/disconnect edge, 2) resume recording if it was killed
+            // by the OS while still charging (unless the user explicitly stopped it).
             AutoRecordPowerManager.observeCurrentPowerState(this@PowerMonitoringService, "power-watchdog")
+            AutoRecordPowerManager.maybeStartIfChargingAndReady(this@PowerMonitoringService, "power-watchdog-resume")
             watchdogHandler.postDelayed(this, WATCHDOG_INTERVAL_MS)
         }
     }

@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
@@ -21,8 +23,29 @@ object AutoRecordPowerManager {
     // (manifest receiver + monitor receiver + watchdog), mirroring the Display power automation.
     private const val POWER_EVENT_DEBOUNCE_MS = 1_200L
 
+    // Grace period before stopping on charger disconnect, so a brief power dip (loose connector,
+    // engine cranking) does not chop the recording into fragments. Reconnecting cancels the stop.
+    private const val DISCONNECT_GRACE_MS = 4_000L
+
     @Volatile private var lastHandledPlugged: Boolean? = null
     @Volatile private var lastHandledAtElapsed = 0L
+
+    private val handler = Handler(Looper.getMainLooper())
+    private var pendingDisconnectStop: Runnable? = null
+
+    // When the host app already runs its own power monitor (Display mode) and forwards power
+    // events to us, the dashcam does not start its own PowerMonitoringService — avoiding a
+    // duplicate foreground service / receiver / poll. Toggle off to fully revert to standalone.
+    @Volatile private var externalPowerFeedActive = false
+
+    fun setExternalPowerFeedActive(context: Context, active: Boolean) {
+        externalPowerFeedActive = active
+        if (active) {
+            stopMonitoring(context)
+        } else {
+            syncMonitoring(context)
+        }
+    }
 
     /** Periodic safety-net check used by the monitor watchdog: act only on a real edge. */
     fun observeCurrentPowerState(context: Context, source: String) {
@@ -100,7 +123,10 @@ object AutoRecordPowerManager {
 
     fun maybeStartIfChargingAndReady(context: Context, source: String) {
         val state = DashcamStateStore.state.value
-        if (!DashcamPreferences(context).isAutoRecordOnPowerEnabled()) return
+        val prefs = DashcamPreferences(context)
+        if (!prefs.isAutoRecordOnPowerEnabled()) return
+        // Respect an explicit manual stop; only a fresh connect (which clears the flag) resumes.
+        if (prefs.isUserStopped()) return
         if (!PowerStateUtils.isPluggedIn(context)) return
         if (state.isRecording || state.isPreparing) return
 
@@ -158,6 +184,9 @@ object AutoRecordPowerManager {
     }
 
     private fun handlePowerConnected(context: Context, source: String) {
+        // A real reconnect cancels any pending grace-period stop and clears a manual stop.
+        cancelPendingDisconnectStop()
+        DashcamPreferences(context).setUserStopped(false)
         DashcamStateStore.update {
             it.copy(
                 isCharging = true,
@@ -204,23 +233,42 @@ object AutoRecordPowerManager {
             it.copy(
                 isCharging = false,
                 backgroundStartPending = false,
-                detailText = "Charging disconnected. GO Cam is stopping auto-recording.",
+                detailText = "Charging lost. GO Cam will stop recording shortly if power is not restored.",
             )
         }
         DashcamNotificationHelper.cancelPowerStartNotification(context)
 
         val state = DashcamStateStore.state.value
-        if (state.isRecording || state.isPreparing) {
-            context.startService(
+        if (!state.isRecording && !state.isPreparing) {
+            Log.i(TAG, "Disconnect observed while recording was idle source=$source")
+            return
+        }
+
+        // Defer the stop by a short grace period so a brief power dip doesn't chop the clip.
+        cancelPendingDisconnectStop()
+        val appContext = context.applicationContext
+        val runnable = Runnable {
+            pendingDisconnectStop = null
+            if (PowerStateUtils.isPluggedIn(appContext)) {
+                Log.i(TAG, "Disconnect grace expired but power is back; keeping recording")
+                return@Runnable
+            }
+            appContext.startService(
                 DashcamRecordingService.createStopIntent(
-                    context,
+                    appContext,
                     "Stopped because charger was disconnected",
                 ),
             )
-            Log.i(TAG, "Sent stop request after charger disconnect source=$source")
-        } else {
-            Log.i(TAG, "Disconnect observed while recording was idle source=$source")
+            Log.i(TAG, "Sent stop request after charger disconnect grace source=$source")
         }
+        pendingDisconnectStop = runnable
+        handler.postDelayed(runnable, DISCONNECT_GRACE_MS)
+        Log.i(TAG, "Charger disconnect: stop scheduled in ${DISCONNECT_GRACE_MS}ms source=$source")
+    }
+
+    private fun cancelPendingDisconnectStop() {
+        pendingDisconnectStop?.let { handler.removeCallbacks(it) }
+        pendingDisconnectStop = null
     }
 
     private fun canUseBackgroundLaunch(context: Context): Boolean {
@@ -258,6 +306,11 @@ object AutoRecordPowerManager {
     }
 
     private fun startMonitoring(context: Context) {
+        if (externalPowerFeedActive) {
+            // Host app (Display mode) is already monitoring power and forwarding events to us.
+            Log.i(TAG, "Skipping own power monitor; external power feed is active")
+            return
+        }
         runCatching {
             ContextCompat.startForegroundService(
                 context,

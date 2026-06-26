@@ -24,11 +24,18 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
+import android.view.Surface
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.phantom.dashcam.AutoRecordPowerManager
 import com.phantom.dashcam.DashcamClipsActivity
 import com.phantom.dashcam.DashcamPreferences
+import com.phantom.dashcam.DashcamRecordingService
 import com.phantom.dashcam.DashcamStateStore
 import com.phantom.dashcam.PowerStateUtils
+import com.phantom.dashcam.SurfaceRotationStore
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
@@ -52,11 +59,12 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
     private lateinit var refreshButton: MaterialButton
     private lateinit var openExternalMapButton: MaterialButton
     private lateinit var dashcamPreferences: DashcamPreferences
-    private lateinit var dashcamEnableSwitch: MaterialSwitch
     private lateinit var dashcamStatusText: TextView
     private lateinit var dashcamAutoRecordSwitch: MaterialSwitch
     private lateinit var dashcamDetailText: TextView
+    private lateinit var dashcamStartStopButton: MaterialButton
     private lateinit var dashcamGrantButton: MaterialButton
+    private lateinit var dashcamBatteryOptButton: MaterialButton
     private lateinit var dashcamSecurityViewClipsButton: MaterialButton
     private var updatingDashcamUi = false
 
@@ -100,11 +108,12 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
         advancedAction = view.findViewById(R.id.btnSecurityAdvancedAction)
         refreshButton = view.findViewById(R.id.btnSecurityRefresh)
         openExternalMapButton = view.findViewById(R.id.btnSecurityOpenExternalMap)
-        dashcamEnableSwitch = view.findViewById(R.id.dashcamEnableSwitch)
         dashcamStatusText = view.findViewById(R.id.dashcamStatusText)
         dashcamAutoRecordSwitch = view.findViewById(R.id.dashcamAutoRecordSwitch)
         dashcamDetailText = view.findViewById(R.id.dashcamDetailText)
+        dashcamStartStopButton = view.findViewById(R.id.dashcamStartStopButton)
         dashcamGrantButton = view.findViewById(R.id.dashcamGrantButton)
+        dashcamBatteryOptButton = view.findViewById(R.id.dashcamBatteryOptButton)
         dashcamSecurityViewClipsButton = view.findViewById(R.id.dashcamSecurityViewClipsButton)
         setupDashcamControls()
 
@@ -125,6 +134,13 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
         refreshDisplayLocation()
         DashcamStateStore.bootstrap(requireContext())
         updateDashcamState()
+
+        // Keep the dashcam status + start/stop button in sync with live recording state.
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                DashcamStateStore.state.collect { updateDashcamState() }
+            }
+        }
     }
 
     override fun onStart() {
@@ -297,20 +313,12 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
     }
 
     private fun setupDashcamControls() {
-        dashcamEnableSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (updatingDashcamUi) return@setOnCheckedChangeListener
-            dashcamPreferences.setFeatureEnabled(isChecked)
-            if (isChecked) {
-                if (!hasDashcamPermissions()) requestDashcamPermissions()
-            } else {
-                AutoRecordPowerManager.setAutoRecordEnabled(requireContext(), false)
-            }
-            DashcamStateStore.bootstrap(requireContext())
-            updateDashcamState()
-        }
-
+        // Single master control: auto-record on charging. Turning it off stops the power monitor.
         dashcamAutoRecordSwitch.setOnCheckedChangeListener { _, isChecked ->
             if (updatingDashcamUi) return@setOnCheckedChangeListener
+            if (isChecked && !hasDashcamPermissions()) {
+                requestDashcamPermissions()
+            }
             AutoRecordPowerManager.setAutoRecordEnabled(requireContext(), isChecked)
             if (isChecked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
                 !Settings.canDrawOverlays(requireContext())
@@ -322,40 +330,74 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
                     )
                 )
             }
+            DashcamStateStore.bootstrap(requireContext())
             updateDashcamState()
         }
 
+        dashcamStartStopButton.setOnClickListener { toggleManualRecording() }
         dashcamGrantButton.setOnClickListener { requestDashcamPermissions() }
+        dashcamBatteryOptButton.setOnClickListener { requestIgnoreBatteryOptimizations() }
         dashcamSecurityViewClipsButton.setOnClickListener {
             startActivity(Intent(requireContext(), DashcamClipsActivity::class.java))
         }
     }
 
+    private fun toggleManualRecording() {
+        val state = DashcamStateStore.state.value
+        val ctx = requireContext()
+        if (state.isRecording || state.isPreparing) {
+            ctx.startService(
+                DashcamRecordingService.createStopIntent(ctx, "Stopped from Security", userInitiated = true)
+            )
+        } else {
+            if (!hasDashcamPermissions()) {
+                requestDashcamPermissions()
+                return
+            }
+            val rotation = currentRotation()
+            SurfaceRotationStore.update(rotation)
+            ContextCompat.startForegroundService(
+                ctx,
+                DashcamRecordingService.createStartIntent(ctx, DashcamRecordingService.TRIGGER_MANUAL, rotation)
+            )
+        }
+        // The service updates state asynchronously; the state collector refreshes the button.
+        updateDashcamState()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun currentRotation(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            requireContext().display?.rotation ?: Surface.ROTATION_0
+        } else {
+            @Suppress("DEPRECATION")
+            requireActivity().windowManager.defaultDisplay.rotation
+        }
+    }
+
     private fun updateDashcamState() {
         if (!isAdded) return
-        val featureEnabled = dashcamPreferences.isFeatureEnabled()
         val autoRecord = dashcamPreferences.isAutoRecordOnPowerEnabled()
         val state = DashcamStateStore.state.value
         val hasPermission = hasDashcamPermissions()
         val charging = PowerStateUtils.isCharging(requireContext())
+        val batteryUnrestricted = isIgnoringBatteryOptimizations()
 
         updatingDashcamUi = true
-        dashcamEnableSwitch.isChecked = featureEnabled
-        dashcamAutoRecordSwitch.isChecked = autoRecord && featureEnabled
-        dashcamAutoRecordSwitch.isEnabled = featureEnabled
+        dashcamAutoRecordSwitch.isChecked = autoRecord
         updatingDashcamUi = false
 
         val statusRes = when {
-            !featureEnabled -> R.string.security_dashcam_state_off
+            !autoRecord -> R.string.security_dashcam_state_off
             !hasPermission -> R.string.security_dashcam_need_permission
             state.isRecording -> R.string.security_dashcam_state_recording
-            autoRecord && !charging -> R.string.security_dashcam_state_waiting
+            !charging -> R.string.security_dashcam_state_waiting
             else -> R.string.security_dashcam_state_ready
         }
         dashcamStatusText.text = getString(statusRes)
         dashcamStatusText.setTextColor(
             requireContext().getColor(
-                if (!featureEnabled || !hasPermission) R.color.ui_warning else R.color.ui_success
+                if (!autoRecord || !hasPermission) R.color.ui_warning else R.color.ui_success
             )
         )
 
@@ -363,10 +405,44 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
             R.string.security_dashcam_detail_fmt,
             if (hasPermission) getString(R.string.settings_granted) else getString(R.string.settings_not_granted),
             if (charging) getString(R.string.common_on) else getString(R.string.common_off),
-            if (autoRecord && featureEnabled) getString(R.string.common_on) else getString(R.string.common_off),
+            if (autoRecord) getString(R.string.common_on) else getString(R.string.common_off),
         )
 
-        dashcamGrantButton.visibility = if (featureEnabled && !hasPermission) View.VISIBLE else View.GONE
+        dashcamGrantButton.visibility = if (autoRecord && !hasPermission) View.VISIBLE else View.GONE
+        dashcamBatteryOptButton.visibility = if (autoRecord && !batteryUnrestricted) View.VISIBLE else View.GONE
+
+        val recordingActive = state.isRecording || state.isPreparing
+        dashcamStartStopButton.text = when {
+            state.isPreparing -> getString(R.string.security_dashcam_starting)
+            state.isRecording -> getString(R.string.security_dashcam_stop)
+            else -> getString(R.string.security_dashcam_start)
+        }
+        dashcamStartStopButton.isEnabled = !state.isPreparing
+        dashcamStartStopButton.alpha = if (state.isPreparing) 0.6f else 1f
+        dashcamStartStopButton.setBackgroundResource(
+            if (recordingActive) R.drawable.soft_secondary_button else R.drawable.soft_primary_button
+        )
+        dashcamStartStopButton.setTextColor(
+            requireContext().getColor(
+                if (recordingActive) R.color.soft_button_secondary_text else R.color.soft_button_primary_text
+            )
+        )
+    }
+
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        val pm = requireContext().getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager ?: return true
+        return pm.isIgnoringBatteryOptimizations(requireContext().packageName)
+    }
+
+    @android.annotation.SuppressLint("BatteryLife")
+    private fun requestIgnoreBatteryOptimizations() {
+        val intent = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:${requireContext().packageName}")
+        )
+        runCatching { startActivity(intent) }.onFailure {
+            runCatching { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
+        }
     }
 
     private fun hasDashcamPermissions(): Boolean {

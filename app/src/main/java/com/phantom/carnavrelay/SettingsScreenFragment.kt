@@ -26,6 +26,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
+import com.phantom.dashcam.DashcamCapabilities
 import com.phantom.dashcam.DashcamClipsActivity
 import com.phantom.dashcam.DashcamMode
 import com.phantom.dashcam.DashcamPreferences
@@ -111,7 +112,6 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var dashcamModeRear: com.google.android.material.button.MaterialButton
     private lateinit var dashcamModeFront: com.google.android.material.button.MaterialButton
     private lateinit var dashcamModeDual: com.google.android.material.button.MaterialButton
-    private lateinit var dashcamPreviewSwitch: MaterialSwitch
     private lateinit var dashcamStorageValueText: TextView
     private lateinit var dashcamStorageSlider: Slider
     private lateinit var dashcamViewClipsButton: Button
@@ -277,7 +277,6 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         dashcamModeRear = root.findViewById(R.id.dashcamModeRear)
         dashcamModeFront = root.findViewById(R.id.dashcamModeFront)
         dashcamModeDual = root.findViewById(R.id.dashcamModeDual)
-        dashcamPreviewSwitch = root.findViewById(R.id.dashcamPreviewSwitch)
         dashcamStorageValueText = root.findViewById(R.id.dashcamStorageValueText)
         dashcamStorageSlider = root.findViewById(R.id.dashcamStorageSlider)
         dashcamViewClipsButton = root.findViewById(R.id.dashcamViewClipsButton)
@@ -501,13 +500,6 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             DashcamStateStore.syncPreferences(requireContext())
         }
 
-        dashcamPreviewSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (updatingDashcamUi) return@setOnCheckedChangeListener
-            dashcamPreferences.setPreviewEnabled(isChecked)
-            DashcamStateStore.syncPreferences(requireContext())
-            dashcamPreviewSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-        }
-
         dashcamStorageSlider.addOnChangeListener { _, value, fromUser ->
             if (!fromUser) return@addOnChangeListener
             val normalized = dashcamPreferences.normalizeStorageQuotaGb(value.toInt())
@@ -550,7 +542,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
                 else -> R.id.dashcamModeRear
             }
         )
-        dashcamPreviewSwitch.isChecked = dashcamPreferences.isPreviewEnabled()
+        dashcamModeDual.isEnabled = DashcamCapabilities.supportsDualCamera(requireContext())
         val quota = dashcamPreferences.getStorageQuotaGb()
         if (dashcamStorageSlider.value.toInt() != quota) {
             dashcamStorageSlider.value = quota.toFloat()

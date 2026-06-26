@@ -33,8 +33,21 @@ class DisplayServerService : Service() {
 
     companion object {
         private const val TAG = "PHANTOM_GO"
+
+        // When true, while Display mode is active the app feeds power events to the dashcam and
+        // the dashcam skips its own PowerMonitoringService (avoids a duplicate FGS/receiver/poll).
+        // Flip to false to fully revert: the dashcam runs its own independent power monitor again.
+        private const val DEDUPE_POWER_MONITORING = true
+
         private const val NOTIFICATION_ID = 2001
-        private const val CHANNEL_ID = "phantom_go_display"
+
+        // Ongoing "car system" status (Display + dashcam) — quiet, grouped together, same section.
+        private const val CHANNEL_STATUS = "phantom_go_display_status"
+        private val GROUP_STATUS = com.phantom.dashcam.DashcamNotificationHelper.STATUS_GROUP
+        // Navigation-received alerts live in their own channel/group, separate from the status row.
+        private const val CHANNEL_NAV = "phantom_go_nav"
+        private const val GROUP_NAV = "phantom_go_nav_group"
+        private const val NAV_NOTIFICATION_ID = 2002
         private const val ACTION_OPEN_MAPS = "com.phantom.carnavrelay.OPEN_MAPS"
         const val ACTION_STOP_SERVER = "com.phantom.carnavrelay.STOP_SERVER"
         private const val ACTION_REFRESH_SPEEDOMETER = "com.phantom.carnavrelay.REFRESH_SPEEDOMETER"
@@ -138,6 +151,30 @@ class DisplayServerService : Service() {
                     DisplayPowerAutomationManager.handleBatteryChanged(context, plugged)
                 }
             }
+            if (DEDUPE_POWER_MONITORING) forwardPowerEventToDashcam(context, intent)
+        }
+    }
+
+    /**
+     * Feed power events the Display service already receives into the dashcam, so the dashcam does
+     * not need to run its own redundant power monitor while Display mode is active. Also nudges a
+     * resume if the camera service was killed by the OS while still charging.
+     */
+    private fun forwardPowerEventToDashcam(context: Context, intent: Intent) {
+        when (intent.action) {
+            Intent.ACTION_POWER_CONNECTED,
+            Intent.ACTION_POWER_DISCONNECTED ->
+                com.phantom.dashcam.AutoRecordPowerManager.handlePowerBroadcast(
+                    context, intent.action.orEmpty(), "display-forward"
+                )
+            Intent.ACTION_BATTERY_CHANGED -> {
+                com.phantom.dashcam.AutoRecordPowerManager.handleBatteryChanged(
+                    context, intent, "display-forward"
+                )
+                com.phantom.dashcam.AutoRecordPowerManager.maybeStartIfChargingAndReady(
+                    context, "display-forward-resume"
+                )
+            }
         }
     }
 
@@ -195,6 +232,11 @@ class DisplayServerService : Service() {
             )
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to register Display power receiver", e)
+        }
+
+        if (DEDUPE_POWER_MONITORING) {
+            // Display service now owns power monitoring; let the dashcam rely on our feed.
+            com.phantom.dashcam.AutoRecordPowerManager.setExternalPowerFeedActive(this, true)
         }
     }
 
@@ -257,6 +299,10 @@ class DisplayServerService : Service() {
         Log.d(TAG, "💀 DisplayServerService.onDestroy()")
         val wasExplicitStop = explicitStopRequested
         explicitStopRequested = false
+        if (DEDUPE_POWER_MONITORING) {
+            // Display service is going away; let the dashcam resume its own power monitor.
+            com.phantom.dashcam.AutoRecordPowerManager.setExternalPowerFeedActive(this, false)
+        }
         FirebaseManager.stopDisplayCommandListener()
         DisplayAntiTheftManager.onDisplayServiceStopped(wasExplicitStop)
         DisplayPowerAutomationManager.onDisplayServiceStopped()
@@ -299,16 +345,31 @@ class DisplayServerService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Display Mode"
-            val descriptionText = "HTTP Server running for Display mode"
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
+            val notificationManager = getSystemService(NotificationManager::class.java)
+
+            // Quiet ongoing status channel for Display mode (no peeking/sound). Grouped with the
+            // dashcam recording notification so both sit together in one section.
+            val statusChannel = NotificationChannel(
+                CHANNEL_STATUS,
+                "Display & recording status",
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = "Ongoing status while Display mode / dashcam are active"
+                setShowBadge(false)
+            }
+            notificationManager.createNotificationChannel(statusChannel)
+
+            // High-importance channel for navigation hand-offs so they alert and can be tapped.
+            val navChannel = NotificationChannel(
+                CHANNEL_NAV,
+                "Navigation received",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "A destination was shared to this display"
                 enableLights(true)
                 enableVibration(true)
             }
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+            notificationManager.createNotificationChannel(navChannel)
         }
     }
 
@@ -503,13 +564,15 @@ class DisplayServerService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_STATUS)
             .setContentTitle("PHANToM GO - Display Mode")
             .setContentText("Server: $ip:$port | Token: $tokenHint")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentIntent(mainPendingIntent)
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setGroup(GROUP_STATUS)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .addAction(
                 android.R.drawable.ic_menu_compass,
@@ -743,13 +806,17 @@ class DisplayServerService : Service() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
             
-            val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            val builder = NotificationCompat.Builder(this, CHANNEL_NAV)
                 .setContentTitle("🗺️ Navigation Received")
                 .setContentText("Tap to open Maps")
                 .setSmallIcon(android.R.drawable.ic_menu_directions)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
                 .setAutoCancel(true)
+                .setGroup(GROUP_NAV)
+                // Tapping the notification body opens navigation directly — no need to expand the
+                // notification and press the action button (expand behaviour varies across ROMs).
+                .setContentIntent(openNavPendingIntent)
                 .addAction(
                     android.R.drawable.ic_menu_directions,
                     "Open Navigation",
@@ -759,8 +826,8 @@ class DisplayServerService : Service() {
                 builder.setFullScreenIntent(openNavPendingIntent, true)
             }
             val notification = builder.build()
-            
-            notificationManager?.notify(NOTIFICATION_ID + 1, notification)
+
+            notificationManager?.notify(NAV_NOTIFICATION_ID, notification)
             Log.d(TAG, "✅ Navigation notification shown")
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to show navigation notification", e)

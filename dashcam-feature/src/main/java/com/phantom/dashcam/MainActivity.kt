@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.startStopButton.setOnClickListener {
             if (DashcamStateStore.state.value.isRecording || DashcamStateStore.state.value.isPreparing) {
-                startService(DashcamRecordingService.createStopIntent(this, "Stopped manually"))
+                startService(DashcamRecordingService.createStopIntent(this, "Stopped manually", userInitiated = true))
             } else {
                 if (!hasCameraPermission() || !hasAudioPermission()) {
                     requestMissingPermissions()

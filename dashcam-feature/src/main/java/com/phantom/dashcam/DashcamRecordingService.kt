@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.Manifest
 import android.app.Service
 import android.content.Context
-import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Canvas
@@ -32,7 +31,7 @@ import androidx.camera.core.UseCaseGroup
 import androidx.camera.effects.OverlayEffect
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.FallbackStrategy
-import androidx.camera.video.MediaStoreOutputOptions
+import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
@@ -147,19 +146,21 @@ class DashcamRecordingService : LifecycleService() {
         @SuppressLint("MissingPermission")
         private fun beginSegment() {
             if (stopped) return
-            val displayName = buildFileName(cameraLabel)
-            val contentValues = ContentValues().apply {
-                put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
-                put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/PHANToM GO Cam")
-                }
+            val displayNameBase = buildFileName(cameraLabel)
+            val pendingFile = DashcamClipStorageManager.createPendingClipFile(
+                this@DashcamRecordingService,
+                displayNameBase,
+            ).apply {
+                parentFile?.mkdirs()
+                if (exists()) delete()
             }
-            val outputOptions = MediaStoreOutputOptions.Builder(
-                contentResolver,
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-            )
-                .setContentValues(contentValues)
+            val finalFile = DashcamClipStorageManager.finalizedClipFile(
+                this@DashcamRecordingService,
+                displayNameBase,
+            ).apply {
+                if (exists()) delete()
+            }
+            val outputOptions = FileOutputOptions.Builder(pendingFile)
                 .setDurationLimitMillis(SEGMENT_DURATION_MS)
                 .build()
 
@@ -202,7 +203,14 @@ class DashcamRecordingService : LifecycleService() {
                             code == VideoRecordEvent.Finalize.ERROR_DURATION_LIMIT_REACHED ||
                             code == VideoRecordEvent.Finalize.ERROR_FILE_SIZE_LIMIT_REACHED
                         if (segmentComplete) {
-                            onClipSaved(displayName)
+                            val committed = DashcamClipStorageManager.commitPendingClip(pendingFile, finalFile)
+                            if (!committed) {
+                                if (!stopped) {
+                                    stopRecording("Could not finalize the $cameraLabel camera clip.")
+                                }
+                                return@start
+                            }
+                            onClipSaved(finalFile.name)
                             val plannedSplit = code != VideoRecordEvent.Finalize.ERROR_NONE
                             if (!stopped && plannedSplit) {
                                 // The finished segment is safe; keep the loop going.
@@ -260,10 +268,15 @@ class DashcamRecordingService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
             ACTION_START -> {
+                // A fresh start clears any previous manual-stop so the watchdog may auto-resume.
+                DashcamPreferences(this).setUserStopped(false)
                 targetRotation = intent.getIntExtra(EXTRA_ROTATION, SurfaceRotationStore.getRotationHint())
                 startRecording(intent.getStringExtra(EXTRA_TRIGGER) ?: TRIGGER_MANUAL)
             }
             ACTION_STOP -> {
+                if (intent.getBooleanExtra(EXTRA_USER_INITIATED, false)) {
+                    DashcamPreferences(this).setUserStopped(true)
+                }
                 stopRecording(intent.getStringExtra(EXTRA_STOP_REASON) ?: "Stopped")
             }
         }
@@ -327,6 +340,7 @@ class DashcamRecordingService : LifecycleService() {
         activeSession?.stop()
         provider.unbindAll()
         activeSession = null
+        DashcamClipStorageManager.cleanupIncompleteClips(this)
         trimStoredClipsToQuota(notifyUser = false)
 
         DashcamStateStore.syncPreferences(this)
@@ -700,6 +714,7 @@ class DashcamRecordingService : LifecycleService() {
         const val EXTRA_TRIGGER = "extra_trigger"
         const val EXTRA_ROTATION = "extra_rotation"
         const val EXTRA_STOP_REASON = "extra_stop_reason"
+        const val EXTRA_USER_INITIATED = "extra_user_initiated"
 
         const val TRIGGER_MANUAL = "manual"
         const val TRIGGER_POWER_CONNECTED = "power_connected"
@@ -707,7 +722,8 @@ class DashcamRecordingService : LifecycleService() {
 
         // Loop recording is split into short segments so a sudden power loss can only ever
         // damage the segment currently being written; every earlier segment is already closed.
-        private const val SEGMENT_DURATION_MS = 120_000L
+        // 1-minute segments keep the worst-case loss small and make "share last N minutes" precise.
+        private const val SEGMENT_DURATION_MS = 60_000L
 
         private val overlayDateFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         private val fileDateFormatter = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
@@ -720,10 +736,11 @@ class DashcamRecordingService : LifecycleService() {
             }
         }
 
-        fun createStopIntent(context: Context, reason: String): Intent {
+        fun createStopIntent(context: Context, reason: String, userInitiated: Boolean = false): Intent {
             return Intent(context, DashcamRecordingService::class.java).apply {
                 action = ACTION_STOP
                 putExtra(EXTRA_STOP_REASON, reason)
+                putExtra(EXTRA_USER_INITIATED, userInitiated)
             }
         }
     }

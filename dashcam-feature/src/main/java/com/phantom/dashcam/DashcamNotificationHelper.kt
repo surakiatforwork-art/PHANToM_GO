@@ -19,6 +19,13 @@ object DashcamNotificationHelper {
     const val POWER_NOTIFICATION_ID = 7002
     const val POWER_MONITOR_NOTIFICATION_ID = 7003
 
+    /**
+     * Shared group for the always-on "car system" status notifications (dashcam recording + the
+     * host app's Display-mode service) so they cluster together instead of bundling separately.
+     * The host app references this same key for its Display foreground notification.
+     */
+    const val STATUS_GROUP = "phantom_go_status"
+
     private const val RECORDING_CHANNEL_ID = "gocam_recording"
     private const val ALERT_CHANNEL_ID = "gocam_alerts"
 
@@ -50,6 +57,7 @@ object DashcamNotificationHelper {
             .setContentText(detailText.ifBlank { context.getString(R.string.notification_recording_text) })
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setGroup(STATUS_GROUP)
             .setContentIntent(openAppPendingIntent(context))
             .addAction(
                 android.R.drawable.ic_media_pause,
@@ -67,6 +75,7 @@ object DashcamNotificationHelper {
             .setContentText(context.getString(R.string.notification_monitor_text))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setGroup(STATUS_GROUP)
             .setContentIntent(openAppPendingIntent(context))
             .build()
     }

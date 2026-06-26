@@ -632,7 +632,7 @@
 
   <!-- Dashcam (GO Cam) integration -->
   <string name="settings_dashcam_title">กล้องติดรถ (Dashcam)</string>
-  <string name="settings_dashcam_hint">ตั้งค่าการบันทึกวิดีโอของกล้องติดรถ คลิปจะถูกบันทึกไว้ใน Movies/PHANToM GO Cam พร้อมวันเวลาฝังในภาพ</string>
+  <string name="settings_dashcam_hint">ตั้งค่าการบันทึกวิดีโอของกล้องติดรถ คลิปจะถูกเก็บไว้ในพื้นที่ส่วนตัวของแอปพร้อมวันเวลาฝังในภาพ และจะไปแกลลอรี่ก็ต่อเมื่อผู้ใช้สั่งดาวน์โหลดหรือแชร์ออกเอง</string>
   <string name="settings_dashcam_camera_mode">โหมดกล้อง</string>
   <string name="settings_dashcam_mode_rear">หลัง</string>
   <string name="settings_dashcam_mode_front">หน้า</string>
@@ -653,7 +653,11 @@
   <string name="security_dashcam_need_permission">ต้องการสิทธิ์กล้องและไมโครโฟน</string>
   <string name="security_dashcam_detail_fmt">สิทธิ์: %1$s • ชาร์จ: %2$s • เฝ้าระวังพื้นหลัง: %3$s</string>
   <string name="security_dashcam_grant">ขอสิทธิ์กล้อง/ไมโครโฟน</string>
+  <string name="security_dashcam_battery_opt">ยกเว้นการประหยัดแบตเตอรี่ (เพื่อให้อัดต่อเนื่อง)</string>
   <string name="security_dashcam_view_clips">ดูคลิปย้อนหลัง</string>
+  <string name="security_dashcam_start">เริ่มบันทึก</string>
+  <string name="security_dashcam_stop">หยุดบันทึก</string>
+  <string name="security_dashcam_starting">กำลังเริ่ม…</string>
 
   <!-- Open app after send -->
   <string name="settings_after_send_app_title">เปิดแอปหลังส่ง</string>
