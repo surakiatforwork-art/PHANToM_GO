@@ -12,8 +12,8 @@ android {
     applicationId = "com.phantom.carnavrelay"
     minSdk = 23
     targetSdk = 34
-    versionCode = 24
-    versionName = "1.1.0-beta.1"
+    versionCode = 25
+    versionName = "1.1.0"
   }
 
   buildTypes {

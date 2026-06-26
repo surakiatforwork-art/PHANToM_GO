@@ -318,7 +318,7 @@
   <string name="relay_sending">Sending to Display…</string>
   <string name="relay_preparing">Preparing…</string>
   <string name="relay_resolving">Resolving link…</string>
-  <string name="relay_sent_opening">Sent! Opening Google Maps…</string>
+  <string name="relay_sent_opening">Sent! Opening app…</string>
   <string name="relay_sent">Sent to Car Display ✅</string>
   <string name="relay_opening_maps">Opening Google Maps…</string>
   <string name="relay_waiting_choice">Waiting for your choice…</string>
@@ -335,7 +335,7 @@
   <string name="relay_type_unknown">Not sure</string>
   <string name="relay_sheet_title">What do you want to do with this link?</string>
   <string name="relay_send_to_display">Send to car display</string>
-  <string name="relay_send_and_open">Send to display + open Maps on Main</string>
+  <string name="relay_send_and_open">Send to display + open app on Main</string>
   <string name="relay_open_on_phone">Open Maps on Main</string>
   <string name="relay_copy_link">Copy link</string>
 
@@ -654,4 +654,14 @@
   <string name="security_dashcam_detail_fmt">Permission: %1$s • Charging: %2$s • Background watch: %3$s</string>
   <string name="security_dashcam_grant">Grant camera/microphone</string>
   <string name="security_dashcam_view_clips">View recorded clips</string>
+
+  <!-- Open app after send -->
+  <string name="settings_after_send_app_title">Open app after sending</string>
+  <string name="settings_after_send_app_off">Off — don\'t open any app after sending</string>
+  <string name="settings_after_send_app_not_chosen">On — no app chosen yet, tap the button below to pick</string>
+  <string name="settings_after_send_app_choose">Choose app</string>
+  <string name="settings_after_send_app_status_fmt">Will open: %1$s</string>
+  <string name="settings_after_send_app_picker_title">Choose app to open after sending</string>
+  <string name="settings_after_send_app_none_option">Off (don\'t open any app)</string>
+  <string name="relay_app_not_found">Configured app not found</string>
 </resources>

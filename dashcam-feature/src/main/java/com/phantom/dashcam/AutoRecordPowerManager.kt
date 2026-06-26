@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import android.view.Surface
@@ -15,6 +16,19 @@ import androidx.lifecycle.ProcessLifecycleOwner
 object AutoRecordPowerManager {
 
     private const val TAG = "GO_CAM_AUTO_POWER"
+
+    // Debounce identical power edges arriving from more than one source at nearly the same time
+    // (manifest receiver + monitor receiver + watchdog), mirroring the Display power automation.
+    private const val POWER_EVENT_DEBOUNCE_MS = 1_200L
+
+    @Volatile private var lastHandledPlugged: Boolean? = null
+    @Volatile private var lastHandledAtElapsed = 0L
+
+    /** Periodic safety-net check used by the monitor watchdog: act only on a real edge. */
+    fun observeCurrentPowerState(context: Context, source: String) {
+        if (!DashcamPreferences(context).isAutoRecordOnPowerEnabled()) return
+        reconcileCurrentPowerState(context, source)
+    }
 
     fun setAutoRecordEnabled(context: Context, enabled: Boolean) {
         val prefs = DashcamPreferences(context)
@@ -124,6 +138,17 @@ object AutoRecordPowerManager {
             Log.i(TAG, "Power edge ignored because state is unchanged: plugged=$isPlugged source=$source")
             return
         }
+
+        val now = SystemClock.elapsedRealtime()
+        if (!forceStartWhenConnected &&
+            lastHandledPlugged == isPlugged &&
+            now - lastHandledAtElapsed < POWER_EVENT_DEBOUNCE_MS
+        ) {
+            Log.i(TAG, "Power edge debounced (duplicate within ${POWER_EVENT_DEBOUNCE_MS}ms): plugged=$isPlugged source=$source")
+            return
+        }
+        lastHandledPlugged = isPlugged
+        lastHandledAtElapsed = now
 
         if (isPlugged) {
             handlePowerConnected(context, source)

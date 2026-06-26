@@ -47,6 +47,11 @@
 
     <queries>
         <package android:name="com.google.android.apps.maps" />
+        <!-- Enumerate launchable apps for the "open app after send" picker (Android 11+) -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application

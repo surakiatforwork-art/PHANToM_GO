@@ -45,7 +45,6 @@ import androidx.lifecycle.LifecycleService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.atomic.AtomicInteger
 
 class DashcamRecordingService : LifecycleService() {
 
@@ -71,10 +70,10 @@ class DashcamRecordingService : LifecycleService() {
         private val preview: Preview,
         private val videoCapture: VideoCapture<Recorder>,
         private val overlayEffect: OverlayEffect,
-        private val recording: Recording,
+        private val recorder: SegmentedRecorder,
     ) : ActiveSession {
         override fun stop() {
-            runCatching { recording.stop() }
+            runCatching { recorder.stop() }
             runCatching { overlayEffect.close() }
         }
 
@@ -93,16 +92,16 @@ class DashcamRecordingService : LifecycleService() {
         private val frontPreview: Preview,
         private val rearVideoCapture: VideoCapture<Recorder>,
         private val frontVideoCapture: VideoCapture<Recorder>,
-        private val rearRecording: Recording,
-        private val frontRecording: Recording,
+        private val rearRecorder: SegmentedRecorder,
+        private val frontRecorder: SegmentedRecorder,
         private val rearOverlay: OverlayEffect,
         private val frontOverlay: OverlayEffect,
     ) : ActiveSession {
         override val activeMode: DashcamMode = DashcamMode.DUAL
 
         override fun stop() {
-            runCatching { rearRecording.stop() }
-            runCatching { frontRecording.stop() }
+            runCatching { rearRecorder.stop() }
+            runCatching { frontRecorder.stop() }
             runCatching { rearOverlay.close() }
             runCatching { frontOverlay.close() }
         }
@@ -117,6 +116,109 @@ class DashcamRecordingService : LifecycleService() {
             frontPreview.targetRotation = rotation
             rearVideoCapture.targetRotation = rotation
             frontVideoCapture.targetRotation = rotation
+        }
+    }
+
+    /**
+     * Records a single camera as a chain of short, self-contained MP4 segments. Each segment is
+     * finalized via CameraX's duration limit, so a sudden power loss only ever risks the segment
+     * that is currently being written — every earlier segment is already a complete, playable
+     * file. When one segment finalizes for a planned split we immediately start the next one.
+     */
+    private inner class SegmentedRecorder(
+        private val output: Recorder,
+        private val cameraLabel: String,
+        private val onClipSaved: (String?) -> Unit,
+    ) {
+        @Volatile private var stopped = false
+        private var current: Recording? = null
+
+        fun start() {
+            stopped = false
+            beginSegment()
+        }
+
+        fun stop() {
+            stopped = true
+            runCatching { current?.stop() }
+            current = null
+        }
+
+        @SuppressLint("MissingPermission")
+        private fun beginSegment() {
+            if (stopped) return
+            val displayName = buildFileName(cameraLabel)
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
+                put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/PHANToM GO Cam")
+                }
+            }
+            val outputOptions = MediaStoreOutputOptions.Builder(
+                contentResolver,
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            )
+                .setContentValues(contentValues)
+                .setDurationLimitMillis(SEGMENT_DURATION_MS)
+                .build()
+
+            val audioPermissionGranted = ContextCompat.checkSelfPermission(
+                this@DashcamRecordingService,
+                Manifest.permission.RECORD_AUDIO,
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (audioPermissionGranted) {
+                routeAudioToBuiltInMicBestEffort()
+            }
+
+            val pendingRecording = output.prepareRecording(this@DashcamRecordingService, outputOptions)
+                .let { prepared ->
+                    if (audioPermissionGranted) {
+                        prepared.withAudioEnabled()
+                    } else {
+                        DashcamStateStore.update {
+                            it.copy(detailText = getString(R.string.audio_missing_detail))
+                        }
+                        prepared
+                    }
+                }
+
+            current = pendingRecording.start(appMainExecutor) { event ->
+                when (event) {
+                    is VideoRecordEvent.Start -> {
+                        DashcamStateStore.update {
+                            it.copy(
+                                isPreparing = false,
+                                isRecording = true,
+                                audioPermissionGranted = audioPermissionGranted,
+                            )
+                        }
+                    }
+
+                    is VideoRecordEvent.Finalize -> {
+                        val code = event.error
+                        val segmentComplete = code == VideoRecordEvent.Finalize.ERROR_NONE ||
+                            code == VideoRecordEvent.Finalize.ERROR_DURATION_LIMIT_REACHED ||
+                            code == VideoRecordEvent.Finalize.ERROR_FILE_SIZE_LIMIT_REACHED
+                        if (segmentComplete) {
+                            onClipSaved(displayName)
+                            val plannedSplit = code != VideoRecordEvent.Finalize.ERROR_NONE
+                            if (!stopped && plannedSplit) {
+                                // The finished segment is safe; keep the loop going.
+                                trimStoredClipsToQuota(notifyUser = false)
+                                beginSegment()
+                            } else {
+                                trimStoredClipsToQuota(notifyUser = true)
+                            }
+                        } else if (!stopped) {
+                            stopRecording("Recording failed on $cameraLabel camera (code $code).")
+                        }
+                    }
+
+                    else -> Unit
+                }
+            }
         }
     }
 
@@ -305,20 +407,21 @@ class DashcamRecordingService : LifecycleService() {
         provider.bindToLifecycle(this, selector, useCaseGroup)
         preview.setSurfaceProvider(if (previewEnabled) previewTargets.main else null)
 
-        val recording = startVideoRecording(
+        val recorder = SegmentedRecorder(
             output = videoCapture.output,
             cameraLabel = mode.label,
-            onFinalize = { displayName ->
-                if (displayName != null) {
-                    DashcamStateStore.update {
-                        it.copy(
-                            lastOutputLabel = getString(R.string.last_output_prefix, displayName),
-                        )
-                    }
-                }
-            },
+            onClipSaved = ::onClipSaved,
         )
-        return SingleCameraSession(mode, preview, videoCapture, overlay, recording)
+        recorder.start()
+        return SingleCameraSession(mode, preview, videoCapture, overlay, recorder)
+    }
+
+    private fun onClipSaved(displayName: String?) {
+        if (displayName != null) {
+            DashcamStateStore.update {
+                it.copy(lastOutputLabel = getString(R.string.last_output_prefix, displayName))
+            }
+        }
     }
 
     private fun createDualCameraSession(provider: ProcessCameraProvider): ActiveSession {
@@ -365,27 +468,17 @@ class DashcamRecordingService : LifecycleService() {
         rearPreview.setSurfaceProvider(previewTargets.main)
         frontPreview.setSurfaceProvider(previewTargets.secondary)
 
-        val completedFinalizers = AtomicInteger(0)
-        val finalizeCallback: (String?) -> Unit = { displayName ->
-            if (displayName != null) {
-                DashcamStateStore.update {
-                    it.copy(
-                        lastOutputLabel = getString(R.string.last_output_prefix, displayName),
-                    )
-                }
-            }
-            completedFinalizers.incrementAndGet()
-        }
-
-        val rearRecording = startVideoRecording(rearVideoCapture.output, "Rear", finalizeCallback)
-        val frontRecording = startVideoRecording(frontVideoCapture.output, "Front", finalizeCallback)
+        val rearRecorder = SegmentedRecorder(rearVideoCapture.output, "Rear", ::onClipSaved)
+        val frontRecorder = SegmentedRecorder(frontVideoCapture.output, "Front", ::onClipSaved)
+        rearRecorder.start()
+        frontRecorder.start()
         return DualCameraSession(
             rearPreview = rearPreview,
             frontPreview = frontPreview,
             rearVideoCapture = rearVideoCapture,
             frontVideoCapture = frontVideoCapture,
-            rearRecording = rearRecording,
-            frontRecording = frontRecording,
+            rearRecorder = rearRecorder,
+            frontRecorder = frontRecorder,
             rearOverlay = rearOverlay,
             frontOverlay = frontOverlay,
         )
@@ -407,76 +500,6 @@ class DashcamRecordingService : LifecycleService() {
         return VideoCapture.Builder(recorder)
             .setTargetRotation(recordingStartRotation)
             .build()
-    }
-
-    private fun startVideoRecording(
-        output: Recorder,
-        cameraLabel: String,
-        onFinalize: (String?) -> Unit,
-    ): Recording {
-        val displayName = buildFileName(cameraLabel)
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
-            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/PHANToM GO Cam")
-            }
-        }
-
-        val outputOptions = MediaStoreOutputOptions.Builder(
-            contentResolver,
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-        )
-            .setContentValues(contentValues)
-            .build()
-
-        val audioPermissionGranted = ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.RECORD_AUDIO,
-        ) == PackageManager.PERMISSION_GRANTED
-
-        if (audioPermissionGranted) {
-            routeAudioToBuiltInMicBestEffort()
-        }
-
-        val pendingRecording = output.prepareRecording(this, outputOptions).let { prepared ->
-            if (audioPermissionGranted) {
-                prepared.withAudioEnabled()
-            } else {
-                DashcamStateStore.update {
-                    it.copy(
-                        detailText = getString(R.string.audio_missing_detail),
-                    )
-                }
-                prepared
-            }
-        }
-
-        return pendingRecording
-            .start(appMainExecutor) { event ->
-                when (event) {
-                    is VideoRecordEvent.Start -> {
-                        DashcamStateStore.update {
-                            it.copy(
-                                isPreparing = false,
-                                isRecording = true,
-                                audioPermissionGranted = audioPermissionGranted,
-                            )
-                        }
-                    }
-
-                    is VideoRecordEvent.Finalize -> {
-                        if (event.hasError()) {
-                            stopRecording("Recording failed on $cameraLabel camera.")
-                        } else {
-                            onFinalize(displayName)
-                            trimStoredClipsToQuota(notifyUser = true)
-                        }
-                    }
-
-                    else -> Unit
-                }
-            }
     }
 
     private fun createOverlayEffect(
@@ -681,6 +704,10 @@ class DashcamRecordingService : LifecycleService() {
         const val TRIGGER_MANUAL = "manual"
         const val TRIGGER_POWER_CONNECTED = "power_connected"
         const val TRIGGER_POWER_NOTIFICATION = "power_notification"
+
+        // Loop recording is split into short segments so a sudden power loss can only ever
+        // damage the segment currently being written; every earlier segment is already closed.
+        private const val SEGMENT_DURATION_MS = 120_000L
 
         private val overlayDateFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         private val fileDateFormatter = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)

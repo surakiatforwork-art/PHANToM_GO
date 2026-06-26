@@ -318,7 +318,7 @@
   <string name="relay_sending">กำลังส่งไปยังจอ…</string>
   <string name="relay_preparing">กำลังเตรียม…</string>
   <string name="relay_resolving">กำลังแปลงลิงก์…</string>
-  <string name="relay_sent_opening">ส่งแล้ว! กำลังเปิด Google Maps…</string>
+  <string name="relay_sent_opening">ส่งแล้ว! กำลังเปิดแอป…</string>
   <string name="relay_sent">ส่งไปยังจอติดรถแล้ว ✅</string>
   <string name="relay_opening_maps">กำลังเปิด Google Maps…</string>
   <string name="relay_waiting_choice">กำลังรอการเลือกของคุณ…</string>
@@ -335,7 +335,7 @@
   <string name="relay_type_unknown">ไม่แน่ใจ</string>
   <string name="relay_sheet_title">ต้องการทำอะไรกับลิงก์นี้?</string>
   <string name="relay_send_to_display">ส่งไปจอติดรถ</string>
-  <string name="relay_send_and_open">ส่งไปจอ + เปิด Maps บนเครื่องหลัก</string>
+  <string name="relay_send_and_open">ส่งไปจอ + เปิดแอปบนเครื่องหลัก</string>
   <string name="relay_open_on_phone">เปิด Maps บนเครื่องหลัก</string>
   <string name="relay_copy_link">คัดลอกลิงก์</string>
 
@@ -654,4 +654,14 @@
   <string name="security_dashcam_detail_fmt">สิทธิ์: %1$s • ชาร์จ: %2$s • เฝ้าระวังพื้นหลัง: %3$s</string>
   <string name="security_dashcam_grant">ขอสิทธิ์กล้อง/ไมโครโฟน</string>
   <string name="security_dashcam_view_clips">ดูคลิปย้อนหลัง</string>
+
+  <!-- Open app after send -->
+  <string name="settings_after_send_app_title">เปิดแอปหลังส่ง</string>
+  <string name="settings_after_send_app_off">ปิด — ไม่เปิดแอปต่อหลังส่ง</string>
+  <string name="settings_after_send_app_not_chosen">เปิดอยู่ — ยังไม่ได้เลือกแอป กดปุ่มด้านล่างเพื่อเลือก</string>
+  <string name="settings_after_send_app_choose">เลือกแอป</string>
+  <string name="settings_after_send_app_status_fmt">จะเปิด: %1$s</string>
+  <string name="settings_after_send_app_picker_title">เลือกแอปที่จะเปิดหลังส่ง</string>
+  <string name="settings_after_send_app_none_option">ปิด (ไม่เปิดแอปต่อ)</string>
+  <string name="relay_app_not_found">ไม่พบแอปที่ตั้งค่าไว้</string>
 </resources>

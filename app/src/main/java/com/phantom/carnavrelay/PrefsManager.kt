@@ -72,8 +72,11 @@ class PrefsManager(context: Context) {
         const val AFTER_SEND_EXIT_AND_REMOVE_TASK = "EXIT_AND_REMOVE_TASK"
         const val AFTER_SEND_STAY_IN_APP = "STAY_IN_APP"
 
-        // Open Maps after send (optional)
-        private const val KEY_OPEN_MAPS_AFTER_SEND = "open_maps_after_send"
+        // Open an app on the Main device after a successful send (optional).
+        // Replaces the old "open Google Maps after send".
+        private const val KEY_AFTER_SEND_OPEN_ENABLED = "after_send_open_enabled"
+        private const val KEY_AFTER_SEND_APP_PKG = "after_send_app_pkg"
+        private const val KEY_AFTER_SEND_APP_LABEL = "after_send_app_label"
 
         // Short link resolve cache
         private const val KEY_URL_RESOLVE_CACHE = "url_resolve_cache"
@@ -450,12 +453,40 @@ class PrefsManager(context: Context) {
         prefs.edit().putString(KEY_AFTER_SEND_BEHAVIOR, behavior).apply()
     }
 
-    fun isOpenMapsAfterSendEnabled(): Boolean {
-        return prefs.getBoolean(KEY_OPEN_MAPS_AFTER_SEND, false)
+    /** Package of the app to open on the Main device after a successful send. Empty = off. */
+    fun getAfterSendAppPackage(): String {
+        return prefs.getString(KEY_AFTER_SEND_APP_PKG, "") ?: ""
     }
 
-    fun setOpenMapsAfterSendEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_OPEN_MAPS_AFTER_SEND, enabled).apply()
+    fun getAfterSendAppLabel(): String {
+        return prefs.getString(KEY_AFTER_SEND_APP_LABEL, "") ?: ""
+    }
+
+    fun setAfterSendApp(packageName: String, label: String) {
+        prefs.edit()
+            .putString(KEY_AFTER_SEND_APP_PKG, packageName)
+            .putString(KEY_AFTER_SEND_APP_LABEL, label)
+            .apply()
+    }
+
+    fun clearAfterSendApp() {
+        prefs.edit()
+            .remove(KEY_AFTER_SEND_APP_PKG)
+            .remove(KEY_AFTER_SEND_APP_LABEL)
+            .apply()
+    }
+
+    fun isAfterSendOpenEnabled(): Boolean {
+        return prefs.getBoolean(KEY_AFTER_SEND_OPEN_ENABLED, false)
+    }
+
+    fun setAfterSendOpenEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AFTER_SEND_OPEN_ENABLED, enabled).apply()
+    }
+
+    /** True only when the feature is on AND a target app has been chosen. */
+    fun isOpenAppAfterSendEnabled(): Boolean {
+        return isAfterSendOpenEnabled() && getAfterSendAppPackage().isNotEmpty()
     }
 
     fun getDisplayNavMode(): String {

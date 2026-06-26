@@ -33,7 +33,7 @@ class RelayActivity : AppCompatActivity() {
     private var lastRaw: String? = null
     private var requestId: Int = 0
     private var hasOpenedMaps = false
-    private var pendingOpenMapsAfterSend: Boolean? = null
+    private var pendingOpenAppAfterSend: Boolean? = null
     private var lastResolvedUrl: String? = null
     private var lastClassification: MapIntentType = MapIntentType.UNKNOWN
     private var lastIntent: Intent? = null
@@ -137,7 +137,7 @@ class RelayActivity : AppCompatActivity() {
                 PhantomLog.i("NAV resolvedUrl=$resolvedUrl")
                 if (forceSend) {
                     updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
-                    pendingOpenMapsAfterSend = null
+                    pendingOpenAppAfterSend = null
                     sendToDisplay(resolvedUrl, currentRequestId)
                 } else {
                     val classification = classifyMapIntent(resolvedUrl, originalIntent)
@@ -164,7 +164,7 @@ class RelayActivity : AppCompatActivity() {
                 if (classification == MapIntentType.NAVIGATION) {
                     PhantomLog.i("NAV action=SEND (auto nav)")
                     updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
-                    pendingOpenMapsAfterSend = false
+                    pendingOpenAppAfterSend = false
                     sendToDisplay(resolvedUrl, currentRequestId)
                 } else {
                     PhantomLog.i("NAV action=ASK (auto nav fallback)")
@@ -174,7 +174,7 @@ class RelayActivity : AppCompatActivity() {
             PrefsManager.SMART_POLICY_ALWAYS_SEND -> {
                 PhantomLog.i("NAV action=SEND (always)")
                 updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
-                pendingOpenMapsAfterSend = false
+                pendingOpenAppAfterSend = false
                 sendToDisplay(resolvedUrl, currentRequestId)
             }
             PrefsManager.SMART_POLICY_ALWAYS_OPEN_ON_PHONE -> {
@@ -232,22 +232,67 @@ class RelayActivity : AppCompatActivity() {
 
     private fun handleSendSuccess(resolvedUrl: String) {
         progressBar.visibility = View.GONE
-        val shouldOpenMaps = pendingOpenMapsAfterSend ?: prefsManager.isOpenMapsAfterSendEnabled()
-        pendingOpenMapsAfterSend = null
+        val shouldOpenApp = pendingOpenAppAfterSend ?: prefsManager.isOpenAppAfterSendEnabled()
+        pendingOpenAppAfterSend = null
 
-        if (shouldOpenMaps) {
+        if (shouldOpenApp) {
             updateStatus(getString(R.string.relay_sent_opening), R.color.aurora_success)
-            openGoogleMaps(resolvedUrl) { success ->
+            openAfterSendApp(resolvedUrl) { success ->
                 if (success) {
                     applyAfterSendBehavior()
                 } else {
-                    showError(getString(R.string.relay_maps_not_found), retryable = false)
+                    showError(getString(R.string.relay_app_not_found), retryable = false)
                 }
             }
         } else {
             updateStatus(getString(R.string.relay_sent), R.color.aurora_success)
             applyAfterSendBehavior()
         }
+    }
+
+    /**
+     * Open the user-chosen app on the Main device after a successful send.
+     * If the chosen app can view the destination URL (e.g. a maps app) it opens there so the
+     * user can keep navigating; otherwise it just launches the app. When no app is configured
+     * we keep the legacy behaviour of opening Google Maps with the destination.
+     */
+    private fun openAfterSendApp(url: String, onComplete: (Boolean) -> Unit) {
+        if (hasOpenedMaps) {
+            onComplete(false)
+            return
+        }
+        val packageName = prefsManager.getAfterSendAppPackage()
+        if (packageName.isEmpty()) {
+            openGoogleMaps(url, onComplete)
+            return
+        }
+
+        hasOpenedMaps = true
+        val uri = Uri.parse(url)
+        val viewIntent = Intent(Intent.ACTION_VIEW, uri).setPackage(packageName)
+        try {
+            if (viewIntent.resolveActivity(packageManager) != null) {
+                startActivity(viewIntent)
+                onComplete(true)
+                return
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ After-send view intent failed for $packageName", e)
+        }
+
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        if (launchIntent != null) {
+            try {
+                startActivity(launchIntent)
+                onComplete(true)
+                return
+            } catch (e: Exception) {
+                Log.w(TAG, "⚠️ After-send launch intent failed for $packageName", e)
+            }
+        }
+
+        hasOpenedMaps = false
+        onComplete(false)
     }
 
     private fun openMapsDirectAndFinish(rawUrl: String) {
@@ -492,7 +537,7 @@ class RelayActivity : AppCompatActivity() {
         view.findViewById<Button>(R.id.btnSendToDisplay).setOnClickListener {
             if (currentRequestId != requestId) return@setOnClickListener
             PhantomLog.i("NAV action=SEND (sheet)")
-            pendingOpenMapsAfterSend = false
+            pendingOpenAppAfterSend = false
             dialog.dismiss()
             updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
             sendToDisplay(resolvedUrl, currentRequestId)
@@ -501,7 +546,7 @@ class RelayActivity : AppCompatActivity() {
         view.findViewById<Button>(R.id.btnSendAndOpenMaps).setOnClickListener {
             if (currentRequestId != requestId) return@setOnClickListener
             PhantomLog.i("NAV action=SEND_OPEN (sheet)")
-            pendingOpenMapsAfterSend = true
+            pendingOpenAppAfterSend = true
             dialog.dismiss()
             updateStatus(getString(R.string.relay_sending), R.color.aurora_mint)
             sendToDisplay(resolvedUrl, currentRequestId)

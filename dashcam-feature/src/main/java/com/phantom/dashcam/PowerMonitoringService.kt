@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.IBinder
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -14,6 +16,18 @@ import androidx.core.content.ContextCompat
 class PowerMonitoringService : Service() {
 
     private var receiverRegistered = false
+    private val watchdogHandler = Handler(Looper.getMainLooper())
+    private var watchdogRunning = false
+
+    // Safety-net poll (same idea as the Display power watchdog): if both POWER_* and
+    // ACTION_BATTERY_CHANGED are delayed/dropped by an OEM, this still catches the edge.
+    private val watchdogRunnable = object : Runnable {
+        override fun run() {
+            if (!watchdogRunning) return
+            AutoRecordPowerManager.observeCurrentPowerState(this@PowerMonitoringService, "power-watchdog")
+            watchdogHandler.postDelayed(this, WATCHDOG_INTERVAL_MS)
+        }
+    }
 
     private val powerStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -46,12 +60,14 @@ class PowerMonitoringService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP_MONITOR) {
+            stopWatchdog()
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
         }
 
         if (!DashcamPreferences(this).isAutoRecordOnPowerEnabled()) {
+            stopWatchdog()
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
@@ -62,10 +78,23 @@ class PowerMonitoringService : Service() {
             context = this,
             source = "power-monitor-start",
         )
+        startWatchdog()
         return START_STICKY
     }
 
+    private fun startWatchdog() {
+        if (watchdogRunning) return
+        watchdogRunning = true
+        watchdogHandler.postDelayed(watchdogRunnable, WATCHDOG_INTERVAL_MS)
+    }
+
+    private fun stopWatchdog() {
+        watchdogRunning = false
+        watchdogHandler.removeCallbacks(watchdogRunnable)
+    }
+
     override fun onDestroy() {
+        stopWatchdog()
         if (receiverRegistered) {
             runCatching {
                 unregisterReceiver(powerStateReceiver)
@@ -108,6 +137,7 @@ class PowerMonitoringService : Service() {
 
     companion object {
         private const val TAG = "GO_CAM_POWER_MONITOR"
+        private const val WATCHDOG_INTERVAL_MS = 2_000L
 
         const val ACTION_START_MONITOR = "com.phantom.dashcam.action.START_POWER_MONITOR"
         const val ACTION_STOP_MONITOR = "com.phantom.dashcam.action.STOP_POWER_MONITOR"

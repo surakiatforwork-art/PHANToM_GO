@@ -67,7 +67,10 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var afterSendGroup: android.widget.RadioGroup
     private lateinit var afterSendExit: android.widget.RadioButton
     private lateinit var afterSendStay: android.widget.RadioButton
-    private lateinit var openMapsAfterSendSwitch: MaterialSwitch
+    private lateinit var afterSendAppSwitch: MaterialSwitch
+    private lateinit var afterSendAppStatusText: TextView
+    private lateinit var chooseAfterSendAppButton: Button
+    private var updatingAfterSendAppUi = false
     private lateinit var displayNavModeGroup: android.widget.RadioGroup
     private lateinit var displayNavModeCar: android.widget.RadioButton
     private lateinit var displayNavModeMotorcycle: android.widget.RadioButton
@@ -118,7 +121,6 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var backButton: Button
     private var notificationRequestInFlight = false
     private var updatingMapHubUi = false
-    private var updatingOpenMapsUi = false
     private var updatingSmartModeUi = false
     private var updatingPolicyUi = false
     private var updatingAfterSendUi = false
@@ -232,7 +234,9 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         afterSendGroup = root.findViewById(R.id.afterSendGroup)
         afterSendExit = root.findViewById(R.id.afterSendExit)
         afterSendStay = root.findViewById(R.id.afterSendStay)
-        openMapsAfterSendSwitch = root.findViewById(R.id.openMapsAfterSendSwitch)
+        afterSendAppSwitch = root.findViewById(R.id.afterSendAppSwitch)
+        afterSendAppStatusText = root.findViewById(R.id.afterSendAppStatusText)
+        chooseAfterSendAppButton = root.findViewById(R.id.chooseAfterSendAppButton)
         displayNavModeGroup = root.findViewById(R.id.displayNavModeGroup)
         displayNavModeCar = root.findViewById(R.id.displayNavModeCar)
         displayNavModeMotorcycle = root.findViewById(R.id.displayNavModeMotorcycle)
@@ -343,11 +347,19 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             prefsManager.setAfterSendBehavior(behavior)
         }
 
-        openMapsAfterSendSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (updatingOpenMapsUi) return@setOnCheckedChangeListener
-            prefsManager.setOpenMapsAfterSendEnabled(isChecked)
-            updateMapLinkHubStatus()
-            openMapsAfterSendSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        afterSendAppSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingAfterSendAppUi) return@setOnCheckedChangeListener
+            prefsManager.setAfterSendOpenEnabled(isChecked)
+            if (isChecked && prefsManager.getAfterSendAppPackage().isEmpty()) {
+                showAfterSendAppPicker(revertSwitchIfNoneChosen = true)
+            }
+            updateAfterSendAppStatus()
+            afterSendAppSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        chooseAfterSendAppButton.setOnClickListener {
+            showAfterSendAppPicker()
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
         displayNavModeGroup.setOnCheckedChangeListener { _, checkedId ->
@@ -622,9 +634,81 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
 
         mapLinkHubDefaultStatusText.text = getString(R.string.settings_system_default_hint)
 
-        updatingOpenMapsUi = true
-        openMapsAfterSendSwitch.isChecked = prefsManager.isOpenMapsAfterSendEnabled()
-        updatingOpenMapsUi = false
+        updateAfterSendAppStatus()
+    }
+
+    private fun updateAfterSendAppStatus() {
+        val enabled = prefsManager.isAfterSendOpenEnabled()
+        val label = prefsManager.getAfterSendAppLabel()
+        val packageName = prefsManager.getAfterSendAppPackage()
+
+        updatingAfterSendAppUi = true
+        afterSendAppSwitch.isChecked = enabled
+        updatingAfterSendAppUi = false
+
+        chooseAfterSendAppButton.isEnabled = enabled
+        chooseAfterSendAppButton.alpha = if (enabled) 1f else 0.5f
+
+        afterSendAppStatusText.text = when {
+            !enabled -> getString(R.string.settings_after_send_app_off)
+            packageName.isEmpty() -> getString(R.string.settings_after_send_app_not_chosen)
+            else -> getString(R.string.settings_after_send_app_status_fmt, label.ifBlank { packageName })
+        }
+        afterSendAppStatusText.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                if (enabled && packageName.isNotEmpty()) R.color.aurora_success else R.color.aurora_warning
+            )
+        )
+    }
+
+    private data class AppChoice(val packageName: String, val label: String, val icon: android.graphics.drawable.Drawable)
+
+    private fun showAfterSendAppPicker(revertSwitchIfNoneChosen: Boolean = false) {
+        val pm = requireContext().packageManager
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = pm.queryIntentActivities(launcherIntent, 0)
+            .mapNotNull { info ->
+                val pkg = info.activityInfo?.packageName ?: return@mapNotNull null
+                if (pkg == requireContext().packageName) return@mapNotNull null
+                AppChoice(pkg, info.loadLabel(pm).toString(), info.loadIcon(pm))
+            }
+            .distinctBy { it.packageName }
+            .sortedBy { it.label.lowercase() }
+
+        val adapter = object : android.widget.ArrayAdapter<AppChoice>(
+            requireContext(), R.layout.item_app_choice, apps
+        ) {
+            override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+                val row = convertView ?: layoutInflater.inflate(R.layout.item_app_choice, parent, false)
+                val item = apps[position]
+                row.findViewById<android.widget.ImageView>(R.id.appChoiceIcon).setImageDrawable(item.icon)
+                row.findViewById<TextView>(R.id.appChoiceLabel).text = item.label
+                return row
+            }
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.settings_after_send_app_picker_title)
+            .setAdapter(adapter) { _, which ->
+                val item = apps[which]
+                prefsManager.setAfterSendApp(item.packageName, item.label)
+                prefsManager.setAfterSendOpenEnabled(true)
+                updateAfterSendAppStatus()
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                if (revertSwitchIfNoneChosen && prefsManager.getAfterSendAppPackage().isEmpty()) {
+                    prefsManager.setAfterSendOpenEnabled(false)
+                }
+                updateAfterSendAppStatus()
+            }
+            .setOnCancelListener {
+                if (revertSwitchIfNoneChosen && prefsManager.getAfterSendAppPackage().isEmpty()) {
+                    prefsManager.setAfterSendOpenEnabled(false)
+                }
+                updateAfterSendAppStatus()
+            }
+            .show()
     }
 
     private fun updateTransportStatus() {
