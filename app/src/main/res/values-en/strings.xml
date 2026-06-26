@@ -629,4 +629,29 @@
   <string name="display_qr_payload_label">QR Payload</string>
   <string name="display_speed_provider_location">location</string>
   <string name="security_display_fallback">Display</string>
+
+  <!-- Dashcam (GO Cam) integration -->
+  <string name="settings_dashcam_title">Dashcam</string>
+  <string name="settings_dashcam_hint">Configure dashcam video recording. Clips are saved to Movies/PHANToM GO Cam with a burned-in timestamp.</string>
+  <string name="settings_dashcam_camera_mode">Camera mode</string>
+  <string name="settings_dashcam_mode_rear">Rear</string>
+  <string name="settings_dashcam_mode_front">Front</string>
+  <string name="settings_dashcam_mode_dual">Dual</string>
+  <string name="settings_dashcam_preview">Show preview while recording</string>
+  <string name="settings_dashcam_storage_title">Loop recording storage</string>
+  <string name="settings_dashcam_storage_value">%1$d GB reserved for clips</string>
+  <string name="settings_dashcam_storage_hint">When the folder grows past this quota, the oldest clips are deleted first automatically (minimum 8 GB).</string>
+  <string name="settings_dashcam_view_clips">View all videos</string>
+  <string name="security_dashcam_title">Dashcam</string>
+  <string name="security_dashcam_enable">Enable dashcam</string>
+  <string name="security_dashcam_autorecord">Auto record when charger is connected</string>
+  <string name="security_dashcam_autorecord_hint">Android 12+ may block camera startup from the background. If that happens, the app shows a notification to start manually.</string>
+  <string name="security_dashcam_state_off">Off</string>
+  <string name="security_dashcam_state_recording">Recording</string>
+  <string name="security_dashcam_state_waiting">Ready, waiting for charger</string>
+  <string name="security_dashcam_state_ready">Ready</string>
+  <string name="security_dashcam_need_permission">Camera and microphone permission required</string>
+  <string name="security_dashcam_detail_fmt">Permission: %1$s • Charging: %2$s • Background watch: %3$s</string>
+  <string name="security_dashcam_grant">Grant camera/microphone</string>
+  <string name="security_dashcam_view_clips">View recorded clips</string>
 </resources>

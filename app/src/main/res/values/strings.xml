@@ -629,4 +629,29 @@
   <string name="display_qr_payload_label">QR Payload</string>
   <string name="display_speed_provider_location">ตำแหน่ง</string>
   <string name="security_display_fallback">จอ</string>
+
+  <!-- Dashcam (GO Cam) integration -->
+  <string name="settings_dashcam_title">กล้องติดรถ (Dashcam)</string>
+  <string name="settings_dashcam_hint">ตั้งค่าการบันทึกวิดีโอของกล้องติดรถ คลิปจะถูกบันทึกไว้ใน Movies/PHANToM GO Cam พร้อมวันเวลาฝังในภาพ</string>
+  <string name="settings_dashcam_camera_mode">โหมดกล้อง</string>
+  <string name="settings_dashcam_mode_rear">หลัง</string>
+  <string name="settings_dashcam_mode_front">หน้า</string>
+  <string name="settings_dashcam_mode_dual">คู่</string>
+  <string name="settings_dashcam_preview">แสดงพรีวิวขณะบันทึก</string>
+  <string name="settings_dashcam_storage_title">พื้นที่จัดเก็บแบบวนลูป</string>
+  <string name="settings_dashcam_storage_value">สำรองพื้นที่ %1$d GB สำหรับคลิป</string>
+  <string name="settings_dashcam_storage_hint">เมื่อโฟลเดอร์ใหญ่เกินที่กำหนด คลิปเก่าสุดจะถูกลบก่อนอัตโนมัติ (อย่างน้อย 8 GB)</string>
+  <string name="settings_dashcam_view_clips">ดูวีดิโอทั้งหมด</string>
+  <string name="security_dashcam_title">กล้องติดรถ (Dashcam)</string>
+  <string name="security_dashcam_enable">เปิดใช้งานกล้องติดรถ</string>
+  <string name="security_dashcam_autorecord">บันทึกอัตโนมัติเมื่อเสียบชาร์จ</string>
+  <string name="security_dashcam_autorecord_hint">Android 12+ อาจบล็อกการเปิดกล้องจากเบื้องหลัง หากเกิดขึ้นแอปจะแจ้งเตือนให้กดเริ่มเอง</string>
+  <string name="security_dashcam_state_off">ปิดอยู่</string>
+  <string name="security_dashcam_state_recording">กำลังบันทึก</string>
+  <string name="security_dashcam_state_waiting">พร้อม รอเสียบชาร์จ</string>
+  <string name="security_dashcam_state_ready">พร้อมใช้งาน</string>
+  <string name="security_dashcam_need_permission">ต้องการสิทธิ์กล้องและไมโครโฟน</string>
+  <string name="security_dashcam_detail_fmt">สิทธิ์: %1$s • ชาร์จ: %2$s • เฝ้าระวังพื้นหลัง: %3$s</string>
+  <string name="security_dashcam_grant">ขอสิทธิ์กล้อง/ไมโครโฟน</string>
+  <string name="security_dashcam_view_clips">ดูคลิปย้อนหลัง</string>
 </resources>

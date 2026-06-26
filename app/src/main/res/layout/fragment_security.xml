@@ -248,6 +248,96 @@
                     android:textStyle="bold"
                     android:visibility="gone" />
             </LinearLayout>
+
+            <!-- Dashcam (GO Cam) -->
+            <LinearLayout
+                android:id="@+id/dashcamSecurityCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:background="@drawable/soft_card_background"
+                android:elevation="3dp"
+                android:orientation="vertical"
+                android:padding="18dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/security_dashcam_title"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="21sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/dashcamEnableSwitch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/security_dashcam_enable"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/dashcamStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/security_dashcam_state_off"
+                    android:textColor="@color/ui_warning"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/dashcamAutoRecordSwitch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/security_dashcam_autorecord"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/security_dashcam_autorecord_hint"
+                    android:textColor="@color/ui_text_secondary"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/dashcamDetailText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textColor="@color/ui_text_secondary"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/dashcamGrantButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/soft_secondary_button"
+                    android:backgroundTint="@null"
+                    app:backgroundTint="@null"
+                    android:text="@string/security_dashcam_grant"
+                    android:textAllCaps="false"
+                    android:textColor="@color/soft_button_secondary_text"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/dashcamSecurityViewClipsButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/soft_primary_button"
+                    android:backgroundTint="@null"
+                    app:backgroundTint="@null"
+                    android:text="@string/security_dashcam_view_clips"
+                    android:textAllCaps="false"
+                    android:textColor="@color/soft_button_primary_text"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </FrameLayout>

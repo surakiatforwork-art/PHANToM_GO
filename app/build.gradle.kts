@@ -6,14 +6,14 @@ plugins {
 
 android {
   namespace = "com.phantom.carnavrelay"
-  compileSdk = 34
+  compileSdk = 35
 
   defaultConfig {
     applicationId = "com.phantom.carnavrelay"
     minSdk = 23
     targetSdk = 34
-    versionCode = 23
-    versionName = "1.0.20"
+    versionCode = 24
+    versionName = "1.1.0-beta.1"
   }
 
   buildTypes {
@@ -53,6 +53,9 @@ dependencies {
 
   // WorkManager
   implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+  // Shared dashcam feature (GO Cam)
+  implementation(project(":dashcam-feature"))
 
   testImplementation("junit:junit:4.13.2")
 }

@@ -23,7 +23,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.slider.Slider
+import com.phantom.dashcam.DashcamClipsActivity
+import com.phantom.dashcam.DashcamMode
+import com.phantom.dashcam.DashcamPreferences
+import com.phantom.dashcam.DashcamStateStore
 
 class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
 
@@ -33,6 +39,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     }
 
     private lateinit var prefsManager: PrefsManager
+    private lateinit var dashcamPreferences: DashcamPreferences
     private lateinit var overlayController: OverlayController
     private lateinit var overlaySwitch: MaterialSwitch
     private lateinit var overlayStatusText: TextView
@@ -97,6 +104,15 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var copyLogButton: Button
     private lateinit var clearLogButton: Button
     private lateinit var grantPermissionButton: Button
+    private lateinit var dashcamModeGroup: MaterialButtonToggleGroup
+    private lateinit var dashcamModeRear: com.google.android.material.button.MaterialButton
+    private lateinit var dashcamModeFront: com.google.android.material.button.MaterialButton
+    private lateinit var dashcamModeDual: com.google.android.material.button.MaterialButton
+    private lateinit var dashcamPreviewSwitch: MaterialSwitch
+    private lateinit var dashcamStorageValueText: TextView
+    private lateinit var dashcamStorageSlider: Slider
+    private lateinit var dashcamViewClipsButton: Button
+    private var updatingDashcamUi = false
     private lateinit var notificationStatusText: TextView
     private lateinit var requestNotificationButton: Button
     private lateinit var backButton: Button
@@ -182,6 +198,7 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "⚙️ SettingsScreenFragment.onViewCreated()")
         prefsManager = PrefsManager(requireContext())
+        dashcamPreferences = DashcamPreferences(requireContext())
         overlayController = OverlayController(requireContext())
         initViews(view)
         setupClickListeners()
@@ -252,6 +269,14 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         copyLogButton = root.findViewById(R.id.copyLogButton)
         clearLogButton = root.findViewById(R.id.clearLogButton)
         grantPermissionButton = root.findViewById(R.id.grantPermissionButton)
+        dashcamModeGroup = root.findViewById(R.id.dashcamModeGroup)
+        dashcamModeRear = root.findViewById(R.id.dashcamModeRear)
+        dashcamModeFront = root.findViewById(R.id.dashcamModeFront)
+        dashcamModeDual = root.findViewById(R.id.dashcamModeDual)
+        dashcamPreviewSwitch = root.findViewById(R.id.dashcamPreviewSwitch)
+        dashcamStorageValueText = root.findViewById(R.id.dashcamStorageValueText)
+        dashcamStorageSlider = root.findViewById(R.id.dashcamStorageSlider)
+        dashcamViewClipsButton = root.findViewById(R.id.dashcamViewClipsButton)
         notificationStatusText = root.findViewById(R.id.notificationStatusText)
         requestNotificationButton = root.findViewById(R.id.requestNotificationButton)
         backButton = root.findViewById(R.id.backButton)
@@ -453,6 +478,37 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         }
 
+        dashcamModeGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked || updatingDashcamUi) return@addOnButtonCheckedListener
+            val mode = when (checkedId) {
+                R.id.dashcamModeFront -> DashcamMode.FRONT
+                R.id.dashcamModeDual -> DashcamMode.DUAL
+                else -> DashcamMode.REAR
+            }
+            dashcamPreferences.setMode(mode)
+            DashcamStateStore.syncPreferences(requireContext())
+        }
+
+        dashcamPreviewSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingDashcamUi) return@setOnCheckedChangeListener
+            dashcamPreferences.setPreviewEnabled(isChecked)
+            DashcamStateStore.syncPreferences(requireContext())
+            dashcamPreviewSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
+        dashcamStorageSlider.addOnChangeListener { _, value, fromUser ->
+            if (!fromUser) return@addOnChangeListener
+            val normalized = dashcamPreferences.normalizeStorageQuotaGb(value.toInt())
+            dashcamPreferences.setStorageQuotaGb(normalized)
+            DashcamStateStore.syncPreferences(requireContext())
+            dashcamStorageValueText.text = getString(R.string.settings_dashcam_storage_value, normalized)
+        }
+
+        dashcamViewClipsButton.setOnClickListener {
+            startActivity(Intent(requireContext(), DashcamClipsActivity::class.java))
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
         backButton.setOnClickListener {
             (activity as? MainActivity)?.navigateBackToPreviousTab()
         }
@@ -468,8 +524,27 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         updateSpeedometerStatus()
         updateDisplayPowerAutomationStatus()
         updateAntiTheftStatus()
+        updateDashcamStatus()
         updateNotificationStatus()
         loadLogs()
+    }
+
+    private fun updateDashcamStatus() {
+        updatingDashcamUi = true
+        dashcamModeGroup.check(
+            when (dashcamPreferences.getMode()) {
+                DashcamMode.FRONT -> R.id.dashcamModeFront
+                DashcamMode.DUAL -> R.id.dashcamModeDual
+                else -> R.id.dashcamModeRear
+            }
+        )
+        dashcamPreviewSwitch.isChecked = dashcamPreferences.isPreviewEnabled()
+        val quota = dashcamPreferences.getStorageQuotaGb()
+        if (dashcamStorageSlider.value.toInt() != quota) {
+            dashcamStorageSlider.value = quota.toFloat()
+        }
+        dashcamStorageValueText.text = getString(R.string.settings_dashcam_storage_value, quota)
+        updatingDashcamUi = false
     }
 
     private fun updateOverlayStatus() {

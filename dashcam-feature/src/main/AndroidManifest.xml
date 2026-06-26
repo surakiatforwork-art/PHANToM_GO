@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
+    <application>
+
+        <!-- Brief activity used to wake the app from background for hands-free auto record -->
+        <activity
+            android:name="com.phantom.dashcam.AutoRecordLaunchActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:showWhenLocked="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.GoCam.AutoLaunch"
+            android:turnScreenOn="true" />
+
+        <!-- Recorded clip browser, reachable from both the GO Cam shell and the main app -->
+        <activity
+            android:name="com.phantom.dashcam.DashcamClipsActivity"
+            android:exported="false"
+            android:label="@string/dashcam_clips_title"
+            android:theme="@style/Theme.GoCam" />
+
+        <service
+            android:name="com.phantom.dashcam.DashcamRecordingService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone" />
+
+        <service
+            android:name="com.phantom.dashcam.PowerMonitoringService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <receiver
+            android:name="com.phantom.dashcam.PowerConnectionReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

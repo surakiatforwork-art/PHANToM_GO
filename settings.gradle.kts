@@ -14,3 +14,6 @@ dependencyResolutionManagement {
 }
 rootProject.name = "CarNavRelayBT"
 include(":app")
+include(":dashcam-feature")
+include(":gocam")
+project(":gocam").projectDir = file("GO cam")

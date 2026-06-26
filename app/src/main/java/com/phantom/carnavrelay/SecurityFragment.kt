@@ -1,12 +1,16 @@
 package com.phantom.carnavrelay
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.InputType
 import android.view.View
 import android.webkit.WebView
@@ -14,10 +18,17 @@ import android.webkit.WebViewClient
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.phantom.dashcam.AutoRecordPowerManager
+import com.phantom.dashcam.DashcamClipsActivity
+import com.phantom.dashcam.DashcamPreferences
+import com.phantom.dashcam.DashcamStateStore
+import com.phantom.dashcam.PowerStateUtils
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
@@ -40,6 +51,22 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
     private lateinit var advancedAction: MaterialButton
     private lateinit var refreshButton: MaterialButton
     private lateinit var openExternalMapButton: MaterialButton
+    private lateinit var dashcamPreferences: DashcamPreferences
+    private lateinit var dashcamEnableSwitch: MaterialSwitch
+    private lateinit var dashcamStatusText: TextView
+    private lateinit var dashcamAutoRecordSwitch: MaterialSwitch
+    private lateinit var dashcamDetailText: TextView
+    private lateinit var dashcamGrantButton: MaterialButton
+    private lateinit var dashcamSecurityViewClipsButton: MaterialButton
+    private var updatingDashcamUi = false
+
+    private val requestDashcamPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (!isAdded) return@registerForActivityResult
+        DashcamStateStore.bootstrap(requireContext())
+        updateDashcamState()
+    }
 
     private var receiverRegistered = false
     private var latestLocation: FirebaseManager.DisplayLocationInfo? = null
@@ -57,6 +84,7 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefsManager = PrefsManager(requireContext())
+        dashcamPreferences = DashcamPreferences(requireContext())
         statusCard = view.findViewById(R.id.securityStatusCard)
         headline = view.findViewById(R.id.securityHeadline)
         stateBadge = view.findViewById(R.id.securityStateBadge)
@@ -72,6 +100,13 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
         advancedAction = view.findViewById(R.id.btnSecurityAdvancedAction)
         refreshButton = view.findViewById(R.id.btnSecurityRefresh)
         openExternalMapButton = view.findViewById(R.id.btnSecurityOpenExternalMap)
+        dashcamEnableSwitch = view.findViewById(R.id.dashcamEnableSwitch)
+        dashcamStatusText = view.findViewById(R.id.dashcamStatusText)
+        dashcamAutoRecordSwitch = view.findViewById(R.id.dashcamAutoRecordSwitch)
+        dashcamDetailText = view.findViewById(R.id.dashcamDetailText)
+        dashcamGrantButton = view.findViewById(R.id.dashcamGrantButton)
+        dashcamSecurityViewClipsButton = view.findViewById(R.id.dashcamSecurityViewClipsButton)
+        setupDashcamControls()
 
         configureMap()
         primaryAction.setOnClickListener {
@@ -88,6 +123,8 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
 
         updateSecurityState()
         refreshDisplayLocation()
+        DashcamStateStore.bootstrap(requireContext())
+        updateDashcamState()
     }
 
     override fun onStart() {
@@ -105,6 +142,8 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
             )
             receiverRegistered = true
         }
+        DashcamStateStore.bootstrap(requireContext())
+        updateDashcamState()
     }
 
     override fun onStop() {
@@ -255,6 +294,93 @@ class SecurityFragment : Fragment(R.layout.fragment_security) {
 
     private fun openSettings() {
         (activity as? MainActivity)?.selectTab(BottomNavHelper.Tab.SETTINGS)
+    }
+
+    private fun setupDashcamControls() {
+        dashcamEnableSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingDashcamUi) return@setOnCheckedChangeListener
+            dashcamPreferences.setFeatureEnabled(isChecked)
+            if (isChecked) {
+                if (!hasDashcamPermissions()) requestDashcamPermissions()
+            } else {
+                AutoRecordPowerManager.setAutoRecordEnabled(requireContext(), false)
+            }
+            DashcamStateStore.bootstrap(requireContext())
+            updateDashcamState()
+        }
+
+        dashcamAutoRecordSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingDashcamUi) return@setOnCheckedChangeListener
+            AutoRecordPowerManager.setAutoRecordEnabled(requireContext(), isChecked)
+            if (isChecked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                !Settings.canDrawOverlays(requireContext())
+            ) {
+                startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:${requireContext().packageName}")
+                    )
+                )
+            }
+            updateDashcamState()
+        }
+
+        dashcamGrantButton.setOnClickListener { requestDashcamPermissions() }
+        dashcamSecurityViewClipsButton.setOnClickListener {
+            startActivity(Intent(requireContext(), DashcamClipsActivity::class.java))
+        }
+    }
+
+    private fun updateDashcamState() {
+        if (!isAdded) return
+        val featureEnabled = dashcamPreferences.isFeatureEnabled()
+        val autoRecord = dashcamPreferences.isAutoRecordOnPowerEnabled()
+        val state = DashcamStateStore.state.value
+        val hasPermission = hasDashcamPermissions()
+        val charging = PowerStateUtils.isCharging(requireContext())
+
+        updatingDashcamUi = true
+        dashcamEnableSwitch.isChecked = featureEnabled
+        dashcamAutoRecordSwitch.isChecked = autoRecord && featureEnabled
+        dashcamAutoRecordSwitch.isEnabled = featureEnabled
+        updatingDashcamUi = false
+
+        val statusRes = when {
+            !featureEnabled -> R.string.security_dashcam_state_off
+            !hasPermission -> R.string.security_dashcam_need_permission
+            state.isRecording -> R.string.security_dashcam_state_recording
+            autoRecord && !charging -> R.string.security_dashcam_state_waiting
+            else -> R.string.security_dashcam_state_ready
+        }
+        dashcamStatusText.text = getString(statusRes)
+        dashcamStatusText.setTextColor(
+            requireContext().getColor(
+                if (!featureEnabled || !hasPermission) R.color.ui_warning else R.color.ui_success
+            )
+        )
+
+        dashcamDetailText.text = getString(
+            R.string.security_dashcam_detail_fmt,
+            if (hasPermission) getString(R.string.settings_granted) else getString(R.string.settings_not_granted),
+            if (charging) getString(R.string.common_on) else getString(R.string.common_off),
+            if (autoRecord && featureEnabled) getString(R.string.common_on) else getString(R.string.common_off),
+        )
+
+        dashcamGrantButton.visibility = if (featureEnabled && !hasPermission) View.VISIBLE else View.GONE
+    }
+
+    private fun hasDashcamPermissions(): Boolean {
+        val ctx = requireContext()
+        return ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestDashcamPermissions() {
+        val permissions = mutableListOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions += Manifest.permission.POST_NOTIFICATIONS
+        }
+        requestDashcamPermissionsLauncher.launch(permissions.toTypedArray())
     }
 
     private fun refreshDisplayLocation() {
