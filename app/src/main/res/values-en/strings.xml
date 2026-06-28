@@ -638,6 +638,12 @@
   <string name="settings_dashcam_mode_front">Front</string>
   <string name="settings_dashcam_mode_dual">Dual</string>
   <string name="settings_dashcam_preview">Show preview while recording</string>
+  <string name="settings_dashcam_quality">Video quality</string>
+  <string name="settings_dashcam_quality_hint">720p is smoother / smaller — best when using Maps at the same time • 1080p is sharper but uses more resources</string>
+  <string name="settings_dashcam_quality_720">720p (smooth)</string>
+  <string name="settings_dashcam_quality_1080">1080p (sharp)</string>
+  <string name="settings_dashcam_stabilization">Video stabilization</string>
+  <string name="settings_dashcam_stabilization_hint">Uses the camera\'s EIS/OIS to reduce shake • slightly narrows the field of view • single camera only</string>
   <string name="settings_dashcam_storage_title">Loop recording storage</string>
   <string name="settings_dashcam_storage_value">%1$d GB reserved for clips</string>
   <string name="settings_dashcam_storage_hint">When the folder grows past this quota, the oldest clips are deleted first automatically (minimum 8 GB).</string>

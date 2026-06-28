@@ -1029,6 +1029,67 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:text="@string/settings_dashcam_quality"
+                    android:textColor="@color/soft_text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/settings_dashcam_quality_hint"
+                    android:textColor="@color/soft_text_secondary"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/dashcamQualityGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/dashcamQualityHd"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_dashcam_quality_720" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/dashcamQualityFhd"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_dashcam_quality_1080" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/dashcamStabilizationSwitch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_dashcam_stabilization"
+                    android:textColor="@color/soft_text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/dashcamStabilizationHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/settings_dashcam_stabilization_hint"
+                    android:textColor="@color/soft_text_secondary"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
                     android:text="@string/settings_dashcam_storage_title"
                     android:textColor="@color/soft_text_primary"
                     android:textSize="15sp"

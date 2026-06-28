@@ -38,6 +38,8 @@ object DashcamClipMerger {
         clips: List<StoredDashcamClip>,
         exportStartMs: Long? = null,
         exportEndMs: Long? = null,
+        onProgress: (fraction: Float) -> Unit = {},
+        isCancelled: () -> Boolean = { false },
     ): File? {
         if (clips.isEmpty()) return null
 
@@ -46,8 +48,15 @@ object DashcamClipMerger {
         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val outFile = File(dir, "GOCam_merged_$stamp.mp4")
 
+        val totalExpectedUs = clips.sumOf { clip ->
+            clipSampleWindow(clip, exportStartMs, exportEndMs)?.let { it.endUsExclusive - it.startUs } ?: 0L
+        }.coerceAtLeast(1L)
+
         val muxer = MediaMuxer(outFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
         var muxerStarted = false
+        var success = false
+        var cancelled = false
+        var sampleCounter = 0
         var outVideoTrack = -1
         var outAudioTrack = -1
         var videoMime: String? = null
@@ -137,12 +146,23 @@ object DashcamClipMerger {
                                 clipMaxPtsUs = bufferInfo.presentationTimeUs
                             }
                         }
+                        sampleCounter++
+                        if (sampleCounter % 30 == 0) {
+                            if (isCancelled()) {
+                                cancelled = true
+                                break
+                            }
+                            val writtenUs = ptsOffsetUs +
+                                (if (firstKeptSampleUs >= 0L) sampleTimeUs - firstKeptSampleUs else 0L)
+                            onProgress((writtenUs.toFloat() / totalExpectedUs).coerceIn(0f, 1f))
+                        }
                         extractor.advance()
                     }
 
                     if (firstKeptSampleUs >= 0L) {
                         ptsOffsetUs = clipMaxPtsUs + FRAME_GAP_US
                     }
+                    if (cancelled) break
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to read segment ${clip.displayName}", e)
                 } finally {
@@ -150,18 +170,19 @@ object DashcamClipMerger {
                 }
             }
 
-            if (!muxerStarted) {
-                runCatching { outFile.delete() }
+            if (cancelled || !muxerStarted) {
                 return null
             }
+            success = true
+            onProgress(1f)
             return outFile
         } catch (e: Exception) {
             Log.e(TAG, "Merge failed", e)
-            runCatching { outFile.delete() }
             return null
         } finally {
             runCatching { if (muxerStarted) muxer.stop() }
             runCatching { muxer.release() }
+            if (!success) runCatching { outFile.delete() }
         }
     }
 

@@ -79,4 +79,20 @@
     <string name="dashcam_export_destination_share">Share…</string>
     <string name="dashcam_export_saved_to_gallery">Saved to the gallery.</string>
     <string name="dashcam_export_save_failed">Could not save the video to the gallery.</string>
+    <string name="dashcam_session_merge">Merge a full recording</string>
+    <string name="dashcam_session_pick_title">Pick a recording session</string>
+    <string name="dashcam_session_label_fmt">%1$s → %2$s • %3$s • %4$d clips</string>
+    <string name="dashcam_timeline_hint">Drag the two handles to pick the start and end of the footage to export.</string>
+    <string name="notification_channel_export">Footage export</string>
+    <string name="dashcam_export_progress_title">Preparing footage…</string>
+    <string name="dashcam_export_progress_pct_fmt">%1$d%%</string>
+    <string name="dashcam_export_progress_eta_fmt">%1$d%% • about %2$s left</string>
+    <string name="dashcam_export_cancel_action">Cancel</string>
+    <string name="dashcam_export_done_saved">Saved to the gallery</string>
+    <string name="dashcam_export_done_share_title">Your clip is ready</string>
+    <string name="dashcam_export_done_share_text">Tap to share</string>
+    <string name="dashcam_export_dialog_title">Exporting footage</string>
+    <string name="dashcam_export_background">Run in background</string>
+    <string name="dashcam_export_cancelled">Export cancelled.</string>
+    <string name="dashcam_export_eta_fmt">about %1$s remaining</string>
 </resources>

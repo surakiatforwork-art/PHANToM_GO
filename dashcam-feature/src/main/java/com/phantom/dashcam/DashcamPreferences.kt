@@ -57,6 +57,22 @@ class DashcamPreferences(context: Context) {
         preferences.edit().remove(KEY_LAST_KNOWN_POWER_CONNECTED).apply()
     }
 
+    fun getQuality(): DashcamQuality {
+        return DashcamQuality.fromStorageValue(preferences.getString(KEY_QUALITY, DashcamQuality.DEFAULT.storageValue))
+    }
+
+    fun setQuality(quality: DashcamQuality) {
+        preferences.edit().putString(KEY_QUALITY, quality.storageValue).apply()
+    }
+
+    fun isStabilizationEnabled(): Boolean {
+        return preferences.getBoolean(KEY_STABILIZATION, true)
+    }
+
+    fun setStabilizationEnabled(enabled: Boolean) {
+        preferences.edit().putBoolean(KEY_STABILIZATION, enabled).apply()
+    }
+
     fun isPreviewEnabled(): Boolean {
         return preferences.getBoolean(KEY_PREVIEW_ENABLED, false)
     }
@@ -92,5 +108,7 @@ class DashcamPreferences(context: Context) {
         private const val KEY_LAST_KNOWN_POWER_CONNECTED = "last_known_power_connected"
         private const val KEY_PREVIEW_ENABLED = "preview_enabled"
         private const val KEY_STORAGE_QUOTA_GB = "storage_quota_gb"
+        private const val KEY_QUALITY = "recording_quality"
+        private const val KEY_STABILIZATION = "video_stabilization"
     }
 }

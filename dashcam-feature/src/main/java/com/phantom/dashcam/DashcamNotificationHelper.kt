@@ -18,6 +18,10 @@ object DashcamNotificationHelper {
     const val RECORDING_NOTIFICATION_ID = 7001
     const val POWER_NOTIFICATION_ID = 7002
     const val POWER_MONITOR_NOTIFICATION_ID = 7003
+    const val EXPORT_PROGRESS_NOTIFICATION_ID = 7004
+    const val EXPORT_DONE_NOTIFICATION_ID = 7005
+
+    const val EXPORT_CHANNEL_ID = "gocam_export"
 
     /**
      * Shared group for the always-on "car system" status notifications (dashcam recording + the
@@ -45,8 +49,14 @@ object DashcamNotificationHelper {
             context.getString(R.string.notification_channel_alerts),
             NotificationManager.IMPORTANCE_HIGH,
         )
+        val exportChannel = NotificationChannel(
+            EXPORT_CHANNEL_ID,
+            context.getString(R.string.notification_channel_export),
+            NotificationManager.IMPORTANCE_LOW,
+        )
         manager.createNotificationChannel(recordingChannel)
         manager.createNotificationChannel(alertChannel)
+        manager.createNotificationChannel(exportChannel)
     }
 
     fun buildRecordingNotification(context: Context, detailText: String): Notification {

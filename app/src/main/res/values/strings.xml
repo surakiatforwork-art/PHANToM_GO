@@ -638,6 +638,12 @@
   <string name="settings_dashcam_mode_front">หน้า</string>
   <string name="settings_dashcam_mode_dual">คู่</string>
   <string name="settings_dashcam_preview">แสดงพรีวิวขณะบันทึก</string>
+  <string name="settings_dashcam_quality">ความละเอียดวิดีโอ</string>
+  <string name="settings_dashcam_quality_hint">720p ลื่นกว่า/ไฟล์เล็กกว่า แนะนำเมื่อใช้ร่วมกับแผนที่ • 1080p คมชัดกว่าแต่กินทรัพยากรมากกว่า</string>
+  <string name="settings_dashcam_quality_720">720p (ลื่น)</string>
+  <string name="settings_dashcam_quality_1080">1080p (คมชัด)</string>
+  <string name="settings_dashcam_stabilization">กันสั่นวิดีโอ</string>
+  <string name="settings_dashcam_stabilization_hint">ใช้ระบบกันสั่นของกล้อง (EIS/OIS) ลดภาพสั่น • มุมภาพจะแคบลงเล็กน้อย • ใช้กับกล้องเดี่ยวเท่านั้น</string>
   <string name="settings_dashcam_storage_title">พื้นที่จัดเก็บแบบวนลูป</string>
   <string name="settings_dashcam_storage_value">สำรองพื้นที่ %1$d GB สำหรับคลิป</string>
   <string name="settings_dashcam_storage_hint">เมื่อโฟลเดอร์ใหญ่เกินที่กำหนด คลิปเก่าสุดจะถูกลบก่อนอัตโนมัติ (อย่างน้อย 8 GB)</string>

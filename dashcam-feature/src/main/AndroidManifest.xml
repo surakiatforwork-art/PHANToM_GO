@@ -59,6 +59,11 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <service
+            android:name="com.phantom.dashcam.DashcamExportService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <receiver
             android:name="com.phantom.dashcam.PowerConnectionReceiver"
             android:enabled="true"

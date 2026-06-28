@@ -30,6 +30,15 @@ data class RecentClipSelection(
     val availableDurationMs: Long,
 )
 
+/** A continuous recording run (start -> stop): contiguous 1-minute segments grouped together. */
+data class DashcamSession(
+    val clips: List<StoredDashcamClip>,
+    val startedAtEpochMs: Long,
+    val endedAtEpochMs: Long,
+    val totalDurationMs: Long,
+    val totalSizeBytes: Long,
+)
+
 object DashcamClipStorageManager {
 
     private const val CLIP_DIRECTORY_NAME = "PHANToM GO Cam"
@@ -73,6 +82,44 @@ object DashcamClipStorageManager {
      */
     fun loadClipsInLastMinutes(context: Context, minutes: Int): List<StoredDashcamClip> {
         return loadRecentClipSelection(context, minutes).clips
+    }
+
+    /**
+     * Group finalized clips into continuous recording sessions (newest first). Two consecutive
+     * segments belong to the same session when the gap between them is within [SESSION_GAP_MS],
+     * which covers the brief segment-restart/power-dip gaps but separates a real stop -> restart.
+     */
+    fun loadSessions(context: Context): List<DashcamSession> {
+        val clips = queryStoredClips(context) // oldest first
+        if (clips.isEmpty()) return emptyList()
+
+        val sessions = mutableListOf<DashcamSession>()
+        var current = mutableListOf<StoredDashcamClip>()
+        for (clip in clips) {
+            if (current.isEmpty()) {
+                current.add(clip)
+                continue
+            }
+            val previousEndMs = current.last().endedAtEpochMs
+            if (clip.startedAtEpochMs - previousEndMs <= SESSION_GAP_MS) {
+                current.add(clip)
+            } else {
+                sessions.add(buildSession(current))
+                current = mutableListOf(clip)
+            }
+        }
+        if (current.isNotEmpty()) sessions.add(buildSession(current))
+        return sessions.sortedByDescending { it.startedAtEpochMs }
+    }
+
+    private fun buildSession(clips: List<StoredDashcamClip>): DashcamSession {
+        return DashcamSession(
+            clips = clips,
+            startedAtEpochMs = clips.first().startedAtEpochMs,
+            endedAtEpochMs = clips.last().endedAtEpochMs,
+            totalDurationMs = clips.sumOf { it.durationMs },
+            totalSizeBytes = clips.sumOf { it.sizeBytes },
+        )
     }
 
     fun loadRecentClipSelection(context: Context, minutes: Int): RecentClipSelection {
@@ -280,5 +327,6 @@ object DashcamClipStorageManager {
         }
     }
 
+    private const val SESSION_GAP_MS = 8_000L
     private const val BYTES_PER_GB = 1024L * 1024L * 1024L
 }

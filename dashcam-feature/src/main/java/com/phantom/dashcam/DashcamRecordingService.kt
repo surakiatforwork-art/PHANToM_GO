@@ -13,6 +13,7 @@ import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.RectF
 import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CaptureRequest
 import android.media.AudioManager
 import android.media.MediaRecorder
 import android.os.Binder
@@ -23,6 +24,7 @@ import android.os.Looper
 import android.provider.MediaStore
 import android.view.Surface
 import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.CameraEffect
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ConcurrentCamera
@@ -411,7 +413,7 @@ class DashcamRecordingService : LifecycleService() {
             .setTargetRotation(recordingStartRotation)
             .build()
         val overlay = createOverlayEffect(cameraLabel = mode.label, surfaceRotation = recordingStartRotation)
-        val videoCapture = buildVideoCapture(Quality.FHD)
+        val videoCapture = buildVideoCapture(selectedSingleCameraQuality(), stabilize = stabilizationRequested())
         val useCaseGroup = UseCaseGroup.Builder()
             .addUseCase(preview)
             .addUseCase(videoCapture)
@@ -451,8 +453,8 @@ class DashcamRecordingService : LifecycleService() {
             .build()
         val rearOverlay = createOverlayEffect("Rear", recordingStartRotation)
         val frontOverlay = createOverlayEffect("Front", recordingStartRotation)
-        val rearVideoCapture = buildVideoCapture(Quality.HD)
-        val frontVideoCapture = buildVideoCapture(Quality.HD)
+        val rearVideoCapture = buildVideoCapture(Quality.HD, stabilize = false)
+        val frontVideoCapture = buildVideoCapture(Quality.HD, stabilize = false)
 
         val rearGroup = UseCaseGroup.Builder()
             .addUseCase(rearPreview)
@@ -498,10 +500,25 @@ class DashcamRecordingService : LifecycleService() {
         )
     }
 
+    // Single-camera recording uses the user-selected quality (720p default keeps the device
+    // responsive). Dual mode stays at HD because concurrent cameras are capped on most devices.
+    private fun selectedSingleCameraQuality(): Quality {
+        return when (DashcamPreferences(this).getQuality()) {
+            DashcamQuality.FHD -> Quality.FHD
+            DashcamQuality.HD -> Quality.HD
+        }
+    }
+
+    private fun stabilizationRequested(): Boolean {
+        return DashcamPreferences(this).isStabilizationEnabled() &&
+            DashcamCapabilities.supportsVideoStabilization(this)
+    }
+
     // CameraX exposes setAudioSource as a library-group restricted API; the prototype
     // intentionally pins the built-in mic. Behaviour is unchanged from the tested build.
     @SuppressLint("RestrictedApi", "WrongConstant")
-    private fun buildVideoCapture(preferredQuality: Quality): VideoCapture<Recorder> {
+    @androidx.annotation.OptIn(androidx.camera.camera2.interop.ExperimentalCamera2Interop::class)
+    private fun buildVideoCapture(preferredQuality: Quality, stabilize: Boolean): VideoCapture<Recorder> {
         val recorder = Recorder.Builder()
             .setQualitySelector(
                 QualitySelector.from(
@@ -511,9 +528,22 @@ class DashcamRecordingService : LifecycleService() {
             )
             .setAudioSource(MediaRecorder.AudioSource.MIC)
             .build()
-        return VideoCapture.Builder(recorder)
+        val builder = VideoCapture.Builder(recorder)
             .setTargetRotation(recordingStartRotation)
-            .build()
+        if (stabilize) {
+            // Hardware EIS/OIS — negligible CPU cost. EIS crops the frame slightly (narrower FOV).
+            // Unsupported options are ignored by the camera HAL.
+            val extender = Camera2Interop.Extender(builder)
+            extender.setCaptureRequestOption(
+                CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON,
+            )
+            extender.setCaptureRequestOption(
+                CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+                CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON,
+            )
+        }
+        return builder.build()
     }
 
     private fun createOverlayEffect(
@@ -541,16 +571,40 @@ class DashcamRecordingService : LifecycleService() {
                 color = Color.argb(170, 0, 0, 0)
             }
 
+            // The overlay is drawn on every recorded frame, so keep per-frame work minimal: the
+            // burned-in timestamp stays visible on every frame but is only re-formatted/measured
+            // once per second, and the transform matrix is reused instead of re-allocated.
+            val line1 = "$cameraLabel camera"
+            val reusableMatrix = Matrix()
+            var cachedSecond = -1L
+            var cachedTimestamp = ""
+            var cachedBoxWidth = 0f
+            var cachedBoxHeight = 0f
+
             setOnDrawListener { frame ->
+                val nowSecond = System.currentTimeMillis() / 1000L
+                if (nowSecond != cachedSecond) {
+                    cachedSecond = nowSecond
+                    cachedTimestamp = overlayDateFormatter.format(Date(nowSecond * 1000L))
+                    cachedBoxWidth = maxOf(
+                        labelPaint.measureText(line1),
+                        timestampPaint.measureText(cachedTimestamp),
+                    ) + OVERLAY_PADDING * 2
+                    cachedBoxHeight = timestampPaint.fontSpacing + labelPaint.fontSpacing + OVERLAY_PADDING * 2
+                }
                 val canvas = frame.overlayCanvas
                 canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
                 drawTimestampOverlay(
                     canvas = canvas,
-                    cameraLabel = cameraLabel,
+                    line1 = line1,
+                    line2 = cachedTimestamp,
+                    boxWidth = cachedBoxWidth,
+                    boxHeight = cachedBoxHeight,
                     surfaceRotation = surfaceRotation,
                     labelPaint = labelPaint,
                     textPaint = timestampPaint,
                     boxPaint = boxPaint,
+                    orientationMatrix = reusableMatrix,
                 )
                 true
             }
@@ -559,24 +613,23 @@ class DashcamRecordingService : LifecycleService() {
 
     private fun drawTimestampOverlay(
         canvas: Canvas,
-        cameraLabel: String,
+        line1: String,
+        line2: String,
+        boxWidth: Float,
+        boxHeight: Float,
         surfaceRotation: Int,
         labelPaint: Paint,
         textPaint: Paint,
         boxPaint: Paint,
+        orientationMatrix: Matrix,
     ) {
-        val timestamp = overlayDateFormatter.format(Date())
-        val line1 = "$cameraLabel camera"
-        val line2 = timestamp
-        val padding = 18f
+        val padding = OVERLAY_PADDING
         val corner = 18f
         val lineHeight = textPaint.fontSpacing
-        val boxWidth = maxOf(labelPaint.measureText(line1), textPaint.measureText(line2)) + padding * 2
-        val boxHeight = lineHeight + labelPaint.fontSpacing + padding * 2
 
         val logicalWidth: Float
         val logicalHeight: Float
-        val orientationMatrix = Matrix()
+        orientationMatrix.reset()
         canvas.save()
         when (surfaceRotation) {
             Surface.ROTATION_0 -> {
@@ -724,6 +777,7 @@ class DashcamRecordingService : LifecycleService() {
         // damage the segment currently being written; every earlier segment is already closed.
         // 1-minute segments keep the worst-case loss small and make "share last N minutes" precise.
         private const val SEGMENT_DURATION_MS = 60_000L
+        private const val OVERLAY_PADDING = 18f
 
         private val overlayDateFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         private val fileDateFormatter = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)

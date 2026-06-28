@@ -29,4 +29,24 @@ object DashcamCapabilities {
             }
         }.getOrDefault(false)
     }
+
+    /**
+     * True if any camera advertises electronic (EIS) or optical (OIS) video stabilization. Used to
+     * show the stabilization toggle only when the device can actually do it.
+     */
+    fun supportsVideoStabilization(context: Context): Boolean {
+        val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return false
+        return runCatching {
+            manager.cameraIdList.any { id ->
+                val characteristics = manager.getCameraCharacteristics(id)
+                val eis = characteristics
+                    .get(CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES)
+                    ?.any { it == CameraCharacteristics.CONTROL_VIDEO_STABILIZATION_MODE_ON } == true
+                val ois = characteristics
+                    .get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION)
+                    ?.any { it == CameraCharacteristics.LENS_OPTICAL_STABILIZATION_MODE_ON } == true
+                eis || ois
+            }
+        }.getOrDefault(false)
+    }
 }

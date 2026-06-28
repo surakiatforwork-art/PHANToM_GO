@@ -30,6 +30,7 @@ import com.phantom.dashcam.DashcamCapabilities
 import com.phantom.dashcam.DashcamClipsActivity
 import com.phantom.dashcam.DashcamMode
 import com.phantom.dashcam.DashcamPreferences
+import com.phantom.dashcam.DashcamQuality
 import com.phantom.dashcam.DashcamStateStore
 
 class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
@@ -112,6 +113,8 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var dashcamModeRear: com.google.android.material.button.MaterialButton
     private lateinit var dashcamModeFront: com.google.android.material.button.MaterialButton
     private lateinit var dashcamModeDual: com.google.android.material.button.MaterialButton
+    private lateinit var dashcamQualityGroup: MaterialButtonToggleGroup
+    private lateinit var dashcamStabilizationSwitch: MaterialSwitch
     private lateinit var dashcamStorageValueText: TextView
     private lateinit var dashcamStorageSlider: Slider
     private lateinit var dashcamViewClipsButton: Button
@@ -277,6 +280,8 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         dashcamModeRear = root.findViewById(R.id.dashcamModeRear)
         dashcamModeFront = root.findViewById(R.id.dashcamModeFront)
         dashcamModeDual = root.findViewById(R.id.dashcamModeDual)
+        dashcamQualityGroup = root.findViewById(R.id.dashcamQualityGroup)
+        dashcamStabilizationSwitch = root.findViewById(R.id.dashcamStabilizationSwitch)
         dashcamStorageValueText = root.findViewById(R.id.dashcamStorageValueText)
         dashcamStorageSlider = root.findViewById(R.id.dashcamStorageSlider)
         dashcamViewClipsButton = root.findViewById(R.id.dashcamViewClipsButton)
@@ -500,6 +505,20 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             DashcamStateStore.syncPreferences(requireContext())
         }
 
+        dashcamQualityGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked || updatingDashcamUi) return@addOnButtonCheckedListener
+            val quality = if (checkedId == R.id.dashcamQualityFhd) DashcamQuality.FHD else DashcamQuality.HD
+            dashcamPreferences.setQuality(quality)
+            DashcamStateStore.syncPreferences(requireContext())
+        }
+
+        dashcamStabilizationSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (updatingDashcamUi) return@setOnCheckedChangeListener
+            dashcamPreferences.setStabilizationEnabled(isChecked)
+            DashcamStateStore.syncPreferences(requireContext())
+            dashcamStabilizationSwitch.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        }
+
         dashcamStorageSlider.addOnChangeListener { _, value, fromUser ->
             if (!fromUser) return@addOnChangeListener
             val normalized = dashcamPreferences.normalizeStorageQuotaGb(value.toInt())
@@ -543,6 +562,13 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
             }
         )
         dashcamModeDual.isEnabled = DashcamCapabilities.supportsDualCamera(requireContext())
+        dashcamQualityGroup.check(
+            if (dashcamPreferences.getQuality() == DashcamQuality.FHD) R.id.dashcamQualityFhd else R.id.dashcamQualityHd
+        )
+        val stabilizationSupported = DashcamCapabilities.supportsVideoStabilization(requireContext())
+        dashcamStabilizationSwitch.isEnabled = stabilizationSupported
+        dashcamStabilizationSwitch.alpha = if (stabilizationSupported) 1f else 0.5f
+        dashcamStabilizationSwitch.isChecked = stabilizationSupported && dashcamPreferences.isStabilizationEnabled()
         val quota = dashcamPreferences.getStorageQuotaGb()
         if (dashcamStorageSlider.value.toInt() != quota) {
             dashcamStorageSlider.value = quota.toFloat()

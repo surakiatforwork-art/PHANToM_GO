@@ -17,9 +17,10 @@ object DashcamClipExporter {
         context: Context,
         sourceFile: File,
         displayName: String,
+        onProgress: (fraction: Float) -> Unit = {},
     ): Uri? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            saveToGalleryScoped(context, sourceFile, displayName)
+            saveToGalleryScoped(context, sourceFile, displayName, onProgress)
         } else {
             saveToGalleryLegacy(context, sourceFile, displayName)
         }
@@ -29,6 +30,7 @@ object DashcamClipExporter {
         context: Context,
         sourceFile: File,
         displayName: String,
+        onProgress: (fraction: Float) -> Unit,
     ): Uri? {
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
@@ -40,8 +42,19 @@ object DashcamClipExporter {
         val resolver = context.contentResolver
         val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values) ?: return null
         return try {
+            val total = sourceFile.length().coerceAtLeast(1L)
             resolver.openOutputStream(uri)?.use { output ->
-                sourceFile.inputStream().use { input -> input.copyTo(output) }
+                sourceFile.inputStream().use { input ->
+                    val buffer = ByteArray(256 * 1024)
+                    var copied = 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        output.write(buffer, 0, read)
+                        copied += read
+                        onProgress((copied.toFloat() / total).coerceIn(0f, 1f))
+                    }
+                }
             } ?: return null
 
             values.clear()

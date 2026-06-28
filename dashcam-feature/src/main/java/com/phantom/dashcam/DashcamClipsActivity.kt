@@ -1,7 +1,5 @@
 package com.phantom.dashcam
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import android.content.Intent
 import android.graphics.Bitmap
 import android.media.ThumbnailUtils
@@ -16,10 +14,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
@@ -27,14 +28,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.DateFormat
-import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 
 /**
  * Browse recorded dashcam clips (newest first) with a thumbnail, tap-to-play, delete, and export
@@ -45,16 +45,15 @@ class DashcamClipsActivity : AppCompatActivity() {
         private const val SHARE_DURATION_TOLERANCE_MS = 5_000L
     }
 
-    private enum class ExportDestination {
-        DOWNLOAD_TO_GALLERY,
-        SHARE_OUT,
-    }
+    private var exportProgressDialog: AlertDialog? = null
+    private var exportObserverJob: Job? = null
 
     private lateinit var summaryText: TextView
     private lateinit var emptyText: TextView
     private lateinit var recyclerView: RecyclerView
     private lateinit var shareRecentButton: MaterialButton
     private lateinit var exportRangeButton: MaterialButton
+    private lateinit var mergeSessionButton: MaterialButton
     private val adapter = ClipAdapter(::openClip, ::confirmDelete)
     private val sharePresetsMinutes = intArrayOf(3, 5, 10)
     private var loadedClips: List<StoredDashcamClip> = emptyList()
@@ -69,9 +68,58 @@ class DashcamClipsActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
         shareRecentButton = findViewById(R.id.shareRecentButton)
         exportRangeButton = findViewById(R.id.exportRangeButton)
+        mergeSessionButton = findViewById(R.id.mergeSessionButton)
 
         shareRecentButton.setOnClickListener { showShareRecentDialog() }
-        exportRangeButton.setOnClickListener { showCustomRangeDialog() }
+        exportRangeButton.setOnClickListener { showTimelineRangeDialog() }
+        mergeSessionButton.setOnClickListener { showSessionPickerDialog() }
+    }
+
+    private fun showSessionPickerDialog() {
+        setExportButtonsBusy(true)
+        lifecycleScope.launch {
+            val sessions = withContext(Dispatchers.IO) {
+                DashcamClipStorageManager.loadSessions(this@DashcamClipsActivity)
+            }
+            setExportButtonsBusy(false)
+            if (sessions.isEmpty()) {
+                Toast.makeText(this@DashcamClipsActivity, getString(R.string.dashcam_share_empty), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val labels = sessions.map { session ->
+                getString(
+                    R.string.dashcam_session_label_fmt,
+                    formatDateTime(session.startedAtEpochMs),
+                    formatDateTime(session.endedAtEpochMs),
+                    formatElapsed(session.totalDurationMs),
+                    session.clips.size,
+                )
+            }.toTypedArray()
+            AlertDialog.Builder(this@DashcamClipsActivity)
+                .setTitle(R.string.dashcam_session_pick_title)
+                .setItems(labels) { _, which ->
+                    val session = sessions[which]
+                    val requestLabel = getString(
+                        R.string.dashcam_export_range_label,
+                        formatDateTime(session.startedAtEpochMs),
+                        formatDateTime(session.endedAtEpochMs),
+                    )
+                    showExportDestinationDialog(requestLabel, sessionToSelection(session))
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun sessionToSelection(session: DashcamSession): RecentClipSelection {
+        // A session is contiguous, so the whole span is available — no partial-coverage warning.
+        return RecentClipSelection(
+            clips = session.clips,
+            windowStartMs = session.startedAtEpochMs,
+            windowEndMs = session.endedAtEpochMs,
+            requestedDurationMs = session.totalDurationMs,
+            availableDurationMs = session.totalDurationMs,
+        )
     }
 
     private fun showShareRecentDialog() {
@@ -92,56 +140,36 @@ class DashcamClipsActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showCustomRangeDialog() {
-        val nowMs = System.currentTimeMillis()
-        val latestClipEndMs = loadedClips.maxOfOrNull { it.endedAtEpochMs } ?: nowMs
-        val earliestClipStartMs = loadedClips.minOfOrNull { it.startedAtEpochMs } ?: (latestClipEndMs - 10 * 60_000L)
-        var startMs = maxOf(earliestClipStartMs, latestClipEndMs - 10 * 60_000L)
-        var endMs = latestClipEndMs
-
-        val view = layoutInflater.inflate(R.layout.dialog_dashcam_time_range, null)
-        val startValueText: TextView = view.findViewById(R.id.exportRangeStartValue)
-        val endValueText: TextView = view.findViewById(R.id.exportRangeEndValue)
-        val pickStartButton: MaterialButton = view.findViewById(R.id.pickExportRangeStartButton)
-        val pickEndButton: MaterialButton = view.findViewById(R.id.pickExportRangeEndButton)
-
-        fun refreshRangeSummary() {
-            startValueText.text = formatDateTime(startMs)
-            endValueText.text = formatDateTime(endMs)
+    private fun showTimelineRangeDialog() {
+        if (loadedClips.isEmpty()) {
+            Toast.makeText(this, getString(R.string.dashcam_share_empty), Toast.LENGTH_SHORT).show()
+            return
         }
+        val spanStartMs = loadedClips.minOf { it.startedAtEpochMs }
+        val spanEndMs = loadedClips.maxOf { it.endedAtEpochMs }
+        val intervals = loadedClips.map { it.startedAtEpochMs..it.endedAtEpochMs }
+        // Default to the most recent ~10 minutes (or the whole span if shorter).
+        val initialStartMs = maxOf(spanStartMs, spanEndMs - 10 * 60_000L)
 
-        pickStartButton.setOnClickListener {
-            pickDateTime(startMs) { pickedMs ->
-                startMs = pickedMs
-                refreshRangeSummary()
-            }
+        val view = layoutInflater.inflate(R.layout.dialog_dashcam_timeline, null)
+        val timeline: DashcamTimelineView = view.findViewById(R.id.dashcamTimelineView)
+        val startValue: TextView = view.findViewById(R.id.timelineStartValue)
+        val endValue: TextView = view.findViewById(R.id.timelineEndValue)
+        val durationValue: TextView = view.findViewById(R.id.timelineDurationValue)
+
+        timeline.onSelectionChanged = { startMs, endMs ->
+            startValue.text = formatDateTime(startMs)
+            endValue.text = formatDateTime(endMs)
+            durationValue.text = formatElapsed(endMs - startMs)
         }
-        pickEndButton.setOnClickListener {
-            pickDateTime(endMs) { pickedMs ->
-                endMs = pickedMs
-                refreshRangeSummary()
-            }
-        }
+        timeline.setData(spanStartMs, spanEndMs, intervals, initialStartMs, spanEndMs)
 
-        refreshRangeSummary()
-
-        val dialog = AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle(R.string.dashcam_export_range_title)
             .setView(view)
-            .setPositiveButton(R.string.dashcam_export_range_continue, null)
-            .setNegativeButton(R.string.cancel, null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                if (endMs <= startMs) {
-                    Toast.makeText(
-                        this,
-                        getString(R.string.dashcam_export_invalid_range),
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                    return@setOnClickListener
-                }
-                dialog.dismiss()
+            .setPositiveButton(R.string.dashcam_export_range_continue) { _, _ ->
+                val startMs = timeline.getSelectionStartMs()
+                val endMs = timeline.getSelectionEndMs()
                 val requestLabel = getString(
                     R.string.dashcam_export_range_label,
                     formatDateTime(startMs),
@@ -155,43 +183,8 @@ class DashcamClipsActivity : AppCompatActivity() {
                     )
                 }
             }
-        }
-        dialog.show()
-    }
-
-    private fun pickDateTime(
-        initialMs: Long,
-        onPicked: (Long) -> Unit,
-    ) {
-        val calendar = Calendar.getInstance().apply { timeInMillis = initialMs }
-        DatePickerDialog(
-            this,
-            { _, year, month, dayOfMonth ->
-                val pickedCalendar = Calendar.getInstance().apply {
-                    set(Calendar.YEAR, year)
-                    set(Calendar.MONTH, month)
-                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                    set(Calendar.HOUR_OF_DAY, calendar.get(Calendar.HOUR_OF_DAY))
-                    set(Calendar.MINUTE, calendar.get(Calendar.MINUTE))
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-                TimePickerDialog(
-                    this,
-                    { _, hourOfDay, minute ->
-                        pickedCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
-                        pickedCalendar.set(Calendar.MINUTE, minute)
-                        onPicked(pickedCalendar.timeInMillis)
-                    },
-                    calendar.get(Calendar.HOUR_OF_DAY),
-                    calendar.get(Calendar.MINUTE),
-                    android.text.format.DateFormat.is24HourFormat(this),
-                ).show()
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH),
-        ).show()
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun prepareExport(
@@ -256,9 +249,9 @@ class DashcamClipsActivity : AppCompatActivity() {
             )
             .setItems(labels) { _, which ->
                 val destination = if (which == 0) {
-                    ExportDestination.DOWNLOAD_TO_GALLERY
+                    DashcamExportDestination.DOWNLOAD_TO_GALLERY
                 } else {
-                    ExportDestination.SHARE_OUT
+                    DashcamExportDestination.SHARE_OUT
                 }
                 exportSelection(selection, destination)
             }
@@ -268,75 +261,99 @@ class DashcamClipsActivity : AppCompatActivity() {
 
     private fun exportSelection(
         selection: RecentClipSelection,
-        destination: ExportDestination,
+        destination: DashcamExportDestination,
     ) {
-        setExportButtonsBusy(true)
-        lifecycleScope.launch {
-            val mergedFile = withContext(Dispatchers.IO) {
-                DashcamClipMerger.mergeToCache(
-                    this@DashcamClipsActivity,
-                    selection.clips,
-                    exportStartMs = selection.windowStartMs,
-                    exportEndMs = selection.windowEndMs,
-                )
-            }
-            if (mergedFile == null) {
-                setExportButtonsBusy(false)
-                Toast.makeText(
-                    this@DashcamClipsActivity,
-                    getString(R.string.dashcam_share_failed),
-                    Toast.LENGTH_SHORT,
-                ).show()
-                return@launch
-            }
+        // The heavy merge/export runs in a foreground service so it can keep going in the
+        // background (notification) after the dialog is dismissed, or be cancelled.
+        DashcamExportProgress.reset()
+        ContextCompat.startForegroundService(
+            this,
+            DashcamExportService.startIntent(this, selection.windowStartMs, selection.windowEndMs, destination),
+        )
+        showExportProgressDialog()
+    }
 
-            when (destination) {
-                ExportDestination.DOWNLOAD_TO_GALLERY -> {
-                    val galleryUri = withContext(Dispatchers.IO) {
-                        DashcamClipExporter.saveToGallery(
-                            this@DashcamClipsActivity,
-                            mergedFile,
-                            buildGalleryExportName(selection),
-                        )
-                    }
-                    setExportButtonsBusy(false)
-                    if (galleryUri == null) {
-                        Toast.makeText(
-                            this@DashcamClipsActivity,
-                            getString(R.string.dashcam_export_save_failed),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    } else {
-                        Toast.makeText(
-                            this@DashcamClipsActivity,
-                            getString(R.string.dashcam_export_saved_to_gallery),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    }
-                }
+    private fun showExportProgressDialog() {
+        exportObserverJob?.cancel()
+        val view = layoutInflater.inflate(R.layout.dialog_dashcam_export_progress, null)
+        val percentText: TextView = view.findViewById(R.id.exportProgressPercent)
+        val progressBar: ProgressBar = view.findViewById(R.id.exportProgressBar)
+        val etaText: TextView = view.findViewById(R.id.exportProgressEta)
 
-                ExportDestination.SHARE_OUT -> {
-                    setExportButtonsBusy(false)
-                    shareMergedFile(mergedFile)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.dashcam_export_dialog_title)
+            .setView(view)
+            .setCancelable(false)
+            .setNegativeButton(R.string.cancel) { _, _ -> cancelExport() }
+            .setNeutralButton(R.string.dashcam_export_background) { d, _ -> d.dismiss() }
+            .create()
+        dialog.setOnDismissListener {
+            exportObserverJob?.cancel()
+            exportObserverJob = null
+            exportProgressDialog = null
+        }
+        exportProgressDialog = dialog
+        dialog.show()
+
+        exportObserverJob = lifecycleScope.launch {
+            DashcamExportProgress.state.collect { state ->
+                when (state) {
+                    is DashcamExportProgress.State.Running -> {
+                        val pct = (state.fraction * 100).toInt().coerceIn(0, 100)
+                        percentText.text = getString(R.string.dashcam_export_progress_pct_fmt, pct)
+                        progressBar.progress = pct
+                        etaText.text = state.etaSeconds?.takeIf { it > 0L }?.let {
+                            getString(R.string.dashcam_export_eta_fmt, DateUtils.formatElapsedTime(it))
+                        }.orEmpty()
+                    }
+                    is DashcamExportProgress.State.Done -> {
+                        dialog.dismiss()
+                        onExportDone(state)
+                    }
+                    DashcamExportProgress.State.Failed -> {
+                        dialog.dismiss()
+                        Toast.makeText(this@DashcamClipsActivity, getString(R.string.dashcam_share_failed), Toast.LENGTH_SHORT).show()
+                    }
+                    DashcamExportProgress.State.Empty -> {
+                        dialog.dismiss()
+                        Toast.makeText(this@DashcamClipsActivity, getString(R.string.dashcam_share_empty), Toast.LENGTH_SHORT).show()
+                    }
+                    DashcamExportProgress.State.Cancelled -> {
+                        dialog.dismiss()
+                        Toast.makeText(this@DashcamClipsActivity, getString(R.string.dashcam_export_cancelled), Toast.LENGTH_SHORT).show()
+                    }
+                    DashcamExportProgress.State.Idle -> Unit
                 }
             }
         }
     }
 
-    private fun buildGalleryExportName(selection: RecentClipSelection): String {
-        val formatter = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
-        return "GOCam_export_${formatter.format(Date(selection.windowStartMs))}_${formatter.format(Date(selection.windowEndMs))}.mp4"
+    private fun cancelExport() {
+        startService(DashcamExportService.cancelIntent(this))
+    }
+
+    private fun onExportDone(state: DashcamExportProgress.State.Done) {
+        // Handled here while the dialog is visible, so cancel the service's fallback notification.
+        runCatching { NotificationManagerCompat.from(this).cancel(DashcamNotificationHelper.EXPORT_DONE_NOTIFICATION_ID) }
+        when (state.destination) {
+            DashcamExportDestination.SHARE_OUT -> state.shareFilePath?.let { shareMergedFile(File(it)) }
+            DashcamExportDestination.DOWNLOAD_TO_GALLERY ->
+                Toast.makeText(this, getString(R.string.dashcam_export_saved_to_gallery), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setExportButtonsBusy(isBusy: Boolean) {
         shareRecentButton.isEnabled = !isBusy
         exportRangeButton.isEnabled = !isBusy
+        mergeSessionButton.isEnabled = !isBusy
         if (isBusy) {
             shareRecentButton.text = getString(R.string.dashcam_share_merging)
             exportRangeButton.text = getString(R.string.dashcam_share_merging)
+            mergeSessionButton.text = getString(R.string.dashcam_share_merging)
         } else {
             shareRecentButton.text = getString(R.string.dashcam_share_recent)
             exportRangeButton.text = getString(R.string.dashcam_export_range)
+            mergeSessionButton.text = getString(R.string.dashcam_session_merge)
         }
     }
 
