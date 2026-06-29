@@ -22,6 +22,7 @@ object DashcamClipMerger {
     private const val TAG = "GO_CAM_MERGE"
     private const val DEFAULT_BUFFER_SIZE = 1 shl 20 // 1 MB
     private const val FRAME_GAP_US = 33_000L
+    private const val SHARE_CACHE_MAX_AGE_MS = 6L * 60L * 60L * 1000L // 6 hours
 
     private data class ClipSampleWindow(
         val startUs: Long,
@@ -44,13 +45,22 @@ object DashcamClipMerger {
         if (clips.isEmpty()) return null
 
         val dir = File(context.cacheDir, "share").apply { mkdirs() }
-        dir.listFiles()?.forEach { runCatching { it.delete() } }
+        // Keep recent exports so a pending "tap to share" notification still resolves; only purge
+        // files older than the cutoff instead of clearing everything on each run.
+        val staleBeforeMs = System.currentTimeMillis() - SHARE_CACHE_MAX_AGE_MS
+        dir.listFiles()?.forEach { file ->
+            if (file.lastModified() < staleBeforeMs) runCatching { file.delete() }
+        }
         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val outFile = File(dir, "GOCam_merged_$stamp.mp4")
 
-        val totalExpectedUs = clips.sumOf { clip ->
-            clipSampleWindow(clip, exportStartMs, exportEndMs)?.let { it.endUsExclusive - it.startUs } ?: 0L
-        }.coerceAtLeast(1L)
+        // Remuxing can only append samples to a track of one fixed format, so pick the single video
+        // format (codec + resolution) that covers the most footage in the window. Segments of a
+        // different resolution — e.g. recorded across a 720p<->1080p change — are skipped instead of
+        // corrupting the output (writing 1080p samples into a 720p-configured track).
+        val durationByFormatUs = durationByVideoFormat(clips, exportStartMs, exportEndMs)
+        val targetVideoKey = durationByFormatUs.maxByOrNull { it.value }?.key ?: return null
+        val totalExpectedUs = (durationByFormatUs[targetVideoKey] ?: 1L).coerceAtLeast(1L)
 
         val muxer = MediaMuxer(outFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
         var muxerStarted = false
@@ -59,50 +69,48 @@ object DashcamClipMerger {
         var sampleCounter = 0
         var outVideoTrack = -1
         var outAudioTrack = -1
-        var videoMime: String? = null
         var ptsOffsetUs = 0L
         var bufferSize = DEFAULT_BUFFER_SIZE
 
         try {
-            for ((index, clip) in clips.withIndex()) {
+            for (clip in clips) {
                 val window = clipSampleWindow(clip, exportStartMs, exportEndMs) ?: continue
                 val extractor = MediaExtractor()
                 try {
                     extractor.setDataSource(clip.file.absolutePath)
 
-                    val trackMap = LinkedHashMap<Int, Int>()
-                    var clipVideoMime: String? = null
+                    val formats = LinkedHashMap<Int, MediaFormat>()
+                    var clipVideoKey: String? = null
                     for (t in 0 until extractor.trackCount) {
                         val format = extractor.getTrackFormat(t)
                         val mime = format.getString(MediaFormat.KEY_MIME) ?: continue
                         if (format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) {
                             bufferSize = maxOf(bufferSize, format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE))
                         }
-                        when {
-                            mime.startsWith("video/") -> {
-                                clipVideoMime = mime
-                                if (index == 0) {
-                                    outVideoTrack = muxer.addTrack(format)
-                                    videoMime = mime
-                                    trackMap[t] = outVideoTrack
-                                } else if (outVideoTrack >= 0 && mime == videoMime) {
-                                    trackMap[t] = outVideoTrack
-                                }
-                            }
-                            mime.startsWith("audio/") -> {
-                                if (index == 0) {
-                                    outAudioTrack = muxer.addTrack(format)
-                                    trackMap[t] = outAudioTrack
-                                } else if (outAudioTrack >= 0) {
-                                    trackMap[t] = outAudioTrack
-                                }
-                            }
-                        }
+                        if (mime.startsWith("video/")) clipVideoKey = videoFormatKey(format)
+                        formats[t] = format
                     }
 
-                    if (index != 0 && clipVideoMime != null && clipVideoMime != videoMime) {
-                        Log.w(TAG, "Skipping incompatible segment ${clip.displayName} ($clipVideoMime)")
+                    // Only merge segments whose video matches the chosen format; skipping the rest
+                    // avoids corruption when the window spans a resolution/quality change.
+                    if (clipVideoKey != targetVideoKey) {
+                        Log.w(TAG, "Skipping segment ${clip.displayName} (format $clipVideoKey != $targetVideoKey)")
                         continue
+                    }
+
+                    val trackMap = LinkedHashMap<Int, Int>()
+                    for ((t, format) in formats) {
+                        val mime = format.getString(MediaFormat.KEY_MIME) ?: continue
+                        when {
+                            mime.startsWith("video/") -> {
+                                if (outVideoTrack < 0) outVideoTrack = muxer.addTrack(format)
+                                trackMap[t] = outVideoTrack
+                            }
+                            mime.startsWith("audio/") -> {
+                                if (outAudioTrack < 0) outAudioTrack = muxer.addTrack(format)
+                                trackMap[t] = outAudioTrack
+                            }
+                        }
                     }
                     if (trackMap.isEmpty()) continue
 
@@ -200,6 +208,43 @@ object DashcamClipMerger {
         val startUs = (overlapStartMs - clipStartMs).coerceAtLeast(0L) * 1000L
         val endUsExclusive = maxOf(startUs + 1L, (overlapEndMs - clipStartMs).coerceAtLeast(0L) * 1000L)
         return ClipSampleWindow(startUs = startUs, endUsExclusive = endUsExclusive)
+    }
+
+    private fun videoFormatKey(format: MediaFormat): String {
+        val mime = format.getString(MediaFormat.KEY_MIME) ?: "?"
+        val width = if (format.containsKey(MediaFormat.KEY_WIDTH)) format.getInteger(MediaFormat.KEY_WIDTH) else -1
+        val height = if (format.containsKey(MediaFormat.KEY_HEIGHT)) format.getInteger(MediaFormat.KEY_HEIGHT) else -1
+        return "$mime|$width|$height"
+    }
+
+    private fun readVideoFormatKey(file: File): String? {
+        val extractor = MediaExtractor()
+        return try {
+            extractor.setDataSource(file.absolutePath)
+            (0 until extractor.trackCount).asSequence()
+                .map { extractor.getTrackFormat(it) }
+                .firstOrNull { it.getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true }
+                ?.let { videoFormatKey(it) }
+        } catch (e: Exception) {
+            null
+        } finally {
+            runCatching { extractor.release() }
+        }
+    }
+
+    /** Total trimmed duration (us) of footage grouped by video format key, for the export window. */
+    private fun durationByVideoFormat(
+        clips: List<StoredDashcamClip>,
+        exportStartMs: Long?,
+        exportEndMs: Long?,
+    ): Map<String, Long> {
+        val byKey = HashMap<String, Long>()
+        for (clip in clips) {
+            val window = clipSampleWindow(clip, exportStartMs, exportEndMs) ?: continue
+            val key = readVideoFormatKey(clip.file) ?: continue
+            byKey[key] = (byKey[key] ?: 0L) + (window.endUsExclusive - window.startUs)
+        }
+        return byKey
     }
 
     private fun sampleFlagsToBufferFlags(sampleFlags: Int): Int {

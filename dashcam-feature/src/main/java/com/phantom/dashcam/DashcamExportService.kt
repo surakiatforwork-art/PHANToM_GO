@@ -100,14 +100,20 @@ class DashcamExportService : Service() {
             when (destination) {
                 DashcamExportDestination.DOWNLOAD_TO_GALLERY -> {
                     val galleryUri = DashcamClipExporter.saveToGallery(
-                        this@DashcamExportService, merged, buildGalleryName(selection),
-                    ) { fraction -> publishProgress(0.9f + fraction * 0.1f, startedAtMs) }
+                        context = this@DashcamExportService,
+                        sourceFile = merged,
+                        displayName = buildGalleryName(selection),
+                        onProgress = { fraction -> publishProgress(0.9f + fraction * 0.1f, startedAtMs) },
+                        isCancelled = { cancelRequested },
+                    )
                     runCatching { merged.delete() }
-                    if (galleryUri == null) {
-                        finishWith(DashcamExportProgress.State.Failed)
-                    } else {
-                        showDoneNotification(destination, null)
-                        finishWith(DashcamExportProgress.State.Done(destination, null))
+                    when {
+                        cancelRequested -> finishWith(DashcamExportProgress.State.Cancelled)
+                        galleryUri == null -> finishWith(DashcamExportProgress.State.Failed)
+                        else -> {
+                            showDoneNotification(destination, null)
+                            finishWith(DashcamExportProgress.State.Done(destination, null))
+                        }
                     }
                 }
                 DashcamExportDestination.SHARE_OUT -> {

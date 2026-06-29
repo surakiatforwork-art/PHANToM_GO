@@ -18,9 +18,10 @@ object DashcamClipExporter {
         sourceFile: File,
         displayName: String,
         onProgress: (fraction: Float) -> Unit = {},
+        isCancelled: () -> Boolean = { false },
     ): Uri? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            saveToGalleryScoped(context, sourceFile, displayName, onProgress)
+            saveToGalleryScoped(context, sourceFile, displayName, onProgress, isCancelled)
         } else {
             saveToGalleryLegacy(context, sourceFile, displayName)
         }
@@ -31,6 +32,7 @@ object DashcamClipExporter {
         sourceFile: File,
         displayName: String,
         onProgress: (fraction: Float) -> Unit,
+        isCancelled: () -> Boolean,
     ): Uri? {
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
@@ -43,11 +45,16 @@ object DashcamClipExporter {
         val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values) ?: return null
         return try {
             val total = sourceFile.length().coerceAtLeast(1L)
+            var aborted = false
             resolver.openOutputStream(uri)?.use { output ->
                 sourceFile.inputStream().use { input ->
                     val buffer = ByteArray(256 * 1024)
                     var copied = 0L
                     while (true) {
+                        if (isCancelled()) {
+                            aborted = true
+                            break
+                        }
                         val read = input.read(buffer)
                         if (read < 0) break
                         output.write(buffer, 0, read)
@@ -56,6 +63,11 @@ object DashcamClipExporter {
                     }
                 }
             } ?: return null
+
+            if (aborted) {
+                runCatching { resolver.delete(uri, null, null) }
+                return null
+            }
 
             values.clear()
             values.put(MediaStore.Video.Media.IS_PENDING, 0)

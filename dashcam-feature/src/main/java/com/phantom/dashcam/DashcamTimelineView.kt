@@ -11,8 +11,13 @@ import androidx.core.content.ContextCompat
 import kotlin.math.abs
 
 /**
- * A simple footage timeline: shows the overall recorded span with filled bars where clips exist,
- * and two draggable handles to pick any sub-range. Reports the chosen [start, end] in epoch millis.
+ * Footage range picker with two strips:
+ *  - top "overview": the whole recorded span with filled bars where clips exist and two draggable
+ *    handles that frame the export window (handles sit at the extremes by default = full span).
+ *  - bottom "detail": the footage inside the frame, zoomed to fill the width — so narrowing the
+ *    handles zooms in and widening them zooms back out (full span = fully zoomed out).
+ *
+ * Reports the chosen [start, end] in epoch millis.
  */
 class DashcamTimelineView @JvmOverloads constructor(
     context: Context,
@@ -29,7 +34,7 @@ class DashcamTimelineView @JvmOverloads constructor(
     private val coveredIntervals = mutableListOf<LongRange>()
     private var draggingHandle = Handle.NONE
 
-    /** Minimum selectable length so the two handles can't collapse onto each other. */
+    /** Minimum selectable length so the handles can't collapse onto each other. */
     var minSelectionMs = 1_000L
 
     var onSelectionChanged: ((startMs: Long, endMs: Long) -> Unit)? = null
@@ -37,24 +42,23 @@ class DashcamTimelineView @JvmOverloads constructor(
     private val density = resources.displayMetrics.density
     private val handleRadiusPx = 11f * density
     private val trackHeightPx = 12f * density
-    private val touchSlopPx = 24f * density
+    private val detailHeightPx = 16f * density
+    private val stripGapPx = 26f * density
+    private val touchSlopPx = 26f * density
 
-    private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.card_stroke)
-    }
-    private val coveredPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.text_muted)
-    }
-    private val selectionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.accent_red)
-    }
-    private val handleFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.text_primary)
-    }
+    private val trackPaint = paint(R.color.card_stroke)
+    private val coveredPaint = paint(R.color.text_muted)
+    private val selectionPaint = paint(R.color.accent_red)
+    private val detailCoveredPaint = paint(R.color.text_secondary)
+    private val handleFillPaint = paint(R.color.text_primary)
     private val handleStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.accent_red)
         style = Paint.Style.STROKE
         strokeWidth = 2f * density
+    }
+
+    private fun paint(colorRes: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, colorRes)
     }
 
     fun setData(
@@ -79,14 +83,16 @@ class DashcamTimelineView @JvmOverloads constructor(
 
     private fun trackLeft(): Float = paddingLeft + handleRadiusPx
     private fun trackRight(): Float = width - paddingRight - handleRadiusPx
-    private fun trackCenterY(): Float = height / 2f
+    private fun overviewCenterY(): Float = paddingTop + handleRadiusPx
+    private fun detailCenterY(): Float = overviewCenterY() + handleRadiusPx + stripGapPx + detailHeightPx / 2f
 
-    private fun timeToX(timeMs: Long): Float {
-        val fraction = (timeMs - spanStartMs).toFloat() / (spanEndMs - spanStartMs).toFloat()
-        return trackLeft() + fraction.coerceIn(0f, 1f) * (trackRight() - trackLeft())
+    private fun mapX(timeMs: Long, fromMs: Long, toMs: Long): Float {
+        val span = (toMs - fromMs).coerceAtLeast(1L)
+        val fraction = ((timeMs - fromMs).toFloat() / span).coerceIn(0f, 1f)
+        return trackLeft() + fraction * (trackRight() - trackLeft())
     }
 
-    private fun xToTime(x: Float): Long {
+    private fun overviewXToTime(x: Float): Long {
         val left = trackLeft()
         val right = trackRight()
         if (right <= left) return spanStartMs
@@ -96,27 +102,43 @@ class DashcamTimelineView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val centerY = trackCenterY()
-        val top = centerY - trackHeightPx / 2f
-        val bottom = centerY + trackHeightPx / 2f
+        drawOverview(canvas)
+        drawDetail(canvas)
+    }
+
+    private fun drawOverview(canvas: Canvas) {
+        val cy = overviewCenterY()
+        val top = cy - trackHeightPx / 2f
+        val bottom = cy + trackHeightPx / 2f
         val radius = trackHeightPx / 2f
-
-        // Base track.
         canvas.drawRoundRect(RectF(trackLeft(), top, trackRight(), bottom), radius, radius, trackPaint)
-
-        // Recorded coverage.
         coveredIntervals.forEach { interval ->
-            val l = timeToX(interval.first)
-            val r = timeToX(interval.last)
+            val l = mapX(interval.first, spanStartMs, spanEndMs)
+            val r = mapX(interval.last, spanStartMs, spanEndMs)
             if (r > l) canvas.drawRoundRect(RectF(l, top, r, bottom), radius, radius, coveredPaint)
         }
-
-        // Selected band + handles.
-        val startX = timeToX(selectionStartMs)
-        val endX = timeToX(selectionEndMs)
+        val startX = mapX(selectionStartMs, spanStartMs, spanEndMs)
+        val endX = mapX(selectionEndMs, spanStartMs, spanEndMs)
         canvas.drawRoundRect(RectF(startX, top, endX, bottom), radius, radius, selectionPaint)
-        drawHandle(canvas, startX, centerY)
-        drawHandle(canvas, endX, centerY)
+        drawHandle(canvas, startX, cy)
+        drawHandle(canvas, endX, cy)
+    }
+
+    private fun drawDetail(canvas: Canvas) {
+        val cy = detailCenterY()
+        val top = cy - detailHeightPx / 2f
+        val bottom = cy + detailHeightPx / 2f
+        val radius = detailHeightPx / 2f
+        canvas.drawRoundRect(RectF(trackLeft(), top, trackRight(), bottom), radius, radius, trackPaint)
+        // Footage inside the frame, clamped to the selection and stretched across the width.
+        coveredIntervals.forEach { interval ->
+            val clampedStart = maxOf(interval.first, selectionStartMs)
+            val clampedEnd = minOf(interval.last, selectionEndMs)
+            if (clampedEnd <= clampedStart) return@forEach
+            val l = mapX(clampedStart, selectionStartMs, selectionEndMs)
+            val r = mapX(clampedEnd, selectionStartMs, selectionEndMs)
+            if (r > l) canvas.drawRoundRect(RectF(l, top, r, bottom), radius, radius, detailCoveredPaint)
+        }
     }
 
     private fun drawHandle(canvas: Canvas, x: Float, centerY: Float) {
@@ -149,8 +171,8 @@ class DashcamTimelineView @JvmOverloads constructor(
     }
 
     private fun nearestHandle(x: Float): Handle {
-        val dStart = abs(x - timeToX(selectionStartMs))
-        val dEnd = abs(x - timeToX(selectionEndMs))
+        val dStart = abs(x - mapX(selectionStartMs, spanStartMs, spanEndMs))
+        val dEnd = abs(x - mapX(selectionEndMs, spanStartMs, spanEndMs))
         return when {
             dStart > touchSlopPx && dEnd > touchSlopPx -> Handle.NONE
             dStart <= dEnd -> Handle.START
@@ -159,7 +181,7 @@ class DashcamTimelineView @JvmOverloads constructor(
     }
 
     private fun updateHandle(x: Float) {
-        val time = xToTime(x)
+        val time = overviewXToTime(x)
         when (draggingHandle) {
             Handle.START -> selectionStartMs = time.coerceIn(spanStartMs, selectionEndMs - minSelectionMs)
             Handle.END -> selectionEndMs = time.coerceIn(selectionStartMs + minSelectionMs, spanEndMs)
@@ -170,7 +192,7 @@ class DashcamTimelineView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val desiredHeight = (56f * density).toInt() + paddingTop + paddingBottom
+        val desiredHeight = (paddingTop + handleRadiusPx * 2 + stripGapPx + detailHeightPx + paddingBottom).toInt()
         val height = resolveSize(desiredHeight, heightMeasureSpec)
         setMeasuredDimension(getDefaultSize(suggestedMinimumWidth, widthMeasureSpec), height)
     }

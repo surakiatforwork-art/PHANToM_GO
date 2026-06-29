@@ -148,8 +148,6 @@ class DashcamClipsActivity : AppCompatActivity() {
         val spanStartMs = loadedClips.minOf { it.startedAtEpochMs }
         val spanEndMs = loadedClips.maxOf { it.endedAtEpochMs }
         val intervals = loadedClips.map { it.startedAtEpochMs..it.endedAtEpochMs }
-        // Default to the most recent ~10 minutes (or the whole span if shorter).
-        val initialStartMs = maxOf(spanStartMs, spanEndMs - 10 * 60_000L)
 
         val view = layoutInflater.inflate(R.layout.dialog_dashcam_timeline, null)
         val timeline: DashcamTimelineView = view.findViewById(R.id.dashcamTimelineView)
@@ -162,7 +160,8 @@ class DashcamClipsActivity : AppCompatActivity() {
             endValue.text = formatDateTime(endMs)
             durationValue.text = formatElapsed(endMs - startMs)
         }
-        timeline.setData(spanStartMs, spanEndMs, intervals, initialStartMs, spanEndMs)
+        // Default frame = the whole span (both handles at the extremes).
+        timeline.setData(spanStartMs, spanEndMs, intervals, spanStartMs, spanEndMs)
 
         AlertDialog.Builder(this)
             .setTitle(R.string.dashcam_export_range_title)
@@ -263,6 +262,13 @@ class DashcamClipsActivity : AppCompatActivity() {
         selection: RecentClipSelection,
         destination: DashcamExportDestination,
     ) {
+        // Only one export at a time: the service ignores a second ACTION_START, so re-attach the
+        // dialog to the running job instead of pretending the new request started.
+        if (DashcamExportProgress.state.value is DashcamExportProgress.State.Running) {
+            Toast.makeText(this, getString(R.string.dashcam_export_already_running), Toast.LENGTH_SHORT).show()
+            showExportProgressDialog()
+            return
+        }
         // The heavy merge/export runs in a foreground service so it can keep going in the
         // background (notification) after the dialog is dismissed, or be cancelled.
         DashcamExportProgress.reset()
