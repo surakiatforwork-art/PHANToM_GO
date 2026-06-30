@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.app.ActivityManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.ChildEventListener
@@ -14,6 +16,8 @@ import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import com.phantom.carnavrelay.util.PairInfo
 import java.util.Collections
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 
 object FirebaseManager {
 
@@ -27,6 +31,15 @@ object FirebaseManager {
     private const val PATH_COMMANDS = "commands"
     private const val PATH_SECURITY_ALERTS = "securityAlerts"
     const val ACTION_SECURITY_ALERT_RECEIVED = "com.phantom.carnavrelay.SECURITY_ALERT_RECEIVED"
+
+    // Ack-based route delivery retry (Main side). Fast + road-friendly: 3 attempts then give up.
+    private const val ACK_RETRY_2_DELAY_MS = 1_500L
+    private const val ACK_RETRY_3_DELAY_MS = 4_000L
+    private const val ACK_GIVE_UP_MS = 7_000L
+    // Display side dedupe window for a clientRequestId (retries of the same share open Maps once).
+    private const val REQUEST_DEDUPE_WINDOW_MS = 3 * 60 * 1000L
+    private const val PREFS_DEDUPE = "go_cloud_dedupe"
+    private const val PREFS_DEDUPE_KEY = "recent_request_keys"
 
     @Volatile
     private var initialized = false
@@ -51,6 +64,12 @@ object FirebaseManager {
 
     private val processedCommandIds = Collections.synchronizedSet(mutableSetOf<String>())
     private val processedSecurityAlertIds = Collections.synchronizedSet(mutableSetOf<String>())
+
+    // Display-side dedupe: clientRequestId (or commandId fallback) -> processed-at epoch ms.
+    private val processedRequestKeys = Collections.synchronizedMap(HashMap<String, Long>())
+
+    @Volatile
+    private var dedupeLoaded = false
 
     data class ClaimPairingResult(
         val displayDeviceId: String,
@@ -428,9 +447,27 @@ object FirebaseManager {
         )
     }
 
+    /** Backwards-compatible single write (one attempt). Reliable delivery uses the retry variant. */
     fun sendCloudOpenUrl(
         context: Context,
         url: String,
+        onSuccess: (String) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        writeCloudCommand(context, url, generateClientRequestId(context), attempt = 1, onSuccess = onSuccess, onFailure = onFailure)
+    }
+
+    /**
+     * Write one cloud open-url command. Each retry attempt shares the same [clientRequestId] but is
+     * a distinct command (new push key) — the Display dedupes by clientRequestId so it only opens
+     * Maps once. (Firebase rules let the Main create commands but not update them, so a retry must
+     * be a fresh command, not an in-place update.)
+     */
+    private fun writeCloudCommand(
+        context: Context,
+        url: String,
+        clientRequestId: String,
+        attempt: Int,
         onSuccess: (String) -> Unit,
         onFailure: (String) -> Unit
     ) {
@@ -459,6 +496,8 @@ object FirebaseManager {
 
                 val payload = hashMapOf<String, Any?>(
                     "commandId" to commandId,
+                    "clientRequestId" to clientRequestId,
+                    "attempt" to attempt,
                     "fromMainDeviceId" to mainDeviceId,
                     "fromMainAuthUid" to authUid,
                     "url" to url,
@@ -475,11 +514,11 @@ object FirebaseManager {
 
                 database().reference.updateChildren(updates)
                     .addOnSuccessListener {
-                        Log.d(TAG, "✅ Cloud open-url queued ($mainDeviceId -> $displayDeviceId / $commandId)")
+                        Log.d(TAG, "✅ Cloud open-url queued (attempt=$attempt req=$clientRequestId / $commandId)")
                         onSuccess(commandId)
                     }
                     .addOnFailureListener { e ->
-                        Log.e(TAG, "💥 Cloud open-url write failed", e)
+                        Log.e(TAG, "💥 Cloud open-url write failed (attempt=$attempt)", e)
                         onFailure(e.message ?: "Failed to write cloud command")
                     }
             },
@@ -487,6 +526,106 @@ object FirebaseManager {
                 onFailure(e.message ?: "Firebase sign-in failed")
             }
         )
+    }
+
+    /**
+     * Reliable route delivery: send a command and wait for the Display to acknowledge (status
+     * "received"/"opened"). If no ack arrives, retry with the same clientRequestId. [onAck] fires
+     * once on the first ack; [onFailure] fires once if every attempt goes unacknowledged.
+     */
+    fun sendCloudOpenUrlReliable(
+        context: Context,
+        url: String,
+        onAck: (String) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        val appContext = context.applicationContext
+        val displayDeviceId = PrefsManager(appContext).getPairedDisplayDeviceId()
+        if (displayDeviceId.isNullOrBlank()) {
+            onFailure("No cloud-paired display selected")
+            return
+        }
+        val clientRequestId = generateClientRequestId(appContext)
+        val handler = Handler(Looper.getMainLooper())
+        val ackListeners = Collections.synchronizedMap(HashMap<String, ValueEventListener>())
+        val scheduled = mutableListOf<Runnable>()
+        val finished = AtomicBoolean(false)
+
+        fun removeAckListeners() {
+            synchronized(ackListeners) {
+                ackListeners.forEach { (commandId, listener) ->
+                    runCatching {
+                        database().getReference(PATH_COMMANDS).child(displayDeviceId).child(commandId)
+                            .removeEventListener(listener)
+                    }
+                }
+                ackListeners.clear()
+            }
+        }
+
+        fun cleanup() {
+            scheduled.forEach { handler.removeCallbacks(it) }
+            scheduled.clear()
+            removeAckListeners()
+        }
+
+        fun succeed(commandId: String) {
+            if (finished.compareAndSet(false, true)) {
+                cleanup()
+                PhantomLog.i("Cloud route ack received (req=$clientRequestId cmd=$commandId)")
+                onAck(commandId)
+            }
+        }
+
+        fun fail(message: String) {
+            if (finished.compareAndSet(false, true)) {
+                cleanup()
+                PhantomLog.w("Cloud route delivery failed (req=$clientRequestId): $message")
+                onFailure(message)
+            }
+        }
+
+        fun attachAck(commandId: String) {
+            if (finished.get()) return
+            val ref = database().getReference(PATH_COMMANDS).child(displayDeviceId).child(commandId)
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val status = snapshot.child("status").getValue(String::class.java)
+                    if (status == "received" || status == "opened") succeed(commandId)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.w(TAG, "⚠️ Ack listener cancelled for $commandId: ${error.message}")
+                }
+            }
+            synchronized(ackListeners) { ackListeners[commandId] = listener }
+            ref.addValueEventListener(listener)
+        }
+
+        fun sendAttempt(attempt: Int) {
+            if (finished.get()) return
+            PhantomLog.i("Cloud route send attempt=$attempt (req=$clientRequestId)")
+            writeCloudCommand(
+                context = appContext,
+                url = url,
+                clientRequestId = clientRequestId,
+                attempt = attempt,
+                onSuccess = { commandId -> attachAck(commandId) },
+                // Only the first attempt's write failure aborts early (lets the caller fall back);
+                // later attempts are best-effort retries over an already-listening request.
+                onFailure = { error -> if (attempt == 1) fail(error) }
+            )
+        }
+
+        sendAttempt(1)
+        Runnable { sendAttempt(2) }.also { scheduled += it; handler.postDelayed(it, ACK_RETRY_2_DELAY_MS) }
+        Runnable { sendAttempt(3) }.also { scheduled += it; handler.postDelayed(it, ACK_RETRY_3_DELAY_MS) }
+        Runnable { fail("Display did not acknowledge in time") }.also { scheduled += it; handler.postDelayed(it, ACK_GIVE_UP_MS) }
+    }
+
+    private fun generateClientRequestId(context: Context): String {
+        val mainDeviceId = PrefsManager(context.applicationContext).getLocalDeviceId()
+        return "$mainDeviceId-${System.currentTimeMillis()}-${UUID.randomUUID().toString().take(8)}"
     }
 
     fun getPairedDisplayLocation(
@@ -965,10 +1104,56 @@ object FirebaseManager {
             })
     }
 
+    private fun ensureDedupeLoaded(context: Context) {
+        if (dedupeLoaded) return
+        synchronized(processedRequestKeys) {
+            if (dedupeLoaded) return
+            val now = System.currentTimeMillis()
+            val raw = context.applicationContext
+                .getSharedPreferences(PREFS_DEDUPE, Context.MODE_PRIVATE)
+                .getString(PREFS_DEDUPE_KEY, "")
+                .orEmpty()
+            raw.split(";").forEach { entry ->
+                val parts = entry.split("=")
+                val ts = parts.getOrNull(1)?.toLongOrNull() ?: return@forEach
+                if (parts.size == 2 && parts[0].isNotEmpty() && now - ts <= REQUEST_DEDUPE_WINDOW_MS) {
+                    processedRequestKeys[parts[0]] = ts
+                }
+            }
+            dedupeLoaded = true
+        }
+    }
+
+    private fun isRequestRecentlyProcessed(context: Context, key: String): Boolean {
+        ensureDedupeLoaded(context)
+        val now = System.currentTimeMillis()
+        synchronized(processedRequestKeys) {
+            processedRequestKeys.entries.removeAll { now - it.value > REQUEST_DEDUPE_WINDOW_MS }
+            return (processedRequestKeys[key] ?: 0L) > now - REQUEST_DEDUPE_WINDOW_MS
+        }
+    }
+
+    private fun markRequestProcessed(context: Context, key: String) {
+        ensureDedupeLoaded(context)
+        val now = System.currentTimeMillis()
+        val raw: String
+        synchronized(processedRequestKeys) {
+            processedRequestKeys[key] = now
+            processedRequestKeys.entries.removeAll { now - it.value > REQUEST_DEDUPE_WINDOW_MS }
+            raw = processedRequestKeys.entries.joinToString(";") { "${it.key}=${it.value}" }
+        }
+        context.applicationContext
+            .getSharedPreferences(PREFS_DEDUPE, Context.MODE_PRIVATE)
+            .edit()
+            .putString(PREFS_DEDUPE_KEY, raw)
+            .apply()
+    }
+
     private fun handleCloudCommandSnapshot(context: Context, snapshot: DataSnapshot) {
         val commandId = snapshot.key ?: return
         val status = snapshot.child("status").getValue(String::class.java) ?: "pending"
         if (status != "pending") return
+        // Guard against handling the same command node twice (e.g. onChildChanged after our ack).
         if (!processedCommandIds.add(commandId)) return
 
         val url = snapshot.child("url").getValue(String::class.java)
@@ -977,10 +1162,18 @@ object FirebaseManager {
             PhantomLog.w("Cloud command $commandId missing URL")
             return
         }
-        PhantomLog.i("Cloud command received ($commandId)")
+
+        // Retries of one share carry the same clientRequestId but different commandIds. Older
+        // commands without it fall back to commandId, which keeps the previous behaviour.
+        val clientRequestId = snapshot.child("clientRequestId").getValue(String::class.java)
+        val dedupeKey = clientRequestId?.takeIf { it.isNotBlank() } ?: commandId
+        val attempt = snapshot.child("attempt").getValue(Int::class.java) ?: 1
 
         val prefs = PrefsManager(context)
         val displayDeviceId = prefs.getLocalDeviceId()
+
+        // Always acknowledge the command so the Main side knows the Display is alive — even when
+        // this is a duplicate retry that we will not open again.
         database()
             .getReference(PATH_COMMANDS)
             .child(displayDeviceId)
@@ -991,6 +1184,13 @@ object FirebaseManager {
                     "receivedAt" to ServerValue.TIMESTAMP
                 )
             )
+
+        if (isRequestRecentlyProcessed(context, dedupeKey)) {
+            PhantomLog.i("Cloud command dedupe: acked but skip open (req=$dedupeKey cmd=$commandId attempt=$attempt)")
+            return
+        }
+        markRequestProcessed(context, dedupeKey)
+        PhantomLog.i("Cloud command received (req=$dedupeKey cmd=$commandId attempt=$attempt)")
 
         val serviceIntent = Intent(context, DisplayServerService::class.java).apply {
             action = DisplayServerService.ACTION_NAVIGATION_RECEIVED

@@ -242,22 +242,22 @@ class MainSender(
         val hasWifiFallback = !prefsManager.getPairedIp().isNullOrBlank() && !prefsManager.getPairedToken().isNullOrBlank()
         setState(STATE_CONNECTING)
 
-        FirebaseManager.sendCloudOpenUrl(
+        FirebaseManager.sendCloudOpenUrlReliable(
             context = context,
             url = url,
-            onSuccess = {
-                Log.d(TAG, "✅ Cloud URL sent successfully")
+            onAck = {
+                Log.d(TAG, "✅ Cloud URL acknowledged by display")
                 setState(STATE_CONNECTED)
                 prefsManager.setPairedVerified(true)
-                showToast("Sent to display via cloud")
+                showToast("Sent to display")
                 callback?.onSuccess()
             },
             onFailure = { error ->
-                Log.e(TAG, "💥 Cloud send failed: $error")
+                Log.e(TAG, "💥 Cloud send/ack failed: $error")
                 if (hasWifiFallback) {
                     Log.w(TAG, "↪️ Falling back to Wi‑Fi send: $error")
                     sendOpenUrlWifi(url, callback)
-                    return@sendCloudOpenUrl
+                    return@sendCloudOpenUrlReliable
                 }
 
                 setState(STATE_OFFLINE)
