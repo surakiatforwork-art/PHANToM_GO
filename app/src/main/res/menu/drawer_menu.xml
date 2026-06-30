@@ -7,29 +7,29 @@
         <item
             android:id="@+id/nav_settings"
             android:icon="@drawable/ic_settings"
-            android:title="Settings" />
+            android:title="@string/drawer_settings" />
 
         <item
             android:id="@+id/nav_security"
             android:icon="@drawable/ic_security"
-            android:title="Security &amp; Find Display" />
+            android:title="@string/drawer_security_find_display" />
         
         <item
             android:id="@+id/nav_logs"
             android:icon="@drawable/ic_logs"
-            android:title="System Logs" />
+            android:title="@string/drawer_system_logs" />
         
         <item
             android:id="@+id/nav_about"
             android:icon="@drawable/ic_info"
-            android:title="About" />
+            android:title="@string/drawer_about" />
     </group>
 
     <group android:id="@+id/nav_mode_group">
         <item
             android:id="@+id/nav_switch_mode"
             android:icon="@drawable/ic_swap"
-            android:title="Switch to Display Mode" />
+            android:title="@string/drawer_switch_display_mode" />
     </group>
 
 </menu>

@@ -12,8 +12,8 @@ android {
     applicationId = "com.phantom.carnavrelay"
     minSdk = 23
     targetSdk = 34
-    versionCode = 30
-    versionName = "1.3.0"
+    versionCode = 31
+    versionName = "1.3.1"
 
     ndk {
       // Ship 64-bit ARM only. OpenCV (software stabilization) bundles native libs for every ABI;

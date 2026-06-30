@@ -1,6 +1,7 @@
 <resources>
   <!-- App Name -->
   <string name="app_name">PHANToM GO</string>
+  <string name="brand_ghost_icon">👻</string>
   <string name="brand_title_rocket">🚀 PHANToM GO</string>
   <string name="app_name_main">PHANToM GO - หลัก</string>
   <string name="app_name_display">PHANToM GO - จอ</string>
@@ -157,13 +158,17 @@
   <!-- Drawer menu -->
   <string name="drawer_settings">ตั้งค่า</string>
   <string name="drawer_logs">บันทึก log</string>
+  <string name="drawer_system_logs">บันทึกระบบ</string>
   <string name="drawer_security">ความปลอดภัย</string>
+  <string name="drawer_security_find_display">ความปลอดภัยและค้นหาจอ</string>
   <string name="drawer_about">เกี่ยวกับ</string>
   <string name="drawer_switch_mode">สลับเป็นโหมดจอ</string>
+  <string name="drawer_switch_display_mode">สลับเป็นโหมดจอ</string>
   <string name="drawer_menu">เมนู</string>
 
   <!-- Display screen -->
   <string name="display_connected">เชื่อมต่อจอแล้ว</string>
+  <string name="display_status_ghost_sleeping">👻💤</string>
   <string name="display_paired_state">จับคู่แล้ว</string>
   <string name="display_main_device_fmt">เครื่องหลัก: %1$s  •  จับคู่เมื่อ %2$s</string>
   <string name="display_ready_receive_fmt">พร้อมรับเส้นทางล่าสุดจาก %1$s</string>
@@ -626,6 +631,8 @@
 
   <!-- Display / Security runtime fallback -->
   <string name="display_token_masked">Token: ****</string>
+  <string name="display_ip_port_placeholder">0.0.0.0:8765</string>
+  <string name="display_speed_placeholder">--</string>
   <string name="display_qr_payload_label">QR Payload</string>
   <string name="display_speed_provider_location">ตำแหน่ง</string>
   <string name="security_display_fallback">จอ</string>

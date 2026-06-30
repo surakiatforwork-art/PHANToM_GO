@@ -58,7 +58,7 @@
             android:id="@+id/ghostIcon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="👻"
+            android:text="@string/brand_ghost_icon"
             android:textColor="@color/aurora_pink"
             android:textSize="20sp"
             android:shadowColor="@color/aurora_cyan"

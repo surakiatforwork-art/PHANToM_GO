@@ -12,11 +12,11 @@ import android.os.Build
 import android.os.Bundle
 import android.media.RingtoneManager
 import android.provider.Settings
+import android.text.method.ScrollingMovementMethod
 import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.Button
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -104,7 +104,6 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private lateinit var antiTheftPinButton: Button
     private lateinit var antiTheftSoundButton: Button
     private lateinit var antiTheftTestButton: Button
-    private lateinit var logScrollView: ScrollView
     private lateinit var logText: TextView
     private lateinit var copyLogButton: Button
     private lateinit var clearLogButton: Button
@@ -271,8 +270,8 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
         antiTheftPinButton = root.findViewById(R.id.antiTheftPinButton)
         antiTheftSoundButton = root.findViewById(R.id.antiTheftSoundButton)
         antiTheftTestButton = root.findViewById(R.id.antiTheftTestButton)
-        logScrollView = root.findViewById(R.id.logScrollView)
         logText = root.findViewById(R.id.logText)
+        logText.movementMethod = ScrollingMovementMethod.getInstance()
         copyLogButton = root.findViewById(R.id.copyLogButton)
         clearLogButton = root.findViewById(R.id.clearLogButton)
         grantPermissionButton = root.findViewById(R.id.grantPermissionButton)
@@ -1273,7 +1272,11 @@ class SettingsScreenFragment : Fragment(R.layout.activity_settings) {
     private fun loadLogs() {
         val logs = PhantomLog.getLogs(MAX_LOG_ENTRIES)
         logText.text = logs.joinToString("\n")
-        logScrollView.post { logScrollView.fullScroll(ScrollView.FOCUS_DOWN) }
+        logText.post {
+            val layout = logText.layout ?: return@post
+            val scrollY = layout.getLineTop(logText.lineCount) - logText.height
+            logText.scrollTo(0, scrollY.coerceAtLeast(0))
+        }
     }
 
     private fun copyLogToClipboard() {

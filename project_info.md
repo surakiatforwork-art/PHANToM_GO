@@ -31,7 +31,7 @@ APK ตัวเดียว (`:app`) เป็นได้ทั้ง **Main D
 
 ### ค่าคอนฟิกหลัก (อ่านจาก gradle จริง)
 - AGP **8.6.1**, Kotlin **2.0.20**, google-services **4.4.4**, JVM **17**
-- `:app` → compileSdk **35**, minSdk **23**, targetSdk **34**, versionCode **29**, versionName **1.2.2**
+- `:app` → compileSdk **35**, minSdk **23**, targetSdk **34**, versionCode **31**, versionName **1.3.1**
 - **abiFilters = `arm64-v8a` เท่านั้น** (ตัด 32-bit/x86 ทิ้ง — ดูเหตุผลข้อ 8: OpenCV 16KB)
 - Firebase BOM **34.11.0** (auth, database, messaging)
 - ไลบรารีเด่น: NanoHTTPD 2.3.1 (HTTP server), OkHttp 4.12.0, ZXing (QR), WorkManager 2.9.0
@@ -59,7 +59,7 @@ adb logcat -d -v time PHANTOM_GO:D '*:S'               # log หลัก (tag P
 ### 3.2 ส่งเส้นทาง (Route Relay) — Cloud + Wi-Fi fallback
 - รับ Share จาก Google Maps/แอปอื่น → normalize ลิงก์ → ส่ง command ผ่าน Firebase ไป Display ที่จับคู่; มี local Wi-Fi (HTTP) เป็น fallback
 - ไฟล์: `ShareReceiverActivity.kt`, `RelayActivity.kt`, `SilentShareReceiverActivity.kt`, `MainSender.kt`, `SendNavigationWorker.kt` (WorkManager), `HttpServer.kt`/`DisplayServerService.kt` (NanoHTTPD), normalize: `NavNormalizer.kt`, `NavLinkUtils.kt`, `util/NavLinkNormalizer.kt`
-- มี **ack-based retry + dedupe** สำหรับส่งเส้นทาง (v1.2.2) — คำสั่งล่าสุดแทนคำสั่งเก่า ลดการเปิดซ้ำ
+- มี **ack-based retry + dedupe** สำหรับส่งเส้นทาง (v1.2.2+) — คำสั่ง retry ใช้ `clientRequestId` เดียวกันและ Display เปิด Maps แค่ครั้งเดียว
 - `MapLinkHandlerAlias` (activity-alias, default disabled) = ให้แอปรับ `geo:`, `google.navigation:`, `https://...maps...` ได้เมื่อเปิด toggle
 
 ### 3.3 Maps Auto-Share (Main) — Accessibility/Notification
@@ -181,6 +181,5 @@ adb logcat -d -v time PHANTOM_GO:D '*:S'               # log หลัก (tag P
 - `docs/PHANTOM_GO_APP_OVERVIEW.md` — overview เดิม (v1.0.17, เก่ากว่าเอกสารนี้)
 - `docs/display-anti-theft-spec.md`, `docs/POWER_AUTOMATION_SECURITY_DISPLAY_IMPLEMENTATION_PLAN.md` — สเปก anti-theft/power
 - `docs/GO_CAM_MAIN_APP_INTEGRATION_PLAN.md`, `docs/DASHCAM_*` — แผน/สถานะ dashcam
-- `docs/RELEASE_v1.2.2.md` (+ rุ่นก่อน) — release notes ล่าสุด
+- `docs/RELEASE_v1.3.1.md` (+ รุ่นก่อน) — release notes ล่าสุด
 - `docs/firebase-realtime-database.rules.json` — Firebase rules (publish เองเมื่อแก้)
-</content>

@@ -724,7 +724,8 @@
       launchTarget: "phantomgo_web_launch_target",
       activeScreen: "phantomgo_web_active_screen",
       lastCommand: "phantomgo_web_last_command",
-      pairedPeerInfo: "phantomgo_web_paired_peer_info"
+      pairedPeerInfo: "phantomgo_web_paired_peer_info",
+      processedRequests: "phantomgo_web_processed_requests"
     };
 
     const PATHS = {
@@ -742,6 +743,10 @@
     const DISPLAY_OPEN_BEHAVIOR_START_NAVIGATION = "START_NAVIGATION";
     const DISPLAY_LAUNCH_TARGET_NEW_TAB = "NEW_TAB";
     const DISPLAY_LAUNCH_TARGET_MAPS_APP = "MAPS_APP";
+    const ACK_RETRY_2_DELAY_MS = 1500;
+    const ACK_RETRY_3_DELAY_MS = 4000;
+    const ACK_GIVE_UP_MS = 7000;
+    const REQUEST_DEDUPE_WINDOW_MS = 3 * 60 * 1000;
 
     const screenTemplates = {
       home: `
@@ -1193,7 +1198,7 @@
         platform: "web",
         manufacturer: "browser",
         model: friendlyDeviceName(),
-        appVersion: "webapp",
+        appVersion: "webapp-1.3.1",
         updatedAt: serverTimestamp(),
         lastSeenAt: serverTimestamp()
       };
@@ -1355,14 +1360,23 @@
       const command = snapshot.val();
       const commandId = snapshot.key;
       if (!commandId || !command || command.status !== "pending") return;
+      const dedupeKey = command.clientRequestId || commandId;
 
       await update(ref(db, `${PATHS.commands}/${state.deviceId}/${commandId}`), {
         status: "received",
         receivedAt: serverTimestamp()
       });
 
+      if (isRequestRecentlyProcessed(dedupeKey)) {
+        console.debug("Duplicate route command acked and skipped", dedupeKey, commandId, command.attempt || 1);
+        return;
+      }
+      markRequestProcessed(dedupeKey);
+
       state.latestCommand = {
         commandId,
+        clientRequestId: command.clientRequestId || null,
+        attempt: command.attempt || 1,
         rawUrl: command.url,
         receivedAt: Date.now(),
         status: "received"
@@ -1580,15 +1594,15 @@
 
       const normalized = normalizeRawInput(rawInput);
       try {
-        await sendCloudOpenUrl(normalized);
-        showToast("ส่งไปยัง Display แล้ว", "success");
+        await sendCloudOpenUrlReliable(normalized);
+        showToast("Display รับเส้นทางแล้ว", "success");
       } catch (error) {
         console.error(error);
         showToast(error.message || "ส่งไม่สำเร็จ", "error");
       }
     }
 
-    async function sendCloudOpenUrl(url) {
+    async function writeCloudOpenUrlCommand(url, clientRequestId, attempt) {
       const commandRef = push(ref(db, `${PATHS.commands}/${state.mainPairing.displayDeviceId}`));
       const commandId = commandRef.key;
       if (!commandId) {
@@ -1597,6 +1611,8 @@
 
       const payload = {
         commandId,
+        clientRequestId,
+        attempt,
         fromMainDeviceId: state.deviceId,
         fromMainAuthUid: state.authUid,
         url,
@@ -1612,6 +1628,67 @@
       };
 
       await update(ref(db), updates);
+      return commandId;
+    }
+
+    function sendCloudOpenUrlReliable(url) {
+      const displayDeviceId = state.mainPairing?.displayDeviceId;
+      if (!displayDeviceId) return Promise.reject(new Error("ยังไม่ได้ pair กับ Display"));
+
+      const clientRequestId = generateClientRequestId();
+      let finished = false;
+      const timers = [];
+      const listeners = [];
+
+      return new Promise((resolve, reject) => {
+        const cleanup = () => {
+          timers.splice(0).forEach((timer) => window.clearTimeout(timer));
+          listeners.splice(0).forEach((stop) => stop());
+        };
+
+        const succeed = (commandId) => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          console.debug("Cloud route ack received", clientRequestId, commandId);
+          resolve(commandId);
+        };
+
+        const fail = (message) => {
+          if (finished) return;
+          finished = true;
+          cleanup();
+          reject(new Error(message));
+        };
+
+        const attachAck = (commandId) => {
+          if (finished) return;
+          const commandStatusRef = ref(db, `${PATHS.commands}/${displayDeviceId}/${commandId}`);
+          const handler = (snapshot) => {
+            const status = snapshot.child("status").val();
+            if (status === "received" || status === "opened") succeed(commandId);
+          };
+          onValue(commandStatusRef, handler);
+          listeners.push(() => off(commandStatusRef, "value", handler));
+        };
+
+        const sendAttempt = async (attempt) => {
+          if (finished) return;
+          console.debug("Cloud route send attempt", attempt, clientRequestId);
+          try {
+            const commandId = await writeCloudOpenUrlCommand(url, clientRequestId, attempt);
+            attachAck(commandId);
+          } catch (error) {
+            console.warn("Cloud route write failed", attempt, error);
+            if (attempt === 1) fail(error.message || "ส่งคำสั่งไป Firebase ไม่สำเร็จ");
+          }
+        };
+
+        sendAttempt(1);
+        timers.push(window.setTimeout(() => sendAttempt(2), ACK_RETRY_2_DELAY_MS));
+        timers.push(window.setTimeout(() => sendAttempt(3), ACK_RETRY_3_DELAY_MS));
+        timers.push(window.setTimeout(() => fail("Display ยังไม่ตอบรับคำสั่งในเวลาที่กำหนด"), ACK_GIVE_UP_MS));
+      });
     }
 
     function resolveInitialScreen() {
@@ -2247,6 +2324,34 @@
       const bytes = new Uint8Array(bytesLength);
       crypto.getRandomValues(bytes);
       return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    }
+
+    function generateClientRequestId() {
+      return `${state.deviceId}-${Date.now()}-${randomHex(4)}`;
+    }
+
+    function readProcessedRequests() {
+      const now = Date.now();
+      const raw = readJson(STORAGE_KEYS.processedRequests, {});
+      return Object.fromEntries(
+        Object.entries(raw || {}).filter(([, timestamp]) => {
+          return Number.isFinite(timestamp) && now - timestamp <= REQUEST_DEDUPE_WINDOW_MS;
+        })
+      );
+    }
+
+    function isRequestRecentlyProcessed(key) {
+      if (!key) return false;
+      const requests = readProcessedRequests();
+      const timestamp = requests[key] || 0;
+      return Date.now() - timestamp <= REQUEST_DEDUPE_WINDOW_MS;
+    }
+
+    function markRequestProcessed(key) {
+      if (!key) return;
+      const requests = readProcessedRequests();
+      requests[key] = Date.now();
+      writeJson(STORAGE_KEYS.processedRequests, requests);
     }
 
     function getOrCreate(key, factory) {

@@ -1,6 +1,7 @@
 <resources>
   <!-- App Name -->
   <string name="app_name">PHANToM GO</string>
+  <string name="brand_ghost_icon">👻</string>
   <string name="brand_title_rocket">🚀 PHANToM GO</string>
   <string name="app_name_main">PHANToM GO - Main</string>
   <string name="app_name_display">PHANToM GO - Display</string>
@@ -157,13 +158,17 @@
   <!-- Drawer menu -->
   <string name="drawer_settings">Settings</string>
   <string name="drawer_logs">Logs</string>
+  <string name="drawer_system_logs">System Logs</string>
   <string name="drawer_security">Security</string>
+  <string name="drawer_security_find_display">Security &amp; Find Display</string>
   <string name="drawer_about">About</string>
   <string name="drawer_switch_mode">Switch to Display</string>
+  <string name="drawer_switch_display_mode">Switch to Display Mode</string>
   <string name="drawer_menu">Menu</string>
 
   <!-- Display screen -->
   <string name="display_connected">Display Connected</string>
+  <string name="display_status_ghost_sleeping">👻💤</string>
   <string name="display_paired_state">Paired</string>
   <string name="display_main_device_fmt">Main device: %1$s  •  Paired %2$s</string>
   <string name="display_ready_receive_fmt">Ready to receive the latest route from %1$s</string>
@@ -626,6 +631,8 @@
 
   <!-- Display / Security runtime fallback -->
   <string name="display_token_masked">Token: ****</string>
+  <string name="display_ip_port_placeholder">0.0.0.0:8765</string>
+  <string name="display_speed_placeholder">--</string>
   <string name="display_qr_payload_label">QR Payload</string>
   <string name="display_speed_provider_location">location</string>
   <string name="security_display_fallback">Display</string>

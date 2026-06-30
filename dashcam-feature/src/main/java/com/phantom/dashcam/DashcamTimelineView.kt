@@ -18,11 +18,11 @@ import kotlin.math.abs
  *    handles grow taller the more the timeline is zoomed in. Dragging a handle to the strip edge
  *    zooms the view OUT so you can reach times outside the current window; releasing a handle zooms
  *    the view IN to frame the current selection (with padding) for finer adjustment next time.
- *  - bottom "detail": the footage inside the view window, magnified. Drag it left/right to PAN the
- *    view (when zoomed in) so you can scrub onto the exact footage you want.
+ *  - bottom "detail": the selected export window itself, magnified to the full strip width. Drag it
+ *    left/right like a film strip to move the whole export window without changing its duration.
  *
- * Reports the chosen [start, end] in epoch millis. The view window is internal and only affects
- * precision/navigation — it never changes the reported selection.
+ * Reports the chosen [start, end] in epoch millis. The top strip still controls the duration; the
+ * bottom strip moves that same duration across the available footage for precise placement.
  */
 class DashcamTimelineView @JvmOverloads constructor(
     context: Context,
@@ -42,7 +42,7 @@ class DashcamTimelineView @JvmOverloads constructor(
     private val coveredIntervals = mutableListOf<LongRange>()
 
     private var draggingHandle = Handle.NONE
-    private var panningDetail = false
+    private var scrubbingSelection = false
     private var lastPanX = 0f
 
     /** Minimum selectable length so the handles can't collapse onto each other. */
@@ -101,6 +101,7 @@ class DashcamTimelineView @JvmOverloads constructor(
 
     private fun spanWidthMs(): Long = (spanEndMs - spanStartMs).coerceAtLeast(1L)
     private fun viewWidthMs(): Long = (viewEndMs - viewStartMs).coerceAtLeast(1L)
+    private fun selectionWidthMs(): Long = (selectionEndMs - selectionStartMs).coerceAtLeast(1L)
     private fun isZoomedIn(): Boolean = viewWidthMs() < spanWidthMs()
 
     private fun trackLeft(): Float = paddingLeft + handleWidthPx / 2f
@@ -165,23 +166,15 @@ class DashcamTimelineView @JvmOverloads constructor(
         val bottom = cy + detailHeightPx / 2f
         val radius = detailHeightPx / 2f
         canvas.drawRoundRect(RectF(trackLeft(), top, trackRight(), bottom), radius, radius, trackPaint)
+        canvas.drawRoundRect(RectF(trackLeft(), top, trackRight(), bottom), radius, radius, detailSelectionPaint)
 
         coveredIntervals.forEach { interval ->
-            val clampedStart = maxOf(interval.first, viewStartMs)
-            val clampedEnd = minOf(interval.last, viewEndMs)
+            val clampedStart = maxOf(interval.first, selectionStartMs)
+            val clampedEnd = minOf(interval.last, selectionEndMs)
             if (clampedEnd <= clampedStart) return@forEach
-            val l = mapX(clampedStart, viewStartMs, viewEndMs)
-            val r = mapX(clampedEnd, viewStartMs, viewEndMs)
+            val l = mapX(clampedStart, selectionStartMs, selectionEndMs)
+            val r = mapX(clampedEnd, selectionStartMs, selectionEndMs)
             if (r > l) canvas.drawRoundRect(RectF(l, top, r, bottom), radius, radius, detailCoveredPaint)
-        }
-
-        // Where the current selection sits within the view, so panning keeps the selection in sight.
-        val selL = maxOf(selectionStartMs, viewStartMs)
-        val selR = minOf(selectionEndMs, viewEndMs)
-        if (selR > selL) {
-            val l = mapX(selL, viewStartMs, viewEndMs)
-            val r = mapX(selR, viewStartMs, viewEndMs)
-            canvas.drawRoundRect(RectF(l, top, r, bottom), radius, radius, detailSelectionPaint)
         }
     }
 
@@ -209,8 +202,8 @@ class DashcamTimelineView @JvmOverloads constructor(
                         updateHandle(event.x)
                         return true
                     }
-                } else if (isInDetailRegion(event.y) && isZoomedIn()) {
-                    panningDetail = true
+                } else if (isInDetailRegion(event.y) && canScrubSelection()) {
+                    scrubbingSelection = true
                     lastPanX = event.x
                     parent?.requestDisallowInterceptTouchEvent(true)
                     return true
@@ -221,8 +214,8 @@ class DashcamTimelineView @JvmOverloads constructor(
                     updateHandle(event.x)
                     return true
                 }
-                if (panningDetail) {
-                    panBy(event.x - lastPanX)
+                if (scrubbingSelection) {
+                    scrubSelectionBy(event.x - lastPanX)
                     lastPanX = event.x
                     return true
                 }
@@ -234,7 +227,7 @@ class DashcamTimelineView @JvmOverloads constructor(
                     invalidate()
                 }
                 draggingHandle = Handle.NONE
-                panningDetail = false
+                scrubbingSelection = false
                 parent?.requestDisallowInterceptTouchEvent(false)
             }
         }
@@ -277,26 +270,57 @@ class DashcamTimelineView @JvmOverloads constructor(
         onSelectionChanged?.invoke(selectionStartMs, selectionEndMs)
     }
 
-    private fun panBy(dxPx: Float) {
+    private fun canScrubSelection(): Boolean = selectionWidthMs() < spanWidthMs()
+
+    private fun scrubSelectionBy(dxPx: Float) {
         val trackWidth = (trackRight() - trackLeft())
         if (trackWidth <= 0f) return
-        val msPerPx = viewWidthMs().toDouble() / trackWidth
+        val duration = selectionWidthMs()
+        if (duration >= spanWidthMs()) return
+        val msPerPx = duration.toDouble() / trackWidth
         val dtMs = (dxPx * msPerPx).toLong()
-        val width = viewWidthMs()
-        // Drag right -> reveal earlier footage -> move the window left (earlier).
-        var vs = viewStartMs - dtMs
-        var ve = vs + width
+        if (dtMs == 0L) return
+
+        // Drag right like a film strip -> reveal earlier footage. Drag left -> move later.
+        val maxStart = (spanEndMs - duration).coerceAtLeast(spanStartMs)
+        val nextStart = (selectionStartMs - dtMs).coerceIn(spanStartMs, maxStart)
+        if (nextStart == selectionStartMs) return
+
+        selectionStartMs = nextStart
+        selectionEndMs = nextStart + duration
+        keepSelectionVisibleInView()
+        invalidate()
+        onSelectionChanged?.invoke(selectionStartMs, selectionEndMs)
+    }
+
+    private fun keepSelectionVisibleInView() {
+        if (selectionStartMs >= viewStartMs && selectionEndMs <= viewEndMs) return
+
+        val width = viewWidthMs().coerceAtMost(spanWidthMs())
+        if (selectionWidthMs() >= width) {
+            refitViewToSelection()
+            return
+        }
+
+        var vs = viewStartMs
+        var ve = viewEndMs
+        if (selectionStartMs < vs) {
+            vs = selectionStartMs
+            ve = vs + width
+        } else if (selectionEndMs > ve) {
+            ve = selectionEndMs
+            vs = ve - width
+        }
         if (vs < spanStartMs) {
             vs = spanStartMs
-            ve = vs + width
+            ve = (vs + width).coerceAtMost(spanEndMs)
         }
         if (ve > spanEndMs) {
             ve = spanEndMs
-            vs = ve - width
+            vs = (ve - width).coerceAtLeast(spanStartMs)
         }
         viewStartMs = vs
         viewEndMs = ve
-        invalidate()
     }
 
     private fun refitViewToSelection() {
