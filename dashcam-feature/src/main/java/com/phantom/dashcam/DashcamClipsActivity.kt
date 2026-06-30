@@ -47,6 +47,8 @@ class DashcamClipsActivity : AppCompatActivity() {
 
     private var exportProgressDialog: AlertDialog? = null
     private var exportObserverJob: Job? = null
+    private var stabilizeProgressDialog: AlertDialog? = null
+    private var stabilizeObserverJob: Job? = null
 
     private lateinit var summaryText: TextView
     private lateinit var emptyText: TextView
@@ -54,7 +56,7 @@ class DashcamClipsActivity : AppCompatActivity() {
     private lateinit var shareRecentButton: MaterialButton
     private lateinit var exportRangeButton: MaterialButton
     private lateinit var mergeSessionButton: MaterialButton
-    private val adapter = ClipAdapter(::openClip, ::confirmDelete)
+    private val adapter = ClipAdapter(::openClip, ::confirmDelete, ::showClipActions)
     private val sharePresetsMinutes = intArrayOf(3, 5, 10)
     private var loadedClips: List<StoredDashcamClip> = emptyList()
 
@@ -435,6 +437,126 @@ class DashcamClipsActivity : AppCompatActivity() {
         }
     }
 
+    private fun showClipActions(clip: StoredDashcamClip) {
+        val labels = arrayOf(
+            getString(R.string.dashcam_clip_action_play),
+            getString(R.string.dashcam_clip_action_stabilize),
+            getString(R.string.dashcam_clip_action_delete),
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dashcam_clip_actions_title)
+            .setItems(labels) { _, which ->
+                when (which) {
+                    0 -> openClip(clip)
+                    1 -> showStabilizeCropDialog(clip)
+                    2 -> confirmDelete(clip)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showStabilizeCropDialog(clip: StoredDashcamClip) {
+        val options = arrayOf(
+            StabilizationCropStrength.LOW to getString(R.string.dashcam_stabilize_crop_low),
+            StabilizationCropStrength.MEDIUM to getString(R.string.dashcam_stabilize_crop_medium),
+            StabilizationCropStrength.HIGH to getString(R.string.dashcam_stabilize_crop_high),
+        )
+        val current = DashcamPreferences(this).getStabilizeCropStrength()
+        var selected = options.indexOfFirst { it.first == current }.coerceAtLeast(0)
+        AlertDialog.Builder(this)
+            .setTitle(
+                buildString {
+                    append(getString(R.string.dashcam_stabilize_crop_prompt, clip.displayName))
+                    append("\n\n")
+                    append(getString(R.string.dashcam_stabilize_hint))
+                }
+            )
+            .setSingleChoiceItems(options.map { it.second }.toTypedArray(), selected) { _, which ->
+                selected = which
+            }
+            .setPositiveButton(R.string.dashcam_stabilize_start) { _, _ ->
+                val crop = options[selected].first
+                DashcamPreferences(this).setStabilizeCropStrength(crop)
+                startStabilize(clip, crop)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun startStabilize(clip: StoredDashcamClip, crop: StabilizationCropStrength) {
+        if (DashcamStabilizeProgress.state.value is DashcamStabilizeProgress.State.Running) {
+            Toast.makeText(this, getString(R.string.dashcam_stabilize_already_running), Toast.LENGTH_SHORT).show()
+            showStabilizeProgressDialog()
+            return
+        }
+        DashcamStabilizeProgress.reset()
+        ContextCompat.startForegroundService(
+            this,
+            DashcamStabilizeService.startIntent(this, clip.file.absolutePath, crop),
+        )
+        showStabilizeProgressDialog()
+    }
+
+    private fun showStabilizeProgressDialog() {
+        stabilizeObserverJob?.cancel()
+        val view = layoutInflater.inflate(R.layout.dialog_dashcam_export_progress, null)
+        val percentText: TextView = view.findViewById(R.id.exportProgressPercent)
+        val progressBar: ProgressBar = view.findViewById(R.id.exportProgressBar)
+        val etaText: TextView = view.findViewById(R.id.exportProgressEta)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.dashcam_stabilize_dialog_title)
+            .setView(view)
+            .setCancelable(false)
+            .setNegativeButton(R.string.cancel) { _, _ -> cancelStabilize() }
+            .setNeutralButton(R.string.dashcam_export_background) { d, _ -> d.dismiss() }
+            .create()
+        dialog.setOnDismissListener {
+            stabilizeObserverJob?.cancel()
+            stabilizeObserverJob = null
+            stabilizeProgressDialog = null
+        }
+        stabilizeProgressDialog = dialog
+        dialog.show()
+
+        stabilizeObserverJob = lifecycleScope.launch {
+            DashcamStabilizeProgress.state.collect { state ->
+                when (state) {
+                    is DashcamStabilizeProgress.State.Running -> {
+                        val pct = (state.fraction * 100).toInt().coerceIn(0, 100)
+                        percentText.text = getString(R.string.dashcam_export_progress_pct_fmt, pct)
+                        progressBar.progress = pct
+                        etaText.text = state.etaSeconds?.takeIf { it > 0L }?.let {
+                            getString(R.string.dashcam_export_eta_fmt, DateUtils.formatElapsedTime(it))
+                        }.orEmpty()
+                    }
+                    DashcamStabilizeProgress.State.Done -> {
+                        dialog.dismiss()
+                        runCatching {
+                            NotificationManagerCompat.from(this@DashcamClipsActivity)
+                                .cancel(DashcamNotificationHelper.EXPORT_DONE_NOTIFICATION_ID)
+                        }
+                        Toast.makeText(this@DashcamClipsActivity, getString(R.string.dashcam_export_saved_to_gallery), Toast.LENGTH_SHORT).show()
+                    }
+                    DashcamStabilizeProgress.State.Failed -> {
+                        dialog.dismiss()
+                        Toast.makeText(this@DashcamClipsActivity, getString(R.string.dashcam_stabilize_failed), Toast.LENGTH_SHORT).show()
+                    }
+                    DashcamStabilizeProgress.State.Cancelled -> {
+                        dialog.dismiss()
+                        Toast.makeText(this@DashcamClipsActivity, getString(R.string.dashcam_stabilize_cancelled), Toast.LENGTH_SHORT).show()
+                    }
+                    DashcamStabilizeProgress.State.Idle -> Unit
+                }
+            }
+        }
+    }
+
+    private fun cancelStabilize() {
+        startService(DashcamStabilizeService.cancelIntent(this))
+    }
+
     private fun confirmDelete(clip: StoredDashcamClip) {
         AlertDialog.Builder(this)
             .setTitle(R.string.dashcam_clip_delete)
@@ -457,6 +579,7 @@ class DashcamClipsActivity : AppCompatActivity() {
     private class ClipAdapter(
         private val onClick: (StoredDashcamClip) -> Unit,
         private val onDelete: (StoredDashcamClip) -> Unit,
+        private val onLongClick: (StoredDashcamClip) -> Unit,
     ) : RecyclerView.Adapter<ClipAdapter.ClipViewHolder>() {
 
         private val clips = mutableListOf<StoredDashcamClip>()
@@ -470,7 +593,7 @@ class DashcamClipsActivity : AppCompatActivity() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ClipViewHolder {
             val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_dashcam_clip, parent, false)
-            return ClipViewHolder(view, onClick, onDelete)
+            return ClipViewHolder(view, onClick, onDelete, onLongClick)
         }
 
         override fun onBindViewHolder(holder: ClipViewHolder, position: Int) {
@@ -483,6 +606,7 @@ class DashcamClipsActivity : AppCompatActivity() {
             itemView: View,
             private val onClick: (StoredDashcamClip) -> Unit,
             private val onDelete: (StoredDashcamClip) -> Unit,
+            private val onLongClick: (StoredDashcamClip) -> Unit,
         ) : RecyclerView.ViewHolder(itemView) {
 
             private val thumbnail: ImageView = itemView.findViewById(R.id.clipThumbnail)
@@ -498,6 +622,10 @@ class DashcamClipsActivity : AppCompatActivity() {
                 val size = Formatter.formatShortFileSize(context, clip.sizeBytes)
                 metaText.text = context.getString(R.string.dashcam_clip_meta_fmt, date, size)
                 itemView.setOnClickListener { onClick(clip) }
+                itemView.setOnLongClickListener {
+                    onLongClick(clip)
+                    true
+                }
                 deleteButton.setOnClickListener { onDelete(clip) }
                 loadThumbnail(clip)
             }

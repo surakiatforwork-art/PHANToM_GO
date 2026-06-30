@@ -65,9 +65,15 @@ class DisplayServerService : Service() {
         private const val DISPLAY_LOCATION_MIN_DISTANCE_METERS = 35f
         @Volatile private var explicitStopRequested = false
         
-        // Wake lock
+        // Wake lock (CPU) — keeps the command listener / power watchdog alive while screen is off.
         private const val WAKE_LOCK_TAG = "PHANTOM_GO:DisplayServer"
         private var wakeLock: PowerManager.WakeLock? = null
+
+        // Screen wake lock — keeps the display ON while Display mode is active AND external power is
+        // connected, even when the user is in another app (e.g. Google Maps). Tied to charging so it
+        // does not fight the lock-on-power-disconnect flow or drain the battery when unplugged.
+        private const val SCREEN_WAKE_LOCK_TAG = "PHANTOM_GO:DisplayScreenOn"
+        private var screenWakeLock: PowerManager.WakeLock? = null
 
         fun requestSpeedometerRefresh(context: Context) {
             val intent = Intent(context, DisplayServerService::class.java).apply {
@@ -151,6 +157,18 @@ class DisplayServerService : Service() {
                     DisplayPowerAutomationManager.handleBatteryChanged(context, plugged)
                 }
             }
+            // Keep the screen awake only while charging in Display mode, so the lock-on-power-
+            // disconnect flow still works and the battery is not drained when unplugged/parked.
+            when (intent.action) {
+                Intent.ACTION_POWER_CONNECTED -> acquireScreenWakeLock()
+                Intent.ACTION_POWER_DISCONNECTED -> releaseScreenWakeLock()
+                Intent.ACTION_BATTERY_CHANGED ->
+                    if (intent.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, 0) != 0) {
+                        acquireScreenWakeLock()
+                    } else {
+                        releaseScreenWakeLock()
+                    }
+            }
             if (DEDUPE_POWER_MONITORING) forwardPowerEventToDashcam(context, intent)
         }
     }
@@ -193,6 +211,8 @@ class DisplayServerService : Service() {
         DisplayPowerAutomationManager.onDisplayServiceStarted(this)
         overlayController = OverlayController(this)
         acquireWakeLock()
+        // Keep the screen on right away if we are already charging when Display mode starts.
+        if (isExternalPowerConnected()) acquireScreenWakeLock()
         refreshSpeedometerTracking()
 
         try {
@@ -337,9 +357,10 @@ class DisplayServerService : Service() {
 
         Log.d(TAG, "ℹ️ Bluetooth bridge stop skipped (Wi‑Fi only mode)")
         
-        // Release wake lock
+        // Release wake locks
         releaseWakeLock()
-        
+        releaseScreenWakeLock()
+
         super.onDestroy()
     }
 
@@ -865,6 +886,51 @@ class DisplayServerService : Service() {
             wakeLock = null
         } catch (e: Exception) {
             Log.e(TAG, "💥 Error releasing wake lock", e)
+        }
+    }
+
+    private fun isExternalPowerConnected(): Boolean {
+        return try {
+            val batteryIntent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            batteryIntent?.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, 0) != 0
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    @SuppressLint("WakelockTimeout")
+    @Suppress("DEPRECATION")
+    private fun acquireScreenWakeLock() {
+        try {
+            if (screenWakeLock?.isHeld == true) return
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            // A window FLAG_KEEP_SCREEN_ON only keeps the screen on while our own Activity is in the
+            // foreground; to keep the display awake while the user is inside Google Maps we need a
+            // service-held screen wake lock. Released when Display mode stops or power disconnects.
+            screenWakeLock = powerManager.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                SCREEN_WAKE_LOCK_TAG
+            ).apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+            Log.d(TAG, "✅ Display screen-on wake lock acquired")
+        } catch (e: Exception) {
+            Log.e(TAG, "💥 Failed to acquire screen wake lock", e)
+        }
+    }
+
+    private fun releaseScreenWakeLock() {
+        try {
+            screenWakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                    Log.d(TAG, "✅ Display screen-on wake lock released")
+                }
+            }
+            screenWakeLock = null
+        } catch (e: Exception) {
+            Log.e(TAG, "💥 Error releasing screen wake lock", e)
         }
     }
 }

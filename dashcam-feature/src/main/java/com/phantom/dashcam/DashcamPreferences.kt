@@ -81,6 +81,16 @@ class DashcamPreferences(context: Context) {
         preferences.edit().putBoolean(KEY_PREVIEW_ENABLED, enabled).apply()
     }
 
+    fun getStabilizeCropStrength(): StabilizationCropStrength {
+        return StabilizationCropStrength.fromStorageValue(
+            preferences.getString(KEY_STABILIZE_CROP, StabilizationCropStrength.DEFAULT.storageValue),
+        )
+    }
+
+    fun setStabilizeCropStrength(value: StabilizationCropStrength) {
+        preferences.edit().putString(KEY_STABILIZE_CROP, value.storageValue).apply()
+    }
+
     fun getStorageQuotaGb(): Int {
         return normalizeStorageQuotaGb(
             preferences.getInt(KEY_STORAGE_QUOTA_GB, DEFAULT_STORAGE_QUOTA_GB),
@@ -110,5 +120,6 @@ class DashcamPreferences(context: Context) {
         private const val KEY_STORAGE_QUOTA_GB = "storage_quota_gb"
         private const val KEY_QUALITY = "recording_quality"
         private const val KEY_STABILIZATION = "video_stabilization"
+        private const val KEY_STABILIZE_CROP = "stabilize_crop_strength"
     }
 }

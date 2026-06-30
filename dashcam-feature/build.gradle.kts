@@ -53,5 +53,10 @@ dependencies {
   implementation("androidx.camera:camera-effects:1.5.1")
   implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
 
+  // Software video stabilization (post-process, for devices without hardware EIS/OIS).
+  // 4.13.0 ships 16 KB-page-aligned native libs (libopencv_java4.so + libc++_shared.so) so it
+  // does not trip the Android 15 "not 16 KB compatible" warning that 4.11.0 / 5.0.0 do.
+  implementation("org.opencv:opencv:4.13.0")
+
   testImplementation("junit:junit:4.13.2")
 }

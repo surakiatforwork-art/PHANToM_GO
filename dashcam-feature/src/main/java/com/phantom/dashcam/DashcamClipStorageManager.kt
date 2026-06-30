@@ -226,10 +226,15 @@ object DashcamClipStorageManager {
         val sizeBytes = file.length().coerceAtLeast(0L)
         if (sizeBytes <= 0L) return null
 
-        val durationMs = readDurationMs(file)
+        // Duration is derived from the filename start time and the file's last-modified time rather
+        // than opening every clip with MediaMetadataRetriever. queryStoredClips runs on the recording
+        // hot path (quota trim every few minutes) and on the browser list, so opening a media file
+        // per clip caused periodic jank that scaled with the clip count. Segments are short, fixed
+        // loops; the absolute trim/listing only needs ordering + size, and export still cuts on real
+        // sample timestamps from MediaExtractor, so an approximate window here is safe.
         val modifiedAtMs = file.lastModified().coerceAtLeast(0L)
-        val startedAtMs = parseClipStartTimeMs(file.name)
-            ?: (modifiedAtMs - durationMs).coerceAtLeast(0L)
+        val startedAtMs = parseClipStartTimeMs(file.name) ?: modifiedAtMs
+        val durationMs = (modifiedAtMs - startedAtMs).coerceAtLeast(0L)
         val endedAtMs = maxOf(modifiedAtMs, startedAtMs + durationMs)
 
         return StoredDashcamClip(
@@ -238,7 +243,7 @@ object DashcamClipStorageManager {
             sizeBytes = sizeBytes,
             startedAtEpochMs = startedAtMs,
             endedAtEpochMs = endedAtMs,
-            durationMs = durationMs.coerceAtLeast(0L),
+            durationMs = durationMs,
         )
     }
 

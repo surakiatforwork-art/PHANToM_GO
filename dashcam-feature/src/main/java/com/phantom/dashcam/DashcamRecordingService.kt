@@ -46,6 +46,9 @@ import androidx.lifecycle.LifecycleService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 class DashcamRecordingService : LifecycleService() {
 
@@ -132,11 +135,14 @@ class DashcamRecordingService : LifecycleService() {
         private val onClipSaved: (String?) -> Unit,
     ) {
         @Volatile private var stopped = false
-        private var current: Recording? = null
+        @Volatile private var current: Recording? = null
 
         fun start() {
             stopped = false
-            beginSegment()
+            // Kick the first segment off the recording executor so the whole segment loop — and its
+            // file I/O — stays off the main thread. Using the same single-thread executor as the
+            // start-time storage cleanup guarantees cleanup runs before this pending file is created.
+            recordingCallbackExecutor.execute { beginSegment() }
         }
 
         fun stop() {
@@ -148,6 +154,17 @@ class DashcamRecordingService : LifecycleService() {
         @SuppressLint("MissingPermission")
         private fun beginSegment() {
             if (stopped) return
+            try {
+                beginSegmentInternal()
+            } catch (t: Throwable) {
+                if (!stopped) {
+                    mainHandler.post { stopRecording("Unable to continue recording: ${t.message ?: "error"}") }
+                }
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        private fun beginSegmentInternal() {
             val displayNameBase = buildFileName(cameraLabel)
             val pendingFile = DashcamClipStorageManager.createPendingClipFile(
                 this@DashcamRecordingService,
@@ -187,7 +204,7 @@ class DashcamRecordingService : LifecycleService() {
                     }
                 }
 
-            current = pendingRecording.start(appMainExecutor) { event ->
+            current = pendingRecording.start(recordingCallbackExecutor) { event ->
                 when (event) {
                     is VideoRecordEvent.Start -> {
                         DashcamStateStore.update {
@@ -208,21 +225,32 @@ class DashcamRecordingService : LifecycleService() {
                             val committed = DashcamClipStorageManager.commitPendingClip(pendingFile, finalFile)
                             if (!committed) {
                                 if (!stopped) {
-                                    stopRecording("Could not finalize the $cameraLabel camera clip.")
+                                    mainHandler.post {
+                                        stopRecording("Could not finalize the $cameraLabel camera clip.")
+                                    }
                                 }
                                 return@start
                             }
                             onClipSaved(finalFile.name)
                             val plannedSplit = code != VideoRecordEvent.Finalize.ERROR_NONE
                             if (!stopped && plannedSplit) {
-                                // The finished segment is safe; keep the loop going.
-                                trimStoredClipsToQuota(notifyUser = false)
+                                // The finished segment is safe; keep the loop going. Trim only once
+                                // every few segments instead of every minute so the quota scan (file
+                                // I/O) stays off the recording cadence. This callback already runs on
+                                // the background recording executor, so the trim never blocks capture.
+                                if (segmentsSinceTrim.incrementAndGet() >= TRIM_EVERY_N_SEGMENTS) {
+                                    segmentsSinceTrim.set(0)
+                                    trimStoredClipsToQuota(notifyUser = false)
+                                }
                                 beginSegment()
                             } else {
+                                segmentsSinceTrim.set(0)
                                 trimStoredClipsToQuota(notifyUser = true)
                             }
                         } else if (!stopped) {
-                            stopRecording("Recording failed on $cameraLabel camera (code $code).")
+                            mainHandler.post {
+                                stopRecording("Recording failed on $cameraLabel camera (code $code).")
+                            }
                         }
                     }
 
@@ -235,6 +263,8 @@ class DashcamRecordingService : LifecycleService() {
     private val binder = LocalBinder()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val appMainExecutor by lazy { ContextCompat.getMainExecutor(this) }
+
+    private val segmentsSinceTrim = AtomicInteger(0)
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var activeSession: ActiveSession? = null
@@ -289,6 +319,12 @@ class DashcamRecordingService : LifecycleService() {
         activeSession?.stop()
         cameraProvider?.unbindAll()
         activeSession = null
+        // NOTE: the recording executor is a process-lifetime singleton and is intentionally NOT shut
+        // down here. CameraX delivers the final VideoRecordEvent.Finalize (which commits the last
+        // segment from its ".pending-" temp to its finalized name) asynchronously, often after the
+        // service has already been torn down by stopRecording -> stopSelf. Shutting the executor down
+        // in onDestroy rejected that final task, leaving the last clip stuck as an uncommitted
+        // ".pending-" file that never appears in the clip list.
         super.onDestroy()
     }
 
@@ -342,8 +378,15 @@ class DashcamRecordingService : LifecycleService() {
         activeSession?.stop()
         provider.unbindAll()
         activeSession = null
-        DashcamClipStorageManager.cleanupIncompleteClips(this)
-        trimStoredClipsToQuota(notifyUser = false)
+        // Cleanup + quota trim list every clip and (for cleanup) open suspect files, so run them on
+        // the recording executor. Because it is single-threaded and the new session's first segment
+        // is also posted there (SegmentedRecorder.start), cleanup is guaranteed to finish before the
+        // first pending file is created — no race with the just-deleted ".pending-" temp files.
+        segmentsSinceTrim.set(0)
+        recordingCallbackExecutor.execute {
+            DashcamClipStorageManager.cleanupIncompleteClips(this)
+            trimStoredClipsToQuota(notifyUser = false)
+        }
 
         DashcamStateStore.syncPreferences(this)
         val requestedMode = DashcamPreferences(this).getMode()
@@ -776,7 +819,20 @@ class DashcamRecordingService : LifecycleService() {
         // Loop recording is split into short segments so a sudden power loss can only ever
         // damage the segment currently being written; every earlier segment is already closed.
         // 1-minute segments keep the worst-case loss small and make "share last N minutes" precise.
+        // Single background thread for the whole recording loop: segment callbacks, clip
+        // commit/rename, storage cleanup and quota trimming. Single-threaded so it preserves the
+        // original ordering guarantees (cleanup before the first pending file; one segment finalized
+        // before the next starts) while keeping that file I/O off the main thread. It lives for the
+        // whole process — never shut down — so CameraX's final Finalize callback (which commits the
+        // last segment) is always delivered even while the service is being destroyed.
+        private val recordingCallbackExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+
         private const val SEGMENT_DURATION_MS = 60_000L
+
+        // With 1-minute segments this trims roughly every 5 minutes of recording instead of on every
+        // segment boundary, so the storage scan no longer rides the per-minute capture cadence. The
+        // final stop always trims, so the quota is still enforced when a run ends.
+        private const val TRIM_EVERY_N_SEGMENTS = 5
         private const val OVERLAY_PADDING = 18f
 
         private val overlayDateFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)

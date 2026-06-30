@@ -12,8 +12,16 @@ android {
     applicationId = "com.phantom.carnavrelay"
     minSdk = 23
     targetSdk = 34
-    versionCode = 29
-    versionName = "1.2.2"
+    versionCode = 30
+    versionName = "1.3.0"
+
+    ndk {
+      // Ship 64-bit ARM only. OpenCV (software stabilization) bundles native libs for every ABI;
+      // arm64-v8a is the only one that matters for modern phones and the only one whose 16 KB
+      // page-size alignment Android 15 checks. Dropping armeabi-v7a/x86 keeps the APK small and
+      // removes the non-16KB-aligned 32-bit libs entirely. (Drops support for 32-bit-only devices.)
+      abiFilters += listOf("arm64-v8a")
+    }
   }
 
   buildTypes {

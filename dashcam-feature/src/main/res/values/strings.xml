@@ -82,7 +82,7 @@
     <string name="dashcam_session_merge">Merge a full recording</string>
     <string name="dashcam_session_pick_title">Pick a recording session</string>
     <string name="dashcam_session_label_fmt">%1$s → %2$s • %3$s • %4$d clips</string>
-    <string name="dashcam_timeline_hint">Drag the two handles to frame the time range. The strip below zooms into the footage inside the frame.</string>
+    <string name="dashcam_timeline_hint">Drag the handles to frame the time range — drag past an edge to zoom out, release to zoom into your selection. Drag the lower strip left/right to scrub onto the footage.</string>
     <string name="notification_channel_export">Footage export</string>
     <string name="dashcam_export_progress_title">Preparing footage…</string>
     <string name="dashcam_export_progress_pct_fmt">%1$d%%</string>
@@ -96,4 +96,22 @@
     <string name="dashcam_export_cancelled">Export cancelled.</string>
     <string name="dashcam_export_eta_fmt">about %1$s remaining</string>
     <string name="dashcam_export_already_running">An export is already running.</string>
+    <string name="dashcam_clip_actions_title">What would you like to do?</string>
+    <string name="dashcam_clip_action_play">Play</string>
+    <string name="dashcam_clip_action_stabilize">Stabilize and save</string>
+    <string name="dashcam_clip_action_delete">Delete</string>
+    <string name="dashcam_stabilize_title">Stabilize video</string>
+    <string name="dashcam_stabilize_crop_prompt">Stabilization strength for \"%1$s\".\nMore strength means a steadier video but a narrower view (more crop).</string>
+    <string name="dashcam_stabilize_crop_low">Low — keeps the most view</string>
+    <string name="dashcam_stabilize_crop_medium">Medium — recommended</string>
+    <string name="dashcam_stabilize_crop_high">High — steadiest, most crop</string>
+    <string name="dashcam_stabilize_start">Stabilize</string>
+    <string name="dashcam_stabilize_dialog_title">Stabilizing video</string>
+    <string name="dashcam_stabilize_progress_title">Stabilizing video…</string>
+    <string name="dashcam_stabilize_progress_eta_fmt">%1$d%% • about %2$s left</string>
+    <string name="dashcam_stabilize_done_title">Stabilized video saved</string>
+    <string name="dashcam_stabilize_failed">Could not stabilize this video.</string>
+    <string name="dashcam_stabilize_cancelled">Stabilization cancelled.</string>
+    <string name="dashcam_stabilize_already_running">A stabilization job is already running.</string>
+    <string name="dashcam_stabilize_hint">Tip: stabilization smooths shake but cannot add detail a blurry plate never had. Record at 1080p for the clearest plates.</string>
 </resources>

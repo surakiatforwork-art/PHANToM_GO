@@ -50,6 +50,9 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         private const val PERMISSION_REQUEST_CODE = 1001
         private const val MAIN_PING_CHECK_INTERVAL_MS = 4000L
         private const val MAIN_PING_TIMEOUT_MS = 12000L
+        // After the user flips the Display-mode toggle, keep showing their intended state for this
+        // long while the foreground service is still transitioning; then trust the real state.
+        private const val DISPLAY_MODE_RECONCILE_DELAY_MS = 4000L
     }
 
     private lateinit var prefsManager: PrefsManager
@@ -91,6 +94,13 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
     private lateinit var btnCopyPayload: Button
     private var statusBlinkAnimator: ObjectAnimator? = null
     private var suppressDisplayModeToggleCallback = false
+    // The user's just-made toggle choice, shown optimistically until the service state catches up
+    // (null = no pending choice, trust the real service state).
+    private var desiredDisplayMode: Boolean? = null
+    private val reconcileDisplayModeRunnable = Runnable {
+        desiredDisplayMode = null
+        if (isAdded) updateUI()
+    }
     private var pairingReceiverRegistered = false
     private var speedReceiverRegistered = false
     private val mainPingHandler = Handler(Looper.getMainLooper())
@@ -177,6 +187,13 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
 
         switchDisplayMode.setOnCheckedChangeListener { _, isChecked ->
             if (suppressDisplayModeToggleCallback) return@setOnCheckedChangeListener
+            // Reflect the user's choice immediately. The freshly (re)started foreground service is
+            // not reported as "running" yet by the time updateUI() re-reads it, so without this the
+            // switch would bounce back and need a second tap. The reconcile runnable drops the
+            // optimistic override after a few seconds so a failed start can't leave it stuck.
+            desiredDisplayMode = isChecked
+            mainPingHandler.removeCallbacks(reconcileDisplayModeRunnable)
+            mainPingHandler.postDelayed(reconcileDisplayModeRunnable, DISPLAY_MODE_RECONCILE_DELAY_MS)
             if (isChecked) {
                 ensureDisplayServiceRunning("display-mode-toggle")
             } else {
@@ -232,15 +249,22 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
         tvTokenHint.text = tokenHint
 
         val isServiceRunning = isServiceRunning(DisplayServerService::class.java)
+        // Once the real service state has caught up with the user's last toggle, drop the override.
+        val desired = desiredDisplayMode
+        if (desired != null && desired == isServiceRunning) {
+            desiredDisplayMode = null
+            mainPingHandler.removeCallbacks(reconcileDisplayModeRunnable)
+        }
+        val displayModeOn = desiredDisplayMode ?: isServiceRunning
         suppressDisplayModeToggleCallback = true
-        switchDisplayMode.isChecked = isServiceRunning
+        switchDisplayMode.isChecked = displayModeOn
         suppressDisplayModeToggleCallback = false
-        tvDisplayModeStatus.text = if (isServiceRunning) getString(R.string.display_mode_on) else getString(R.string.display_mode_off)
-        tvDisplayModeStatus.setTextColor(requireContext().getColor(if (isServiceRunning) R.color.success else R.color.gray_600))
+        tvDisplayModeStatus.text = if (displayModeOn) getString(R.string.display_mode_on) else getString(R.string.display_mode_off)
+        tvDisplayModeStatus.setTextColor(requireContext().getColor(if (displayModeOn) R.color.success else R.color.gray_600))
 
-        setMapLinkHandlerEnabled(!isServiceRunning, "DisplayFragment.updateUI")
+        setMapLinkHandlerEnabled(!displayModeOn, "DisplayFragment.updateUI")
 
-        tvServerInfo.text = if (isServiceRunning) getString(R.string.display_server_fmt, "$ip:$port") else getString(R.string.display_server_not_running)
+        tvServerInfo.text = if (displayModeOn) getString(R.string.display_server_fmt, "$ip:$port") else getString(R.string.display_server_not_running)
         updateBatteryStatus()
         speedometerCard.visibility = if (isPaired) View.VISIBLE else View.GONE
         updateSpeedUi()
@@ -333,7 +357,9 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
             updateUI()
         } catch (e: Exception) {
             Log.e(TAG, "💥 Failed to start server [$reason]", e)
-            switchDisplayMode.isChecked = false
+            desiredDisplayMode = false
+            mainPingHandler.removeCallbacks(reconcileDisplayModeRunnable)
+            updateUI()
             Toast.makeText(
                 requireContext(),
                 getString(R.string.display_failed_start_server_fmt, e.message ?: getString(R.string.common_unknown)),
@@ -535,6 +561,7 @@ class DisplayScreenFragment : Fragment(R.layout.activity_display) {
     override fun onPause() {
         super.onPause()
         mainPingHandler.removeCallbacks(mainPingRunnable)
+        mainPingHandler.removeCallbacks(reconcileDisplayModeRunnable)
     }
 
     private fun startStatusBlink() {
