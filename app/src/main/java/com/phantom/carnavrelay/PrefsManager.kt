@@ -216,6 +216,10 @@ class PrefsManager(context: Context) {
     fun getPairedIp(): String? {
         return prefs.getString(KEY_PAIRED_IP, null)
     }
+
+    fun getUsablePairedIp(): String? {
+        return getPairedIp()?.takeIf { isUsableLocalIp(it) }
+    }
     
     fun getPairedPort(): Int {
         return prefs.getInt(KEY_PAIRED_PORT, 8765)
@@ -226,7 +230,11 @@ class PrefsManager(context: Context) {
     }
 
     fun hasLocalPairingTransport(): Boolean {
-        return !getPairedIp().isNullOrBlank() && !getPairedToken().isNullOrBlank()
+        return !getUsablePairedIp().isNullOrBlank() && hasLocalDiscoverySeed()
+    }
+
+    fun hasLocalDiscoverySeed(): Boolean {
+        return getPairedPort() > 0 && !getPairedToken().isNullOrBlank()
     }
 
     fun hasCloudPairingTarget(): Boolean {
@@ -257,7 +265,11 @@ class PrefsManager(context: Context) {
         viaCloud: Boolean = false
     ) {
         prefs.edit().apply {
-            putString(KEY_PAIRED_IP, ip)
+            if (isUsableLocalIp(ip)) {
+                putString(KEY_PAIRED_IP, ip.trim())
+            } else {
+                remove(KEY_PAIRED_IP)
+            }
             putInt(KEY_PAIRED_PORT, port)
             putString(KEY_PAIRED_TOKEN, token)
             putBoolean(KEY_IS_PAIRED, true)
@@ -271,12 +283,27 @@ class PrefsManager(context: Context) {
 
     fun saveCloudPairing(
         displayDeviceId: String,
-        displayName: String? = null
+        displayName: String? = null,
+        localIp: String? = null,
+        localPort: Int? = null,
+        localToken: String? = null
     ) {
         prefs.edit().apply {
-            remove(KEY_PAIRED_IP)
-            remove(KEY_PAIRED_PORT)
-            remove(KEY_PAIRED_TOKEN)
+            if (isUsableLocalIp(localIp)) {
+                putString(KEY_PAIRED_IP, localIp?.trim())
+            } else {
+                remove(KEY_PAIRED_IP)
+            }
+            if (localPort != null && localPort > 0) {
+                putInt(KEY_PAIRED_PORT, localPort)
+            } else {
+                remove(KEY_PAIRED_PORT)
+            }
+            if (!localToken.isNullOrBlank()) {
+                putString(KEY_PAIRED_TOKEN, localToken)
+            } else {
+                remove(KEY_PAIRED_TOKEN)
+            }
             putBoolean(KEY_IS_PAIRED, true)
             putBoolean(KEY_PAIRED_VERIFIED, false)
             putString(KEY_PAIRED_DISPLAY_DEVICE_ID, displayDeviceId)
@@ -525,11 +552,26 @@ class PrefsManager(context: Context) {
 
     fun rememberDisplayIp(ip: String) {
         val clean = ip.trim()
-        if (clean.isEmpty()) return
+        if (!isUsableLocalIp(clean)) return
         val updated = (listOf(clean) + getKnownDisplayIps())
             .distinct()
             .take(8)
         prefs.edit().putString(KEY_KNOWN_DISPLAY_IPS, updated.joinToString(",")).apply()
+    }
+
+    fun isUsableLocalIp(ip: String?): Boolean {
+        val clean = ip?.trim() ?: return false
+        if (clean.isEmpty()) return false
+        val parts = clean.split('.')
+        if (parts.size != 4) return false
+        val octets = parts.map { it.toIntOrNull() ?: return false }
+        if (octets.any { it !in 0..255 }) return false
+        if (octets[0] == 0) return false
+        if (octets[0] == 127) return false
+        if (octets[0] == 169 && octets[1] == 254) return false
+        if (octets[0] in 224..239) return false
+        if (octets == listOf(255, 255, 255, 255)) return false
+        return true
     }
 
     fun clearKnownDisplayIps() {

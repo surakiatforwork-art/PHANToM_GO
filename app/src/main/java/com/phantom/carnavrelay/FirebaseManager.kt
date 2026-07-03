@@ -79,6 +79,14 @@ object FirebaseManager {
         val localToken: String?
     )
 
+    data class DisplayLocalEndpoint(
+        val displayDeviceId: String,
+        val localIp: String?,
+        val localPort: Int?,
+        val localToken: String?,
+        val updatedAt: Long?
+    )
+
     data class SecurityAlert(
         val alertId: String,
         val eventType: String,
@@ -737,6 +745,59 @@ object FirebaseManager {
         )
     }
 
+    fun fetchPairedDisplayLocalEndpoint(
+        context: Context,
+        onResult: (DisplayLocalEndpoint?, String?) -> Unit
+    ) {
+        val appContext = context.applicationContext
+        withSignedInUser(
+            context = appContext,
+            reason = "fetch-display-local-endpoint",
+            onReady = {
+                val prefs = PrefsManager(appContext)
+                val displayDeviceId = prefs.getPairedDisplayDeviceId()
+                if (displayDeviceId.isNullOrBlank()) {
+                    onResult(null, "No paired display device")
+                    return@withSignedInUser
+                }
+
+                database()
+                    .getReference(PATH_PRESENCE)
+                    .child(displayDeviceId)
+                    .get()
+                    .addOnSuccessListener { snapshot ->
+                        if (!snapshot.exists()) {
+                            onResult(null, "No display presence record")
+                            return@addOnSuccessListener
+                        }
+                        val localIp = snapshot.child("localIp").getValue(String::class.java)
+                        val localPort = snapshot.child("localPort").getValue(Long::class.java)?.toInt()
+                        val localToken = snapshot.child("localToken").getValue(String::class.java)
+                        if (localPort == null || localPort <= 0 || localToken.isNullOrBlank()) {
+                            onResult(null, "Display presence has no local relay seed")
+                            return@addOnSuccessListener
+                        }
+                        onResult(
+                            DisplayLocalEndpoint(
+                                displayDeviceId = displayDeviceId,
+                                localIp = localIp,
+                                localPort = localPort,
+                                localToken = localToken,
+                                updatedAt = snapshot.child("updatedAt").getValue(Long::class.java)
+                            ),
+                            null
+                        )
+                    }
+                    .addOnFailureListener { e ->
+                        onResult(null, e.message ?: "Failed to read display presence")
+                    }
+            },
+            onFailure = { e ->
+                onResult(null, e.message ?: "Firebase sign-in failed")
+            }
+        )
+    }
+
     fun sendSecurityAlert(
         context: Context,
         eventType: String,
@@ -1056,6 +1117,15 @@ object FirebaseManager {
             "connected" to connected,
             "updatedAt" to ServerValue.TIMESTAMP
         )
+        if (role == PrefsManager.MODE_DISPLAY.lowercase()) {
+            val localIp = HttpServer(context, prefs).getLocalIpAddress()
+            val serverToken = prefs.getServerToken()
+            onlinePayload["localIp"] = localIp?.takeIf { prefs.isUsableLocalIp(it) } ?: ""
+            onlinePayload["localPort"] = prefs.getServerPort()
+            onlinePayload["localToken"] = serverToken
+            onlinePayload["localTokenHint"] = prefs.getTokenHint(serverToken)
+            onlinePayload["platform"] = "android"
+        }
 
         presenceRef.updateChildren(onlinePayload)
         if (connected) {

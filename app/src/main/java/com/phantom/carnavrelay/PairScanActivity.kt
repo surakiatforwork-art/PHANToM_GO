@@ -256,12 +256,13 @@ class PairScanActivity : AppCompatActivity() {
             pairInfo = pairInfo,
             onSuccess = { result ->
                 hideProgressDialog()
-                val localIp = result.localIp
-                val localPort = result.localPort
-                val localToken = result.localToken
-                if (!localIp.isNullOrBlank() && localPort != null && !localToken.isNullOrBlank()) {
+                val localIp = result.localIp ?: pairInfo.ip
+                val localPort = result.localPort ?: pairInfo.port
+                val localToken = result.localToken ?: pairInfo.token
+                val usableLocalIp = localIp?.trim()?.takeIf { prefsManager.isUsableLocalIp(it) }
+                if (!usableLocalIp.isNullOrBlank() && localPort != null && !localToken.isNullOrBlank()) {
                     prefsManager.savePairing(
-                        ip = localIp,
+                        ip = usableLocalIp,
                         port = localPort,
                         token = localToken,
                         verified = false,
@@ -272,8 +273,14 @@ class PairScanActivity : AppCompatActivity() {
                 } else {
                     prefsManager.saveCloudPairing(
                         displayDeviceId = result.displayDeviceId,
-                        displayName = result.displayName
+                        displayName = result.displayName,
+                        localIp = localIp,
+                        localPort = localPort,
+                        localToken = localToken
                     )
+                }
+                if (localPort != null && !localToken.isNullOrBlank()) {
+                    MainSender.triggerAutoReconnect(applicationContext, "cloud-pairing-success")
                 }
 
                 mainHandler.post {

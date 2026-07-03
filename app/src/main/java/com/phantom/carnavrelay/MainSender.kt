@@ -122,7 +122,7 @@ class MainSender(
 
     fun getPairedInfo(): String {
         if (!isPaired()) return "Not paired"
-        val ip = prefsManager.getPairedIp()
+        val ip = prefsManager.getUsablePairedIp() ?: prefsManager.getPairedIp()
         val port = prefsManager.getPairedPort()
         val tokenHint = prefsManager.getPairedToken()?.let { prefsManager.getTokenHint(it) }
         val verified = if (prefsManager.isPairedVerified()) "✅" else "⏳"
@@ -143,8 +143,14 @@ class MainSender(
 
     fun sendOpenUrl(url: String, callback: SendCallback? = null) {
         if (prefsManager.isCloudPaired() && !prefsManager.getPairedDisplayDeviceId().isNullOrBlank()) {
-            Log.d(TAG, "📡 Transport=CLOUD")
-            sendOpenUrlCloud(url, callback)
+            if (prefsManager.hasLocalPairingTransport()) {
+                Log.d(TAG, "📡 Transport=LOCAL_FIRST_CLOUD_FALLBACK")
+                sendOpenUrlLocalThenCloud(url, callback)
+            } else {
+                Log.d(TAG, "📡 Transport=CLOUD")
+                maybeDiscoverDisplay("cloud-send-no-local-endpoint")
+                sendOpenUrlCloud(url, callback)
+            }
             return
         }
         val transport = prefsManager.getConnectionTransport()
@@ -173,7 +179,7 @@ class MainSender(
             return
         }
 
-        val ip = prefsManager.getPairedIp() ?: ""
+        val ip = prefsManager.getUsablePairedIp() ?: ""
         val port = prefsManager.getPairedPort()
         val token = prefsManager.getPairedToken() ?: ""
         
@@ -182,6 +188,7 @@ class MainSender(
             Log.e(TAG, "❌ Invalid pairing config - IP or token is empty")
             setState(STATE_AUTH_FAILED)
             showToast("Invalid pairing configuration", toastEnabledForCall)
+            maybeDiscoverDisplay("wifi-invalid-local-endpoint")
             callback?.onFailure("Invalid pairing configuration", false, true)
             return
         }
@@ -228,7 +235,44 @@ class MainSender(
         )
     }
 
-    private fun sendOpenUrlCloud(url: String, callback: SendCallback? = null) {
+    private fun sendOpenUrlLocalThenCloud(url: String, callback: SendCallback? = null) {
+        sendOpenUrlWifi(
+            url = url,
+            callback = object : SendCallback {
+                override fun onSuccess() {
+                    callback?.onSuccess()
+                }
+
+                override fun onFailure(error: String, queued: Boolean, authFailed: Boolean) {
+                    Log.w(TAG, "↪️ Local relay failed, falling back to cloud: $error")
+                    demoteCurrentLocalEndpoint("local-send-failure")
+                    maybeDiscoverDisplay("local-send-failure")
+                    sendOpenUrlCloud(url, callback, allowWifiFallback = false)
+                }
+            },
+            queueOnFailureForCall = false,
+            toastEnabledForCall = false
+        )
+    }
+
+    private fun demoteCurrentLocalEndpoint(reason: String) {
+        val displayDeviceId = prefsManager.getPairedDisplayDeviceId() ?: return
+        val token = prefsManager.getPairedToken()
+        val port = prefsManager.getPairedPort()
+        prefsManager.saveCloudPairing(
+            displayDeviceId = displayDeviceId,
+            displayName = prefsManager.getPairedDisplayName(),
+            localPort = port.takeIf { it > 0 },
+            localToken = token
+        )
+        Log.d(TAG, "ℹ️ Local endpoint IP cleared after $reason; discovery seed kept")
+    }
+
+    private fun sendOpenUrlCloud(
+        url: String,
+        callback: SendCallback? = null,
+        allowWifiFallback: Boolean = true
+    ) {
         Log.d(TAG, "☁️ sendOpenUrlCloud() called - state: $currentState")
 
         if (!isPaired()) {
@@ -239,7 +283,7 @@ class MainSender(
             return
         }
 
-        val hasWifiFallback = !prefsManager.getPairedIp().isNullOrBlank() && !prefsManager.getPairedToken().isNullOrBlank()
+        val hasWifiFallback = prefsManager.hasLocalPairingTransport()
         setState(STATE_CONNECTING)
 
         FirebaseManager.sendCloudOpenUrlReliable(
@@ -254,13 +298,14 @@ class MainSender(
             },
             onFailure = { error ->
                 Log.e(TAG, "💥 Cloud send/ack failed: $error")
-                if (hasWifiFallback) {
+                if (allowWifiFallback && hasWifiFallback) {
                     Log.w(TAG, "↪️ Falling back to Wi‑Fi send: $error")
                     sendOpenUrlWifi(url, callback)
                     return@sendCloudOpenUrlReliable
                 }
 
                 setState(STATE_OFFLINE)
+                maybeDiscoverDisplay("cloud-send-failure")
                 if (queueOnFailure) {
                     prefsManager.addToPendingQueue(url)
                     showToast("Cloud send failed. Queued for retry.")
@@ -330,7 +375,7 @@ class MainSender(
                             Log.d(TAG, "✅ URL sent successfully")
                             setState(STATE_CONNECTED)
                             prefsManager.setPairedVerified(true)
-                            val pairedIp = prefsManager.getPairedIp()
+                            val pairedIp = prefsManager.getUsablePairedIp()
                             if (!pairedIp.isNullOrBlank()) {
                                 prefsManager.rememberDisplayIp(pairedIp)
                             }
@@ -616,6 +661,7 @@ class MainSender(
 
         if (prefsManager.isCloudPaired() && !prefsManager.getPairedDisplayDeviceId().isNullOrBlank()) {
             Log.d(TAG, "🔍 Checking cloud display status")
+            maybeDiscoverDisplay("cloud-status-check")
             FirebaseManager.checkCloudDisplayStatus(context) { success, error ->
                 if (success) {
                     setState(STATE_CONNECTED)
@@ -630,7 +676,7 @@ class MainSender(
             return
         }
         
-        val ip = prefsManager.getPairedIp() ?: ""
+        val ip = prefsManager.getUsablePairedIp() ?: ""
         val port = prefsManager.getPairedPort()
         val token = prefsManager.getPairedToken() ?: ""
         
@@ -724,7 +770,10 @@ class MainSender(
 
     private fun maybeDiscoverDisplay(reason: String) {
         if (!isPaired()) return
-        if (!prefsManager.hasLocalPairingTransport()) return
+        if (!prefsManager.hasLocalDiscoverySeed()) {
+            hydrateLocalEndpointFromCloudPresence(reason)
+            return
+        }
         val now = System.currentTimeMillis()
         val cooldown = if (reason.contains("network", ignoreCase = true) || reason.contains("manual", ignoreCase = true)) {
             DISCOVERY_COOLDOWN_FAST_MS
@@ -749,6 +798,29 @@ class MainSender(
         }.start()
     }
 
+    private fun hydrateLocalEndpointFromCloudPresence(reason: String) {
+        if (!prefsManager.isCloudPaired()) return
+        FirebaseManager.fetchPairedDisplayLocalEndpoint(context) { endpoint, error ->
+            if (endpoint == null) {
+                Log.d(TAG, "ℹ️ No cloud presence local endpoint for discovery ($reason): $error")
+                return@fetchPairedDisplayLocalEndpoint
+            }
+            prefsManager.saveCloudPairing(
+                displayDeviceId = endpoint.displayDeviceId,
+                displayName = prefsManager.getPairedDisplayName(),
+                localIp = endpoint.localIp,
+                localPort = endpoint.localPort,
+                localToken = endpoint.localToken
+            )
+            Log.d(
+                TAG,
+                "🔎 Loaded Display local endpoint seed from Firebase presence " +
+                    "(${endpoint.localIp ?: "unknown"}:${endpoint.localPort})"
+            )
+            maybeDiscoverDisplay("$reason-presence-endpoint")
+        }
+    }
+
     private fun discoverDisplayOnLocalNetwork(reason: String) {
         val token = prefsManager.getPairedToken() ?: return
         val tokenHint = prefsManager.getTokenHint(token)
@@ -762,7 +834,7 @@ class MainSender(
             .build()
 
         val knownCandidates = mutableListOf<String>()
-        prefsManager.getPairedIp()?.let { if (it.isNotBlank()) knownCandidates += it }
+        prefsManager.getUsablePairedIp()?.let { knownCandidates += it }
         knownCandidates += prefsManager.getKnownDisplayIps()
         probeCandidateIps(
             ips = knownCandidates.distinct(),
@@ -879,7 +951,7 @@ class MainSender(
         val mask = 0xFFFFFF00u // /24 in little-endian format
         val candidates = linkedSetOf<Pair<UInt, UInt>>()
         val ips = mutableListOf<String>()
-        prefsManager.getPairedIp()?.let { if (it.isNotBlank()) ips += it }
+        prefsManager.getUsablePairedIp()?.let { ips += it }
         ips += prefsManager.getKnownDisplayIps()
         ips.forEach { ipString ->
             val ip = ipToUInt(ipString) ?: return@forEach
