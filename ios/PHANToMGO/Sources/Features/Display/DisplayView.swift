@@ -19,6 +19,32 @@ struct DisplayView: View {
                     }
                     if container.isDisplayModeEnabled {
                         if let pairing = container.displayPairing {
+                            ScreenCard {
+                                Label("Open the latest destination", systemImage: "map.fill").font(.headline)
+                                if let command = container.latestCommand {
+                                    Text(command.originalText).font(.footnote).lineLimit(2).textSelection(.enabled)
+                                } else {
+                                    Text("Waiting for a route from Main.").font(.footnote).foregroundStyle(.secondary)
+                                }
+                                Button {
+                                    Task { await container.refreshLatestRoute(openAfterRefresh: true) }
+                                } label: { Label("Check latest route and open Maps", systemImage: "arrow.up.right.square") }
+                                    .buttonStyle(PrimaryActionStyle())
+                                    .disabled(container.isFetchingLatestRoute || container.security.challengeVisible)
+                                    .accessibilityIdentifier("check-latest-route")
+                                if container.isFetchingLatestRoute { ProgressView("Checking the latest destination") }
+                                Text("After using Maps, return here and tap this button. Free-account native builds have no remote push while suspended.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                if container.latestCommand != nil {
+                                    DisclosureGroup("Offline fallback") {
+                                        Text("This opens the last received route without checking for a newer one.")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                        Button("Open last received route") {
+                                            Task { await container.openLatestRoute() }
+                                        }.disabled(container.security.challengeVisible)
+                                    }
+                                }
+                            }
                             SpeedometerCard(service: container.location)
                             ScreenCard {
                                 HStack {
@@ -50,30 +76,6 @@ struct DisplayView: View {
                                         .disabled(container.isBusy)
                                 }.frame(maxWidth: .infinity)
                             }
-                        }
-                        if let command = container.latestCommand {
-                            ScreenCard {
-                                Label("Latest route", systemImage: "map.fill").font(.headline)
-                                Text(command.originalText).lineLimit(3).textSelection(.enabled)
-                                Button {
-                                    Task { await container.openLatestRoute() }
-                                } label: { Label("Open in Maps", systemImage: "arrow.up.right.square") }
-                                    .buttonStyle(PrimaryActionStyle())
-                                Text("Navigation uses this Display's settings. Motorcycle routes depend on Maps support in your region.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                        ScreenCard {
-                            Label("Receive the next route", systemImage: "arrow.clockwise").font(.headline)
-                            Text("After using Maps, return to Display and check the latest route. This free-account build has no remote push while the app is suspended.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                            Button {
-                                Task { await container.refreshLatestRoute(openAfterRefresh: true) }
-                            } label: { Label("Check latest route and open Maps", systemImage: "map") }
-                                .buttonStyle(PrimaryActionStyle())
-                                .disabled(container.isFetchingLatestRoute || container.security.challengeVisible || container.displayPairing == nil)
-                                .accessibilityIdentifier("check-latest-route")
-                            if container.isFetchingLatestRoute { ProgressView("Checking current pairing and latest destination") }
                         }
                         ScreenCard {
                             Label("GO Cam", systemImage: "video.fill").font(.headline)
