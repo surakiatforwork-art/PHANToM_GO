@@ -120,7 +120,7 @@ final class RouteDeliveryHTTPTests: XCTestCase {
     func testServerAcceptanceWithoutAckReturnsQueued() async throws {
         RelayURLProtocol.configure { _ in (200, NSNull()) }
         let result = try await service().sendRouteCommand(
-            to: "display", from: "main", mainName: "Main", payload: payload(),
+            to: "display", from: "main", mainName: "Main", payload: payload(), openBehavior: .previewRoute,
             maxAttempts: 1, acknowledgementTimeout: 0
         )
         guard case .queued = result else { return XCTFail("Acceptance is not delivery") }
@@ -133,14 +133,14 @@ final class RouteDeliveryHTTPTests: XCTestCase {
             return (200, NSNull())
         }
         let result = try await service().sendRouteCommand(
-            to: "display", from: "main", mainName: "Main", payload: payload(), maxAttempts: 1
+            to: "display", from: "main", mainName: "Main", payload: payload(), openBehavior: .previewRoute, maxAttempts: 1
         )
         XCTAssertEqual(result, .acknowledged)
     }
     func testNetworkFailureBeforeAcceptanceRemainsFailure() async {
         RelayURLProtocol.configure { _ in throw URLError(.notConnectedToInternet) }
         do {
-            _ = try await service().sendRouteCommand(to: "display", from: "main", mainName: "Main", payload: payload())
+            _ = try await service().sendRouteCommand(to: "display", from: "main", mainName: "Main", payload: payload(), openBehavior: .previewRoute)
             XCTFail("No server acceptance must not be reported as queued")
         } catch { XCTAssertTrue(error is URLError) }
     }
@@ -150,14 +150,14 @@ final class RouteDeliveryHTTPTests: XCTestCase {
             return (200, NSNull())
         }
         let result = try await service().sendRouteCommand(
-            to: "display", from: "main", mainName: "Main", payload: payload(), maxAttempts: 1
+            to: "display", from: "main", mainName: "Main", payload: payload(), openBehavior: .previewRoute, maxAttempts: 1
         )
         guard case .queued = result else { return XCTFail("Accepted command must remain queued") }
     }
     func testPermissionDeniedIsNotReportedAsQueued() async {
         RelayURLProtocol.configure { _ in (403, ["error": "Permission denied"]) }
         do {
-            _ = try await service().sendRouteCommand(to: "display", from: "main", mainName: "Main", payload: payload())
+            _ = try await service().sendRouteCommand(to: "display", from: "main", mainName: "Main", payload: payload(), openBehavior: .previewRoute)
             XCTFail("Permission denial must remain an error")
         } catch { XCTAssertTrue(error.localizedDescription.contains("Permission denied")) }
     }
