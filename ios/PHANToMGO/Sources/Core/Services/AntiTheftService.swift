@@ -7,8 +7,8 @@ import Security
 import UIKit
 
 enum AntiTheftPolicy {
-    static func shouldStartAlarm(detachedAt: Date, now: Date, wrongAttempts: Int) -> Bool {
-        wrongAttempts >= 2 || now.timeIntervalSince(detachedAt) >= 30
+    static func shouldStartAlarm(detachedAt: Date?, now: Date, wrongAttempts: Int) -> Bool {
+        wrongAttempts >= 2 || detachedAt.map { now.timeIntervalSince($0) >= 30 } ?? false
     }
     static func isBlocked(alarmStartedAt: Date?, now: Date) -> Bool {
         alarmStartedAt.map { now.timeIntervalSince($0) >= 30 } ?? false
@@ -150,7 +150,7 @@ final class AntiTheftService: ObservableObject {
         guard matches else {
             if detachedAt == nil && !requestedDisarm { detachedAt = Date() }
             wrongAttempts += 1
-            onEvent?(wrongAttempts == 1 ? "pin_wrong_first" : "alarm_started", wrongAttempts, sessionId)
+            if wrongAttempts == 1 { onEvent?("pin_wrong_first", wrongAttempts, sessionId) }
             if wrongAttempts >= 2 { startAlarm(at: Date()) }
             status = "Incorrect PIN"
             return false
@@ -171,14 +171,13 @@ final class AntiTheftService: ObservableObject {
         return true
     }
     func tick() {
-        guard let detachedAt else { return }
         let now = Date()
-        if now.timeIntervalSince(detachedAt) >= 15 && !timeoutNotified {
+        if let detachedAt, now.timeIntervalSince(detachedAt) >= 15 && !timeoutNotified {
             timeoutNotified = true
             onEvent?("pin_timeout", wrongAttempts, sessionId)
         }
         if AntiTheftPolicy.shouldStartAlarm(detachedAt: detachedAt, now: now, wrongAttempts: wrongAttempts) && !alarmActive {
-            startAlarm(at: detachedAt.addingTimeInterval(30))
+            startAlarm(at: wrongAttempts >= 2 ? now : (detachedAt?.addingTimeInterval(30) ?? now))
         }
         isBlocked = AntiTheftPolicy.isBlocked(alarmStartedAt: alarmStartedAt, now: now)
         if alarmActive && now.timeIntervalSince(lastSpeech) >= 4 && !speech.isSpeaking {

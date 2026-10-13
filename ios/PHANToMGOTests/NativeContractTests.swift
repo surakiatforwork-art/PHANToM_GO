@@ -100,6 +100,13 @@ final class NativeContractTests: XCTestCase {
         XCTAssertFalse(AntiTheftPolicy.isBlocked(alarmStartedAt: nil, now: initial))
         XCTAssertTrue(AntiTheftPolicy.isBlocked(alarmStartedAt: initial, now: initial.addingTimeInterval(30)))
     }
+    func testDisarmAlarmCanEscalateWithoutJackRemoval() {
+        let now = Date(timeIntervalSince1970: 1000)
+        XCTAssertFalse(AntiTheftPolicy.shouldStartAlarm(detachedAt: nil, now: now, wrongAttempts: 1))
+        XCTAssertTrue(AntiTheftPolicy.shouldStartAlarm(detachedAt: nil, now: now, wrongAttempts: 2))
+        XCTAssertFalse(AntiTheftPolicy.isBlocked(alarmStartedAt: now, now: now.addingTimeInterval(29)))
+        XCTAssertTrue(AntiTheftPolicy.isBlocked(alarmStartedAt: now, now: now.addingTimeInterval(30)))
+    }
     func testPINValidationAcceptsOnlyFourToEightASCIIDigits() {
         XCTAssertTrue(PINStore.valid("1234"))
         XCTAssertTrue(PINStore.valid("12345678"))
