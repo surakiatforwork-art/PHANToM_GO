@@ -2,211 +2,91 @@ name: iOS CI
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: ["main", "codex/ios-*"]
     paths:
       - "ios/**"
       - ".github/workflows/ios.yml"
+      - "docs/web/webapp/index.html"
   pull_request:
     paths:
       - "ios/**"
       - ".github/workflows/ios.yml"
   workflow_dispatch:
-    inputs:
-      upload_to_appetize:
-        description: "Upload the simulator build to Appetize when secrets are configured"
-        required: false
-        type: boolean
-        default: false
+
+permissions:
+  contents: read
 
 concurrency:
-  group: ios-${{ github.ref }}
+  group: ios-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-simulator:
-    name: Build iOS Simulator App
+    name: Native iOS tests and simulator build
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
         working-directory: ios
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Select latest stable Xcode
-        uses: maxim-lobanov/setup-xcode@v1
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
-
-      - name: Install xcodegen
-        run: brew install xcodegen
-
-      - name: Prepare Firebase plist
-        env:
-          IOS_FIREBASE_PLIST_BASE64: ${{ secrets.IOS_FIREBASE_PLIST_BASE64 }}
+      - name: Install XcodeGen
+        run: brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+      - name: Prepare native project
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.upload_to_appetize }}" == "true" && -z "$IOS_FIREBASE_PLIST_BASE64" ]]; then
-            echo "IOS_FIREBASE_PLIST_BASE64 is required when upload_to_appetize=true because the simulator build needs real Firebase config to launch reliably."
-            exit 1
-          fi
-
-          if [[ -n "$IOS_FIREBASE_PLIST_BASE64" ]]; then
-            python3 -c "import base64, os, pathlib; pathlib.Path('PHANToMGO/Resources/GoogleService-Info.plist').write_bytes(base64.b64decode(os.environ['IOS_FIREBASE_PLIST_BASE64']))"
-            echo "Using GoogleService-Info.plist from repository secret."
-          else
-            cp PHANToMGO/Resources/GoogleService-Info.plist.template PHANToMGO/Resources/GoogleService-Info.plist
-            echo "IOS_FIREBASE_PLIST_BASE64 is not set. Template plist was copied for compile-only validation."
-          fi
-
-      - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Resolve Swift packages
-        run: xcodebuild -resolvePackageDependencies -project PHANToMGO.xcodeproj -scheme PHANToMGO
-
-      - name: Select simulator destination
+          python3 scripts/prepare_configuration.py
+          swift scripts/generate_icon.swift
+          xcodegen generate
+      - name: Select iPhone and iPad simulators
         run: |
-          python3 - <<'PY'
-          import json
-          import subprocess
-
-          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
-          destination = None
-          for runtime_name, devices in data.get("devices", {}).items():
-              if "iOS" not in runtime_name:
-                  continue
-              for device in devices:
-                  if device.get("isAvailable") and "iPhone" in device.get("name", ""):
-                      destination = f"platform=iOS Simulator,id={device['udid']}"
-                      break
-              if destination:
-                  break
-
-          if not destination:
-              raise SystemExit("No available iPhone simulator destination was found.")
-
-          with open("destination.env", "w", encoding="utf-8") as handle:
-              handle.write(f"IOS_SIMULATOR_DESTINATION={destination}\n")
-
-          print(destination)
-          PY
-          cat destination.env >> "$GITHUB_ENV"
-
-      - name: Run unit tests
+          python3 scripts/select_simulators.py >> "$GITHUB_ENV"
+      - name: Unit and iPhone UI tests
         run: |
-          mkdir -p build
+          mkdir -p build/logs
           set -o pipefail
-          xcodebuild \
-            -project PHANToMGO.xcodeproj \
-            -scheme PHANToMGO \
-            -destination "$IOS_SIMULATOR_DESTINATION" \
-            test | tee build/ios-tests.log
-
-      - name: Build simulator app
+          xcodebuild -project PHANToMGO.xcodeproj -scheme PHANToMGO \
+            -configuration Debug -destination "$IOS_PHONE_DESTINATION" \
+            -derivedDataPath build/DerivedData -resultBundlePath build/iPhone-Tests.xcresult \
+            -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO \
+            test | tee build/logs/iphone-tests.log
+      - name: iPad UI tests
         run: |
-          mkdir -p build/artifacts
           set -o pipefail
-          xcodebuild \
-            -project PHANToMGO.xcodeproj \
-            -scheme PHANToMGO \
-            -sdk iphonesimulator \
-            -destination "generic/platform=iOS Simulator" \
-            -configuration Debug \
-            -derivedDataPath build/DerivedData \
-            CODE_SIGNING_ALLOWED=NO \
-            build | tee build/artifacts/xcodebuild.log
-
+          xcodebuild -project PHANToMGO.xcodeproj -scheme PHANToMGO \
+            -configuration Debug -destination "$IOS_PAD_DESTINATION" \
+            -derivedDataPath build/DerivedData -resultBundlePath build/iPad-Tests.xcresult \
+            -parallel-testing-enabled NO -only-testing:PHANToMGOUITests CODE_SIGNING_ALLOWED=NO \
+            test | tee build/logs/ipad-tests.log
       - name: Package simulator app
         run: |
-          APP_PATH="$(find build/DerivedData/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' | head -n 1)"
-          if [[ -z "$APP_PATH" ]]; then
-            echo "No simulator .app was produced."
-            exit 1
-          fi
-
+          mkdir -p build/artifacts
+          APP_PATH="build/DerivedData/Build/Products/Debug-iphonesimulator/PHANToMGO.app"
+          test -d "$APP_PATH"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" build/artifacts/PHANToMGO-simulator.app.zip
-          echo "PACKAGED_APP=build/artifacts/PHANToMGO-simulator.app.zip" >> "$GITHUB_ENV"
-
-      - name: Upload simulator artifact
-        uses: actions/upload-artifact@v4
+      - name: Export UI screenshots
+        if: always()
+        run: |
+          mkdir -p build/screenshots
+          for result in build/iPhone-Tests.xcresult build/iPad-Tests.xcresult; do
+            if [[ -d "$result" ]]; then
+              name="$(basename "$result" .xcresult)"
+              xcrun xcresulttool export attachments --path "$result" --output-path "build/screenshots/$name" || true
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PHANToMGO-ios-test-results
+          path: |
+            ios/build/logs/
+            ios/build/screenshots/
+            ios/build/*Tests.xcresult
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
         with:
           name: PHANToMGO-ios-simulator-app
           path: ios/build/artifacts/PHANToMGO-simulator.app.zip
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: PHANToMGO-ios-build-log
-          path: |
-            ios/build/artifacts/xcodebuild.log
-            ios/build/ios-tests.log
-
-  upload-appetize:
-    name: Upload to Appetize
-    needs: build-simulator
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload_to_appetize }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      APPETIZE_API_TOKEN: ${{ secrets.APPETIZE_API_TOKEN }}
-      APPETIZE_PUBLIC_KEY: ${{ secrets.APPETIZE_PUBLIC_KEY }}
-
-    steps:
-      - name: Download simulator artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: PHANToMGO-ios-simulator-app
-          path: build/artifacts
-
-      - name: Validate Appetize secrets
-        run: |
-          if [ -z "$APPETIZE_API_TOKEN" ]; then
-            echo "APPETIZE_API_TOKEN secret is required for Appetize upload."
-            exit 1
-          fi
-
-      - name: Upload build to Appetize
-        run: |
-          FILE="build/artifacts/PHANToMGO-simulator.app.zip"
-          if [ ! -f "$FILE" ]; then
-            echo "Simulator artifact was not found."
-            exit 1
-          fi
-
-          if [ -n "$APPETIZE_PUBLIC_KEY" ]; then
-            RESPONSE="$(curl -sS -X POST "https://api.appetize.io/v1/apps/$APPETIZE_PUBLIC_KEY" \
-              -H "X-API-KEY: $APPETIZE_API_TOKEN" \
-              -F "file=@$FILE" \
-              -F "platform=ios" \
-              -F "note=GitHub Actions ${GITHUB_SHA}")"
-          else
-            RESPONSE="$(curl -sS -X POST "https://api.appetize.io/v1/apps" \
-              -H "X-API-KEY: $APPETIZE_API_TOKEN" \
-              -F "file=@$FILE" \
-              -F "platform=ios" \
-              -F "note=GitHub Actions ${GITHUB_SHA}")"
-          fi
-
-          echo "$RESPONSE" > appetize-response.json
-          python3 -c "import json, pathlib; data=json.loads(pathlib.Path('appetize-response.json').read_text()); print(f\"public_key={data.get('publicKey','')}\")" >> "$GITHUB_ENV"
-
-      - name: Upload Appetize response
-        uses: actions/upload-artifact@v4
-        with:
-          name: PHANToMGO-appetize-response
-          path: appetize-response.json
-
-      - name: Publish workflow summary
-        run: |
-          {
-            echo "## Appetize Upload"
-            echo ""
-            echo "- Public key: ${public_key}"
-            echo "- Legacy launch URL: https://appetize.io/app/${public_key}"
-            echo ""
-            echo "If you want the same Appetize page to be updated on future runs, save this value into the \`APPETIZE_PUBLIC_KEY\` repository secret."
-          } >> "$GITHUB_STEP_SUMMARY"

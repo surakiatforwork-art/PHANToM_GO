@@ -2,143 +2,88 @@ import Foundation
 
 final class PrefsStore {
     static let shared = PrefsStore()
+    let defaults: UserDefaults
 
-    private let defaults = UserDefaults.standard
-
-    private enum Key {
-        static let localDeviceId = "ios_local_device_id"
-        static let pairCode = "ios_cloud_pair_code"
-        static let selectedTab = "ios_selected_tab"
-        static let displayModeEnabled = "ios_display_mode_enabled"
-        static let navMode = "ios_nav_mode"
-        static let openBehavior = "ios_open_behavior"
-        static let preferredMapApp = "ios_preferred_map_app"
-        static let pairedDisplayDeviceId = "ios_paired_display_device_id"
-        static let pairedDisplayName = "ios_paired_display_name"
-        static let pairedViaCloud = "ios_paired_via_cloud"
-        static let latestRouteInput = "ios_latest_route_input"
-    }
-
-    private init() {}
+    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
     func getOrCreateLocalDeviceId() -> String {
-        if let existing = defaults.string(forKey: Key.localDeviceId), !existing.isEmpty {
-            return existing
-        }
-        let newValue = "ios_" + UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
-        defaults.set(newValue, forKey: Key.localDeviceId)
-        return newValue
+        if let id = defaults.string(forKey: "ios_local_device_id"), !id.isEmpty { return id }
+        let id = "ios_" + UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+        defaults.set(id, forKey: "ios_local_device_id")
+        return id
     }
-
     func getOrCreatePairCode() -> String {
-        if let existing = defaults.string(forKey: Key.pairCode), !existing.isEmpty {
-            return existing
-        }
-        let newValue = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased().prefix(12)
-        let code = String(newValue)
-        defaults.set(code, forKey: Key.pairCode)
-        return code
+        if let code = defaults.string(forKey: "ios_cloud_pair_code"), !code.isEmpty { return code }
+        return refreshPairCode()
     }
-
     func refreshPairCode() -> String {
-        let code = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased().prefix(12))
-        defaults.set(code, forKey: Key.pairCode)
+        let code = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+        defaults.set(code, forKey: "ios_cloud_pair_code")
         return code
     }
-
-    func selectedTab() -> AppTab {
-        guard let raw = defaults.string(forKey: Key.selectedTab) else { return .home }
-        switch raw {
-        case "display": return .display
-        case "settings": return .settings
-        default: return .home
-        }
+    func localToken() -> String {
+        if let token = defaults.string(forKey: "ios_local_token") { return token }
+        let token = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+        defaults.set(token, forKey: "ios_local_token")
+        return token
     }
-
-    func setSelectedTab(_ tab: AppTab) {
-        let raw: String
-        switch tab {
-        case .home: raw = "home"
-        case .display: raw = "display"
-        case .settings: raw = "settings"
-        }
-        defaults.set(raw, forKey: Key.selectedTab)
-    }
-
-    func isDisplayModeEnabled() -> Bool {
-        defaults.bool(forKey: Key.displayModeEnabled)
-    }
-
-    func setDisplayModeEnabled(_ enabled: Bool) {
-        defaults.set(enabled, forKey: Key.displayModeEnabled)
-    }
-
+    func selectedTab() -> AppTab { AppTab(rawValue: defaults.string(forKey: "ios_selected_tab") ?? "") ?? .home }
+    func setSelectedTab(_ tab: AppTab) { defaults.set(tab.rawValue, forKey: "ios_selected_tab") }
+    func isDisplayModeEnabled() -> Bool { defaults.bool(forKey: "ios_display_mode_enabled") }
+    func setDisplayModeEnabled(_ value: Bool) { defaults.set(value, forKey: "ios_display_mode_enabled") }
     func displayNavigationMode() -> DisplayNavigationMode {
-        guard let raw = defaults.string(forKey: Key.navMode),
-              let mode = DisplayNavigationMode(rawValue: raw) else {
-            return .driving
-        }
-        return mode
+        DisplayNavigationMode(rawValue: defaults.string(forKey: "ios_nav_mode") ?? "") ?? .driving
     }
-
-    func setDisplayNavigationMode(_ mode: DisplayNavigationMode) {
-        defaults.set(mode.rawValue, forKey: Key.navMode)
-    }
-
+    func setDisplayNavigationMode(_ value: DisplayNavigationMode) { defaults.set(value.rawValue, forKey: "ios_nav_mode") }
     func displayOpenBehavior() -> DisplayOpenBehavior {
-        guard let raw = defaults.string(forKey: Key.openBehavior),
-              let behavior = DisplayOpenBehavior(rawValue: raw) else {
-            return .previewRoute
-        }
-        return behavior
+        DisplayOpenBehavior(rawValue: defaults.string(forKey: "ios_open_behavior") ?? "") ?? .previewRoute
     }
-
-    func setDisplayOpenBehavior(_ behavior: DisplayOpenBehavior) {
-        defaults.set(behavior.rawValue, forKey: Key.openBehavior)
-    }
-
+    func setDisplayOpenBehavior(_ value: DisplayOpenBehavior) { defaults.set(value.rawValue, forKey: "ios_open_behavior") }
     func preferredMapApp() -> PreferredMapApp {
-        guard let raw = defaults.string(forKey: Key.preferredMapApp),
-              let app = PreferredMapApp(rawValue: raw) else {
-            return .googleMaps
-        }
-        return app
+        PreferredMapApp(rawValue: defaults.string(forKey: "ios_preferred_map_app") ?? "") ?? .googleMaps
     }
-
-    func setPreferredMapApp(_ app: PreferredMapApp) {
-        defaults.set(app.rawValue, forKey: Key.preferredMapApp)
-    }
-
+    func setPreferredMapApp(_ value: PreferredMapApp) { defaults.set(value.rawValue, forKey: "ios_preferred_map_app") }
     func saveCloudPairing(displayDeviceId: String, displayName: String?) {
-        defaults.set(displayDeviceId, forKey: Key.pairedDisplayDeviceId)
-        defaults.set(displayName, forKey: Key.pairedDisplayName)
-        defaults.set(true, forKey: Key.pairedViaCloud)
+        defaults.set(displayDeviceId, forKey: "ios_paired_display_device_id")
+        defaults.set(displayName, forKey: "ios_paired_display_name")
     }
-
     func clearPairing() {
-        defaults.removeObject(forKey: Key.pairedDisplayDeviceId)
-        defaults.removeObject(forKey: Key.pairedDisplayName)
-        defaults.set(false, forKey: Key.pairedViaCloud)
+        defaults.removeObject(forKey: "ios_paired_display_device_id")
+        defaults.removeObject(forKey: "ios_paired_display_name")
+        defaults.removeObject(forKey: "ios_local_endpoint")
     }
-
-    func pairedDisplayDeviceId() -> String? {
-        defaults.string(forKey: Key.pairedDisplayDeviceId)
+    func pairedDisplayDeviceId() -> String? { defaults.string(forKey: "ios_paired_display_device_id") }
+    func pairedDisplayName() -> String? { defaults.string(forKey: "ios_paired_display_name") }
+    func latestRouteInput() -> String { defaults.string(forKey: "ios_latest_route_input") ?? "" }
+    func setLatestRouteInput(_ value: String) { defaults.set(value, forKey: "ios_latest_route_input") }
+    func flag(_ key: String, default fallback: Bool = false) -> Bool {
+        defaults.object(forKey: key) == nil ? fallback : defaults.bool(forKey: key)
     }
-
-    func pairedDisplayName() -> String? {
-        defaults.string(forKey: Key.pairedDisplayName)
+    func setFlag(_ key: String, _ value: Bool) { defaults.set(value, forKey: key) }
+    func number(_ key: String, default fallback: Double) -> Double {
+        defaults.object(forKey: key) == nil ? fallback : defaults.double(forKey: key)
     }
+    func setNumber(_ key: String, _ value: Double) { defaults.set(value, forKey: key) }
 
-    func isCloudPaired() -> Bool {
-        defaults.bool(forKey: Key.pairedViaCloud) && pairedDisplayDeviceId() != nil
+    func save<T: Encodable>(_ value: T?, key: String) {
+        defaults.set(value.flatMap { try? JSONEncoder().encode($0) }, forKey: key)
     }
-
-    func latestRouteInput() -> String {
-        defaults.string(forKey: Key.latestRouteInput) ?? ""
+    func load<T: Decodable>(_ type: T.Type, key: String) -> T? {
+        defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(type, from: $0) }
     }
-
-    func setLatestRouteInput(_ input: String) {
-        defaults.set(input, forKey: Key.latestRouteInput)
+    func hasProcessed(_ key: String) -> Bool {
+        let records = defaults.dictionary(forKey: "ios_route_dedupe") as? [String: Double] ?? [:]
+        return records[key].map { Date().timeIntervalSince1970 - $0 < 86400 } ?? false
+    }
+    func markProcessed(_ key: String) {
+        let now = Date().timeIntervalSince1970
+        var records = (defaults.dictionary(forKey: "ios_route_dedupe") as? [String: Double] ?? [:])
+            .filter { now - $0.value < 86400 }
+        records[key] = now
+        if records.count > 256 {
+            records = Dictionary(uniqueKeysWithValues: records.sorted { $0.value > $1.value }.prefix(256).map { ($0.key, $0.value) })
+        }
+        defaults.set(records, forKey: "ios_route_dedupe")
     }
 }
 

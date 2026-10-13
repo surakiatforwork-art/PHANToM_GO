@@ -1,15 +1,20 @@
 import SwiftUI
 
 @main
+@MainActor
 struct PHANToMGOApp: App {
     @StateObject private var container = AppContainer()
+    @Environment(\.scenePhase) private var phase
 
     var body: some Scene {
         WindowGroup {
             RootTabView()
                 .environmentObject(container)
-                .task {
-                    await container.start()
+                .environmentObject(container.security)
+                .task { await container.start() }
+                .onOpenURL { container.handleIncomingURL($0) }
+                .onChange(of: phase) { phase in
+                    Task { await container.setForeground(phase == .active) }
                 }
         }
     }
@@ -17,31 +22,28 @@ struct PHANToMGOApp: App {
 
 struct RootTabView: View {
     @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject private var security: AntiTheftService
 
     var body: some View {
         TabView(selection: Binding(
-            get: { container.selectedTab },
-            set: { container.switchTab($0) }
+            get: { container.selectedTab }, set: { container.switchTab($0) }
         )) {
-            HomeView()
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
-                .tag(AppTab.home)
-
-            DisplayView()
-                .tabItem {
-                    Label("Display", systemImage: "display")
-                }
-                .tag(AppTab.display)
-
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
-                }
-                .tag(AppTab.settings)
+            HomeView().tabItem { Label(AppTab.home.title, systemImage: AppTab.home.symbol) }.tag(AppTab.home)
+            DisplayView().tabItem { Label(AppTab.display.title, systemImage: AppTab.display.symbol) }.tag(AppTab.display)
+            SettingsView().tabItem { Label(AppTab.settings.title, systemImage: AppTab.settings.symbol) }.tag(AppTab.settings)
+            SecurityView().tabItem { Label(AppTab.security.title, systemImage: AppTab.security.symbol) }.tag(AppTab.security)
         }
-        .tint(.cyan)
+        .tint(Theme.accent)
+        .alert("PHANToM GO", isPresented: Binding(
+            get: { container.toastMessage != nil && !security.challengeVisible && !container.scannerPresented },
+            set: { if !$0 { container.toastMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { container.toastMessage = nil }
+        } message: { Text(container.toastMessage ?? "") }
+        .fullScreenCover(isPresented: $security.challengeVisible) {
+            PINChallengeView().environmentObject(security)
+        }
+        .onChange(of: security.challengeVisible) { container.power.setSecurityVerificationActive($0) }
     }
 }
 

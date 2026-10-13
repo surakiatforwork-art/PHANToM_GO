@@ -6,3 +6,5 @@ PHANToMGO.xcodeproj/
 *.ipa
 .swiftpm/
 Package.resolved
+PHANToMGO/Resources/FirebaseConfiguration.plist
+PHANToMGO/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png

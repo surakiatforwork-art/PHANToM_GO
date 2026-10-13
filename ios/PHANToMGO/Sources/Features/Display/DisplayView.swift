@@ -7,145 +7,100 @@ struct DisplayView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    displayModeCard
-
+                    ScreenCard {
+                        Toggle("Display Mode", isOn: Binding(
+                            get: { container.isDisplayModeEnabled },
+                            set: { enabled in Task { await container.setDisplayModeEnabled(enabled) } }
+                        ))
+                        .font(.headline).disabled(container.isBusy)
+                        .accessibilityIdentifier("display-mode")
+                        Text(container.isDisplayModeEnabled ? "Receives routes from your paired Main." : "Use this device as your in-car Display.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                     if container.isDisplayModeEnabled {
                         if let pairing = container.displayPairing {
-                            connectedCard(pairing: pairing)
+                            SpeedometerCard(service: container.location)
+                            ScreenCard {
+                                HStack {
+                                    Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                                    Spacer()
+                                    Text(pairing.mainName ?? pairing.mainDeviceId).font(.caption).lineLimit(1)
+                                }
+                                HStack {
+                                    Text(container.localRelay.ready ? "Cloud + local LAN" : "Cloud relay")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                    Spacer()
+                                    Button("Disconnect") { Task { await container.clearDisplayPairing() } }
+                                        .font(.caption).disabled(container.isBusy)
+                                }
+                            }
                         } else {
-                            qrCard
+                            ScreenCard {
+                                VStack(spacing: 16) {
+                                    Text("Scan from Main").font(.title2.bold())
+                                    if let qr = QRCodeRenderer.image(from: container.pairingPayload) {
+                                        qr.resizable().interpolation(.none).scaledToFit()
+                                            .frame(maxWidth: 300).padding(14).background(.white, in: RoundedRectangle(cornerRadius: 16))
+                                            .accessibilityIdentifier("pairing-qr")
+                                    }
+                                    Text("Both devices need internet for initial cloud pairing.")
+                                        .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                                    ShareLink(item: container.pairingPayload) { Label("Share pairing payload", systemImage: "square.and.arrow.up") }
+                                    Button("Reset pairing QR") { Task { await container.clearDisplayPairing() } }
+                                        .disabled(container.isBusy)
+                                }.frame(maxWidth: .infinity)
+                            }
+                        }
+                        if let command = container.latestCommand {
+                            ScreenCard {
+                                Label("Latest route", systemImage: "map.fill").font(.headline)
+                                Text(command.originalText).lineLimit(3).textSelection(.enabled)
+                                Button {
+                                    Task { await container.openLatestRoute() }
+                                } label: { Label("Open in Maps", systemImage: "arrow.up.right.square") }
+                                    .buttonStyle(PrimaryActionStyle())
+                                Text("Navigation uses this Display's settings. Motorcycle routes depend on Maps support in your region.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        ScreenCard {
+                            Label("GO Cam", systemImage: "video.fill").font(.headline)
+                            Text("Native loop recording and clip export. Recording stops when this app leaves the foreground.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                            Button("Open Dashcam") { container.dashcamPresented = true }
+                                .buttonStyle(PrimaryActionStyle())
                         }
                     }
-
-                    latestRouteCard
-                }
-                .padding(20)
+                }.frame(maxWidth: 900).padding(18).frame(maxWidth: .infinity)
             }
-            .background(
-                LinearGradient(
-                    colors: [Color(red: 0.04, green: 0.05, blue: 0.10), Color(red: 0.07, green: 0.11, blue: 0.18)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
+            .background(Theme.background.ignoresSafeArea())
             .navigationTitle("Display")
+            .sheet(isPresented: $container.dashcamPresented) {
+                DashcamView(service: container.dashcam)
+            }
         }
     }
+}
 
-    private var displayModeCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Display Mode")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    Text(container.isDisplayModeEnabled ? "Publishing QR and listening for commands" : "Enable to use this iPhone as Display")
-                        .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.72))
+struct SpeedometerCard: View {
+    @ObservedObject var service: LocationService
+
+    var body: some View {
+        ScreenCard {
+            VStack(spacing: 6) {
+                Text("CURRENT SPEED").font(.caption.bold()).tracking(2).foregroundStyle(.secondary)
+                Text(service.speedKmh.map { String(Int($0.rounded())) } ?? "--")
+                    .font(.system(size: 150, weight: .bold, design: .rounded))
+                    .monospacedDigit().lineLimit(1).minimumScaleFactor(0.2)
+                    .frame(maxWidth: .infinity).padding(.vertical, 8)
+                    .accessibilityIdentifier("speed-value")
+                Text("km/h").font(.title3).foregroundStyle(Theme.accent)
+                Text(service.status).font(.caption).foregroundStyle(.secondary)
+                if service.authorization == .notDetermined || service.authorization == .denied {
+                    Button("Enable GPS") { service.requestPermission() }.padding(.top, 8)
                 }
-                Spacer()
-                Toggle("", isOn: Binding(
-                    get: { container.isDisplayModeEnabled },
-                    set: { newValue in
-                        Task { await container.setDisplayModeEnabled(newValue) }
-                    }
-                ))
-                .labelsHidden()
-            }
+            }.frame(maxWidth: .infinity).frame(minHeight: 230)
         }
-        .padding(20)
-        .background(cardBackground)
-    }
-
-    private var qrCard: some View {
-        VStack(spacing: 16) {
-            Text("Pair this Display")
-                .font(.headline)
-                .foregroundStyle(.white)
-
-            if let qrImage = QRCodeRenderer.image(from: container.pairingPayload) {
-                qrImage
-                    .interpolation(.none)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 220, height: 220)
-                    .padding(12)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            }
-
-            Text(container.pairingPayload)
-                .font(.caption2.monospaced())
-                .foregroundStyle(.cyan)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(20)
-        .background(cardBackground)
-    }
-
-    private func connectedCard(pairing: PairingRecord) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 52))
-                .foregroundStyle(.green)
-            Text("Connected")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
-            Text("Main: \(pairing.mainName ?? pairing.mainDeviceId)")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.82))
-            Button("Reset Pairing") {
-                Task { await container.clearDisplayPairing() }
-            }
-            .buttonStyle(.bordered)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(24)
-        .background(cardBackground)
-    }
-
-    @ViewBuilder
-    private var latestRouteCard: some View {
-        if let command = container.latestCommand {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Latest Route")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                Text(command.originalText)
-                    .font(.body)
-                    .foregroundStyle(.white.opacity(0.86))
-                HStack {
-                    Text("Mode: \(command.navigationMode)")
-                        .font(.caption)
-                        .foregroundStyle(.cyan)
-                    Text("Open: \(command.openBehavior)")
-                        .font(.caption)
-                        .foregroundStyle(.purple)
-                }
-                Button {
-                    container.openLatestRoute()
-                } label: {
-                    Label("Open in Maps", systemImage: "map.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.cyan)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
-            .background(cardBackground)
-        }
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(Color.white.opacity(0.08))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Color.cyan.opacity(0.25), lineWidth: 1)
-            )
     }
 }
 

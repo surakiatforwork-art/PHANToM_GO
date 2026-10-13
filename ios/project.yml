@@ -5,10 +5,14 @@ options:
   deploymentTarget:
     iOS: "16.0"
 
-packages:
-  Firebase:
-    url: https://github.com/firebase/firebase-ios-sdk
-    from: 11.10.0
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    PHANTOM_IOS_BUNDLE_ID: com.phantom.PHANToMGO
+    CURRENT_PROJECT_VERSION: 2
+    MARKETING_VERSION: 1.0.0
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
 
 targets:
   PHANToMGO:
@@ -16,40 +20,105 @@ targets:
     platform: iOS
     sources:
       - path: PHANToMGO/Sources
-    resources:
       - path: PHANToMGO/Resources
+        buildPhase: resources
         excludes:
           - GoogleService-Info.plist.template
     dependencies:
-      - package: Firebase
-        product: FirebaseCore
-      - package: Firebase
-        product: FirebaseAuth
-      - package: Firebase
-        product: FirebaseDatabase
+      - target: PHANToMGOShare
+        embed: true
+        link: false
+    info:
+      path: build/Info.plist
+      properties:
+        CFBundleDisplayName: PHANToM GO
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSCameraUsageDescription: Scan a Display pairing QR or record dashcam footage when you enable the camera.
+        NSMicrophoneUsageDescription: Record audio with dashcam video only when you enable microphone recording.
+        NSLocationWhenInUseUsageDescription: Show driving speed and share this Display's location with your paired Main.
+        NSLocationAlwaysAndWhenInUseUsageDescription: Continue GPS speed and paired Display location sharing in the background when you enable Background GPS.
+        NSPhotoLibraryAddUsageDescription: Save an exported dashcam video to your Photos library.
+        NSLocalNetworkUsageDescription: Connect to your already-paired Display over the same Wi-Fi or hotspot.
+        NSBonjourServices:
+          - _phantomgo._tcp
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: true
+        UIBackgroundModes:
+          - location
+          - audio
+        CFBundleURLTypes:
+          - CFBundleURLName: com.phantom.PHANToMGO
+            CFBundleURLSchemes:
+              - phantomgo
+        LSApplicationQueriesSchemes:
+          - comgooglemaps
+          - comgooglemapsurl
+        PHANTOM_KEYCHAIN_GROUP: "$(AppIdentifierPrefix)$(PHANTOM_IOS_BUNDLE_ID).shared"
+    entitlements:
+      path: build/PHANToMGO.entitlements
+      properties:
+        keychain-access-groups:
+          - "$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)"
+          - "$(AppIdentifierPrefix)$(PHANTOM_IOS_BUNDLE_ID).shared"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.phantom.PHANToMGO
+        PRODUCT_BUNDLE_IDENTIFIER: "$(PHANTOM_IOS_BUNDLE_ID)"
         PRODUCT_NAME: PHANToMGO
         PRODUCT_MODULE_NAME: PHANToMGO
-        SWIFT_VERSION: 5.10
-        GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: 1
-        MARKETING_VERSION: 1.0.0
-        INFOPLIST_KEY_CFBundleDisplayName: PHANToM GO
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads: YES
-        INFOPLIST_KEY_NSCameraUsageDescription: PHANToM GO needs the camera to scan pairing QR codes.
-        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: PHANToM GO uses location to improve route and navigation workflows when needed.
-        INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: PHANToM GO may use location for display and navigation-related features when enabled.
-        INFOPLIST_KEY_LSApplicationQueriesSchemes:
-          - comgooglemaps
-          - googlemaps
-          - phantomgo
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        PROVISIONING_PROFILE_SPECIFIER: "$(PHANTOM_MAIN_PROFILE)"
     scheme:
       gatherCoverageData: true
       testTargets:
         - PHANToMGOTests
+        - PHANToMGOUITests
+
+  PHANToMGOShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PHANToMGOShare
+      - path: PHANToMGO/Sources/Core/Models
+      - path: PHANToMGO/Sources/Core/Utils/RouteParser.swift
+      - path: PHANToMGO/Sources/Core/Services/KeychainStore.swift
+      - path: PHANToMGO/Sources/Core/Services/AuthSession.swift
+      - path: PHANToMGO/Sources/Core/Services/FirebaseService.swift
+      - path: PHANToMGO/Resources/FirebaseConfiguration.plist
+        buildPhase: resources
+      - path: PHANToMGO/Resources/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    info:
+      path: build/Share-Info.plist
+      properties:
+        CFBundleDisplayName: PHANToM GO
+        PHANTOM_KEYCHAIN_GROUP: "$(AppIdentifierPrefix)$(PHANTOM_IOS_BUNDLE_ID).shared"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
+    entitlements:
+      path: build/PHANToMGOShare.entitlements
+      properties:
+        keychain-access-groups:
+          - "$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)"
+          - "$(AppIdentifierPrefix)$(PHANTOM_IOS_BUNDLE_ID).shared"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: "$(PHANTOM_IOS_BUNDLE_ID).Share"
+        PRODUCT_MODULE_NAME: PHANToMGOShare
+        PRODUCT_NAME: PHANToMGOShare
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        PROVISIONING_PROFILE_SPECIFIER: "$(PHANTOM_SHARE_PROFILE)"
 
   PHANToMGOTests:
     type: bundle.unit-test
@@ -61,6 +130,16 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.phantom.PHANToMGOTests
-        PRODUCT_NAME: PHANToM GO Tests
-        SWIFT_VERSION: 5.10
+        GENERATE_INFOPLIST_FILE: YES
+
+  PHANToMGOUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: PHANToMGOUITests
+    dependencies:
+      - target: PHANToMGO
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.phantom.PHANToMGOUITests
         GENERATE_INFOPLIST_FILE: YES

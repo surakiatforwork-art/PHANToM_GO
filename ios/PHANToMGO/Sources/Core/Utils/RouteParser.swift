@@ -3,208 +3,181 @@ import Foundation
 enum RouteParser {
     static func parse(_ rawInput: String, navMode: DisplayNavigationMode) -> RoutePayload {
         let raw = rawInput.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if let pairInfo = parsePairInfo(raw), pairInfo.isCloudPairing || pairInfo.hasLocalTransport {
+        let input = extractMapLink(raw) ?? raw
+        if let pair = parsePairInfo(input), pair.isCloudPairing || pair.hasLocalTransport {
+            return invalid(raw, mode: navMode)
+        }
+        if input.lowercased().hasPrefix("geo:") {
+            let part = String(input.dropFirst(4))
+            let coordinateText = part.components(separatedBy: "?").first ?? ""
+            let query = queryItems(input)["q"]
+            let target = query ?? coordinateText
+            return destination(target, original: raw, mode: navMode, source: .geoScheme)
+        }
+        if input.lowercased().hasPrefix("google.navigation:") {
+            let query = queryItems("https://phantom.invalid/?" + input.dropFirst("google.navigation:".count))["q"]
+            return query.map { destination($0, original: raw, mode: navMode, source: .googleNavigationScheme) }
+                ?? invalid(raw, mode: navMode)
+        }
+        if let url = URL(string: input), ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
+            guard isMapURL(url) else { return invalid(raw, mode: navMode) }
+            let items = queryItems(input)
+            let target = items["destination"] ?? items["daddr"] ?? items["query"] ?? items["q"] ?? pathDestination(url)
+            let coordinates = target.flatMap(parseCoordinatePair) ?? embeddedDestination(input)
+            let source: RoutePayload.ParserSource = url.host?.lowercased() == "maps.app.goo.gl" ? .mapsAppShortLink : .googleMapsUrl
             return RoutePayload(
-                originalText: raw,
-                sourceApp: "pairing",
-                resolvedURL: nil,
-                query: nil,
-                placeName: nil,
-                navigationMode: navMode,
-                confidence: .high,
-                parserSource: .manualInput
+                originalText: raw, sourceApp: "share", resolvedURL: input,
+                latitude: coordinates?.0, longitude: coordinates?.1,
+                query: target, placeName: target, navigationMode: navMode,
+                confidence: coordinates == nil ? .medium : .high, parserSource: source
             )
         }
-
-        if raw.lowercased().hasPrefix("google.navigation:"),
-           let navigationPayload = parseGoogleNavigation(raw, navMode: navMode) {
-            return navigationPayload
+        if let coordinates = parseCoordinatePair(input) {
+            return coordinatePayload(coordinates, original: raw, mode: navMode, source: .coordinates)
         }
-
-        if let url = URL(string: raw), let scheme = url.scheme?.lowercased() {
-            if raw.contains("maps.app.goo.gl") {
-                return RoutePayload(
-                    originalText: raw,
-                    sourceApp: "manual",
-                    resolvedURL: raw,
-                    navigationMode: navMode,
-                    confidence: .medium,
-                    parserSource: .mapsAppShortLink
-                )
-            }
-
-            if scheme == "geo", let geoPayload = parseGeo(raw, navMode: navMode) {
-                return geoPayload
-            }
-
-            if scheme == "google.navigation", let navigationPayload = parseGoogleNavigation(raw, navMode: navMode) {
-                return navigationPayload
-            }
-
-            if scheme == "http" || scheme == "https" {
-                return parseHTTP(raw, navMode: navMode)
-            }
+        if input.range(of: #"^\s*-?[\d.]+\s*,\s*-?[\d.]+\s*$"#, options: .regularExpression) != nil {
+            return invalid(raw, mode: navMode)
         }
-
-        if let coordinatesPayload = parseCoordinates(raw, navMode: navMode) {
-            return coordinatesPayload
-        }
-
-        return RoutePayload(
-            originalText: raw,
-            sourceApp: "manual",
-            resolvedURL: "https://www.google.com/maps/search/?api=1&query=\(raw.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? raw)",
-            query: raw,
-            placeName: raw,
-            navigationMode: navMode,
-            confidence: .medium,
-            parserSource: .placeName
-        )
+        guard !input.isEmpty, input.count <= 2000 else { return invalid(raw, mode: navMode) }
+        return destination(input, original: raw, mode: navMode, source: .placeName)
     }
 
     static func parsePairInfo(_ rawInput: String) -> PairInfo? {
         let raw = rawInput.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if raw.lowercased().hasPrefix("phantomgo://"), let components = URLComponents(string: raw) {
-            let items = components.queryItems ?? []
-            let deviceId = items.first(where: { $0.name == "deviceId" })?.value
-            let pairCode = items.first(where: { $0.name == "pairCode" })?.value
-            let ip = items.first(where: { $0.name == "ip" })?.value
-            let port = items.first(where: { $0.name == "port" })?.value.flatMap(Int.init)
-            let token = items.first(where: { $0.name == "token" })?.value
-            return PairInfo(ip: ip, port: port, token: token, displayDeviceId: deviceId, pairCode: pairCode)
-        }
-
-        if raw.hasPrefix("{"), raw.hasSuffix("}") {
-            guard let data = raw.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                return nil
+        var values: [String: String] = [:]
+        if let components = URLComponents(string: raw),
+           components.scheme?.lowercased() == "phantomgo", components.host == "pair" {
+            for item in components.queryItems ?? [] { values[item.name] = item.value }
+        } else if let data = raw.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            for (key, value) in json {
+                if let string = value as? String { values[key] = string }
+                else if let number = value as? NSNumber { values[key] = number.stringValue }
             }
-            return PairInfo(
-                ip: json["ip"] as? String,
-                port: json["port"] as? Int,
-                token: json["token"] as? String,
-                displayDeviceId: json["deviceId"] as? String,
-                pairCode: json["pairCode"] as? String
-            )
+        } else {
+            let parts = raw.components(separatedBy: "|")
+            let endpoint = parts.first?.components(separatedBy: ":") ?? []
+            guard parts.count == 2, endpoint.count == 2 else { return nil }
+            values = ["ip": endpoint[0], "port": endpoint[1], "token": parts[1]]
         }
-
-        let parts = raw.split(separator: "|")
-        if parts.count == 2 {
-            let left = parts[0].split(separator: ":")
-            if left.count == 2, let port = Int(left[1]) {
-                return PairInfo(
-                    ip: String(left[0]),
-                    port: port,
-                    token: String(parts[1]),
-                    displayDeviceId: nil,
-                    pairCode: nil
-                )
-            }
+        let info = PairInfo(
+            ip: values["ip"], port: values["port"].flatMap(Int.init), token: values["token"],
+            displayDeviceId: values["deviceId"] ?? values["displayDeviceId"],
+            pairCode: values["pairCode"]
+        )
+        if info.isCloudPairing {
+            guard FirebaseKeyValidation.valid(info.displayDeviceId!), FirebaseKeyValidation.valid(info.pairCode!) else { return nil }
+            return info
         }
+        return info.hasLocalTransport ? info : nil
+    }
 
+    static func buildCloudPairPayload(deviceId: String, pairCode: String, local: LocalEndpoint? = nil) -> String {
+        var components = URLComponents()
+        components.scheme = "phantomgo"; components.host = "pair"
+        components.queryItems = [
+            URLQueryItem(name: "mode", value: "cloud"), URLQueryItem(name: "deviceId", value: deviceId),
+            URLQueryItem(name: "pairCode", value: pairCode)
+        ]
+        if let local, local.isUsable {
+            components.queryItems?.append(contentsOf: [
+                URLQueryItem(name: "ip", value: local.ip), URLQueryItem(name: "port", value: String(local.port)),
+                URLQueryItem(name: "token", value: local.token)
+            ])
+        }
+        return components.string ?? ""
+    }
+
+    static func parseCoordinatePair(_ raw: String) -> (Double, Double)? {
+        let pattern = #"^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)(?:\s*\([^)]*\))?\s*$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
+              let first = Range(match.range(at: 1), in: raw), let second = Range(match.range(at: 2), in: raw),
+              let lat = Double(raw[first]), let lng = Double(raw[second]),
+              (-90...90).contains(lat), (-180...180).contains(lng) else { return nil }
+        return (lat, lng)
+    }
+
+    static func isMapURL(_ url: URL) -> Bool {
+        guard ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+              let host = url.host?.lowercased() else { return false }
+        if host == "maps.app.goo.gl" || host == "maps.google.com" || host == "maps.apple.com" { return true }
+        if host == "goo.gl" { return url.path.hasPrefix("/maps/") }
+        let hosts = ["google.com", "www.google.com", "google.co.th", "www.google.co.th",
+                     "google.co.uk", "www.google.co.uk", "google.co.jp", "www.google.co.jp"]
+        return hosts.contains(host) && url.path.hasPrefix("/maps")
+    }
+
+    static func extractMapLink(_ text: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: #"https?://[^\s<>]+"#) else { return nil }
+        for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+            guard let range = Range(match.range, in: text) else { continue }
+            let candidate = String(text[range]).trimmingCharacters(in: CharacterSet(charactersIn: ".,;\""))
+            if let url = URL(string: candidate), isMapURL(url) { return candidate }
+        }
         return nil
     }
 
-    static func buildCloudPairPayload(deviceId: String, pairCode: String) -> String {
-        var components = URLComponents()
-        components.scheme = "phantomgo"
-        components.host = "pair"
+    private static func queryItems(_ value: String) -> [String: String] {
+        var result: [String: String] = [:]
+        for item in URLComponents(string: value)?.queryItems ?? [] { result[item.name] = item.value }
+        return result
+    }
+    private static func pathDestination(_ url: URL) -> String? {
+        let pieces = url.pathComponents
+        if let index = pieces.firstIndex(of: "place"), pieces.indices.contains(index + 1) {
+            return pieces[index + 1].replacingOccurrences(of: "+", with: " ")
+        }
+        if let index = pieces.firstIndex(of: "dir") {
+            let destinations = pieces.dropFirst(index + 1)
+                .prefix { !$0.hasPrefix("@") && !$0.hasPrefix("data=") }
+                .filter { !$0.isEmpty && $0 != "/" }
+            return destinations.last?.replacingOccurrences(of: "+", with: " ")
+        }
+        return nil
+    }
+
+    private static func embeddedDestination(_ text: String) -> (Double, Double)? {
+        // Maps @lat,lng is the viewport, not necessarily the destination.
+        guard let regex = try? NSRegularExpression(pattern: #"!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)"#),
+              let last = regex.matches(in: text, range: NSRange(text.startIndex..., in: text)).last,
+              let first = Range(last.range(at: 1), in: text), let second = Range(last.range(at: 2), in: text) else { return nil }
+        return parseCoordinatePair(String(text[first]) + "," + String(text[second]))
+    }
+
+    private static func coordinatePayload(_ pair: (Double, Double), original: String,
+                                          mode: DisplayNavigationMode, source: RoutePayload.ParserSource) -> RoutePayload {
+        var components = URLComponents(string: "https://www.google.com/maps/search/")!
         components.queryItems = [
-            URLQueryItem(name: "mode", value: "cloud"),
-            URLQueryItem(name: "deviceId", value: deviceId),
-            URLQueryItem(name: "pairCode", value: pairCode)
+            URLQueryItem(name: "api", value: "1"), URLQueryItem(name: "query", value: "\(pair.0),\(pair.1)")
         ]
-        return components.string ?? "phantomgo://pair?mode=cloud&deviceId=\(deviceId)&pairCode=\(pairCode)"
+        return RoutePayload(originalText: original, sourceApp: "share", resolvedURL: components.string,
+                            latitude: pair.0, longitude: pair.1, navigationMode: mode,
+                            confidence: .high, parserSource: source)
     }
 
-    private static func parseGeo(_ raw: String, navMode: DisplayNavigationMode) -> RoutePayload? {
-        guard let components = URLComponents(string: raw) else { return nil }
-        let query = components.queryItems?.first(where: { $0.name == "q" })?.value
-        if let query, !query.isEmpty {
-            return RoutePayload(
-                originalText: raw,
-                sourceApp: "manual",
-                resolvedURL: "https://www.google.com/maps/search/?api=1&query=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query)",
-                query: query,
-                placeName: query,
-                navigationMode: navMode,
-                confidence: .high,
-                parserSource: .geoScheme
-            )
+    private static func destination(_ text: String, original: String, mode: DisplayNavigationMode,
+                                    source: RoutePayload.ParserSource) -> RoutePayload {
+        if let pair = parseCoordinatePair(text) {
+            return coordinatePayload(pair, original: original, mode: mode, source: source)
         }
-
-        let value = raw.replacingOccurrences(of: "geo:", with: "")
-        let location = value.split(separator: "?").first.map(String.init) ?? value
-        let pair = location.split(separator: ",")
-        guard pair.count == 2,
-              let lat = Double(pair[0]),
-              let lng = Double(pair[1]) else {
-            return nil
-        }
-        return RoutePayload(
-            originalText: raw,
-            sourceApp: "manual",
-            resolvedURL: "https://www.google.com/maps/search/?api=1&query=\(lat),\(lng)",
-            latitude: lat,
-            longitude: lng,
-            navigationMode: navMode,
-            confidence: .high,
-            parserSource: .geoScheme
-        )
+        guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return invalid(original, mode: mode) }
+        var components = URLComponents(string: source == .googleNavigationScheme
+                                      ? "https://www.google.com/maps/dir/" : "https://www.google.com/maps/search/")!
+        components.queryItems = [URLQueryItem(name: "api", value: "1"),
+                                URLQueryItem(name: source == .googleNavigationScheme ? "destination" : "query", value: text)]
+        return RoutePayload(originalText: original, sourceApp: "share", resolvedURL: components.string,
+                            query: text, placeName: text, navigationMode: mode,
+                            confidence: .medium, parserSource: source)
     }
-
-    private static func parseGoogleNavigation(_ raw: String, navMode: DisplayNavigationMode) -> RoutePayload? {
-        let prefix = "google.navigation:"
-        guard raw.lowercased().hasPrefix(prefix) else { return nil }
-
-        let queryString = String(raw.dropFirst(prefix.count)).trimmingCharacters(in: CharacterSet(charactersIn: "?"))
-        guard let components = URLComponents(string: "https://phantom.invalid/?\(queryString)"),
-              let query = components.queryItems?.first(where: { $0.name == "q" })?.value else {
-            return nil
-        }
-        return RoutePayload(
-            originalText: raw,
-            sourceApp: "manual",
-            resolvedURL: "https://www.google.com/maps/dir/?api=1&destination=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query)",
-            query: query,
-            placeName: query,
-            navigationMode: navMode,
-            confidence: .high,
-            parserSource: .googleNavigationScheme
-        )
+    private static func invalid(_ text: String, mode: DisplayNavigationMode) -> RoutePayload {
+        RoutePayload(originalText: text, navigationMode: mode, confidence: .low, parserSource: .manualInput)
     }
+}
 
-    private static func parseHTTP(_ raw: String, navMode: DisplayNavigationMode) -> RoutePayload {
-        RoutePayload(
-            originalText: raw,
-            sourceApp: "manual",
-            resolvedURL: raw,
-            navigationMode: navMode,
-            confidence: .medium,
-            parserSource: .googleMapsUrl
-        )
-    }
-
-    private static func parseCoordinates(_ raw: String, navMode: DisplayNavigationMode) -> RoutePayload? {
-        let pattern = #"^\s*(-?\d+(\.\d+)?)\s*,\s*(-?\d+(\.\d+)?)\s*$"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let range = NSRange(location: 0, length: raw.utf16.count)
-        guard regex.firstMatch(in: raw, options: [], range: range) != nil else { return nil }
-
-        let parts = raw.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        guard parts.count == 2, let lat = Double(parts[0]), let lng = Double(parts[1]) else { return nil }
-
-        return RoutePayload(
-            originalText: raw,
-            sourceApp: "manual",
-            resolvedURL: "https://www.google.com/maps/search/?api=1&query=\(lat),\(lng)",
-            latitude: lat,
-            longitude: lng,
-            navigationMode: navMode,
-            confidence: .high,
-            parserSource: .coordinates
-        )
+enum FirebaseKeyValidation {
+    static func valid(_ value: String) -> Bool {
+        !value.isEmpty && value.count <= 128
+            && value.rangeOfCharacter(from: CharacterSet(charactersIn: ".#$[]/")) == nil
     }
 }

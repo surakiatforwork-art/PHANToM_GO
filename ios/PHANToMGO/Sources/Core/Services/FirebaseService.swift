@@ -1,351 +1,305 @@
-import FirebaseAuth
-import FirebaseCore
-import FirebaseDatabase
 import Foundation
 
-final class FirebaseService {
+actor FirebaseService {
     static let shared = FirebaseService()
+    private var observers: [String: Task<Void, Never>] = [:]
+    private let session: URLSession
 
-    private let databaseURL = "https://phantom-go-default-rtdb.asia-southeast1.firebasedatabase.app"
-    private let pathDevices = "devices"
-    private let pathPresence = "presence"
-    private let pathPairingCodes = "pairingCodes"
-    private let pathPairingsByDisplay = "pairings/byDisplay"
-    private let pathPairingsByMain = "pairings/byMain"
-    private let pathCommands = "commands"
+    init(session: URLSession = .shared) { self.session = session }
 
-    private var database: Database {
-        Database.database(url: databaseURL)
+    func configureIfNeeded() -> Bool { !RuntimeConfiguration.apiKey.isEmpty }
+    func signInAnonymouslyIfNeeded() async throws -> AuthIdentity { try await AuthSession.shared.current() }
+
+    private func makeRequest(path: String, method: String = "GET", value: Any? = nil) async throws -> URLRequest {
+        let identity = try await AuthSession.shared.current()
+        var components = URLComponents(string: RuntimeConfiguration.databaseURL + "/" + path + ".json")!
+        components.queryItems = [URLQueryItem(name: "auth", value: identity.idToken)]
+        var request = URLRequest(url: components.url!)
+        request.httpMethod = method
+        request.timeoutInterval = 15
+        if method != "GET" {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: value ?? NSNull(), options: [.fragmentsAllowed])
+        }
+        return request
     }
 
-    private var displayPairingHandle: DatabaseHandle?
-    private var displayPairingRef: DatabaseReference?
-    private var commandHandle: DatabaseHandle?
-    private var commandRef: DatabaseReference?
-    private var mainPairingHandle: DatabaseHandle?
-    private var mainPairingRef: DatabaseReference?
-
-    private init() {}
-
-    @discardableResult
-    func configureIfNeeded() -> Bool {
-        guard FirebaseApp.app() == nil else { return true }
-        guard
-            let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
-            let config = NSDictionary(contentsOfFile: path),
-            config["GOOGLE_APP_ID"] as? String != nil,
-            config["API_KEY"] as? String != nil,
-            config["PROJECT_ID"] as? String != nil
-        else {
-            return false
+    func request(path: String, method: String = "GET", value: Any? = nil) async throws -> Any? {
+        let request = try await makeRequest(path: path, method: method, value: value)
+        let (data, response) = try await session.data(for: request)
+        guard let response = response as? HTTPURLResponse else {
+            throw RelayError.message("The server did not return a response.")
         }
-
-        FirebaseApp.configure()
-        Database.database(url: databaseURL).isPersistenceEnabled = true
-        return true
+        guard (200..<300).contains(response.statusCode) else {
+            if response.statusCode == 401 || response.statusCode == 403 {
+                throw RelayError.message("Permission denied. Disconnect the previous pair on Display and scan its new QR.")
+            }
+            throw RelayError.message("Cloud connection failed (HTTP \(response.statusCode)).")
+        }
+        if data.isEmpty { return nil }
+        let result = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
+        return result is NSNull ? nil : result
     }
 
-    func signInAnonymouslyIfNeeded() async throws -> User {
-        if let user = Auth.auth().currentUser {
-            return user
+    func syncDeviceRecord(deviceId: String, role: String, model: String, appVersion: String,
+                          local: LocalEndpoint? = nil, connected: Bool = true) async throws {
+        let identity = try await AuthSession.shared.current()
+        let record: [String: Any] = [
+            "deviceId": deviceId, "authUid": identity.uid, "role": role, "platform": "ios",
+            "manufacturer": "Apple", "model": model, "appVersion": appVersion,
+            "updatedAt": Self.timestamp, "lastSeenAt": Self.timestamp
+        ]
+        var presence = record
+        presence["connected"] = connected
+        if let local, role == "display" {
+            presence["localIp"] = local.ip
+            presence["localPort"] = local.port
+            presence["localToken"] = local.token
+            presence["localTokenHint"] = local.tokenHint
         }
+        _ = try await request(path: "devices/\(deviceId)", method: "PATCH", value: record)
+        _ = try await request(path: "presence/\(deviceId)", method: "PATCH", value: presence)
+    }
 
-        return try await withCheckedThrowingContinuation { continuation in
-            Auth.auth().signInAnonymously { authResult, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
+    func publishPairingCode(deviceId: String, pairCode: String, displayName: String,
+                            local: LocalEndpoint? = nil) async throws {
+        let identity = try await AuthSession.shared.current()
+        var record: [String: Any] = [
+            "pairCode": pairCode, "displayDeviceId": deviceId, "displayAuthUid": identity.uid,
+            "displayName": displayName, "platform": "ios", "updatedAt": Self.timestamp
+        ]
+        if let local {
+            record["localIp"] = local.ip
+            record["localPort"] = local.port
+            record["localToken"] = local.token
+        }
+        _ = try await request(path: "pairingCodes/\(pairCode)", method: "PUT", value: record)
+    }
 
-                guard let user = authResult?.user else {
-                    continuation.resume(throwing: NSError(domain: "PHANToMGO", code: -1, userInfo: [NSLocalizedDescriptionKey: "Anonymous sign-in returned no user"]))
-                    return
-                }
+    func removePairingCode(_ code: String) async throws {
+        _ = try await request(path: "pairingCodes/\(code)", method: "DELETE")
+    }
 
-                continuation.resume(returning: user)
+    func claimPairingCode(deviceId: String, deviceName: String, pairInfo: PairInfo) async throws -> PairingRecord {
+        guard let displayId = pairInfo.displayDeviceId, let code = pairInfo.pairCode,
+              displayId != deviceId, Self.validKey(displayId), Self.validKey(code) else {
+            throw RelayError.message("Scan a valid cloud QR from another Display device.")
+        }
+        let identity = try await AuthSession.shared.current()
+        guard let record = try await request(path: "pairingCodes/\(code)") as? [String: Any],
+              record["displayDeviceId"] as? String == displayId,
+              let displayUid = record["displayAuthUid"] as? String, !displayUid.isEmpty else {
+            throw RelayError.message("Pairing QR expired or was reset. Scan the current Display QR.")
+        }
+        if let existing = PairingRecord.decode(try await request(path: "pairings/byDisplay/\(displayId)")),
+           existing.mainDeviceId != deviceId {
+            throw RelayError.message("Display is already paired. Disconnect its current Main on Display first.")
+        }
+        let previous = PairingRecord.decode(try await request(path: "pairings/byMain/\(deviceId)"))
+        let name = record["displayName"] as? String ?? displayId
+        let pair: [String: Any] = [
+            "displayDeviceId": displayId, "displayAuthUid": displayUid, "displayName": name,
+            "mainDeviceId": deviceId, "mainAuthUid": identity.uid, "mainName": deviceName,
+            "pairedAt": Self.timestamp, "updatedAt": Self.timestamp, "transportHint": "cloud"
+        ]
+        var updates: [String: Any] = [
+            "pairings/byMain/\(deviceId)": pair, "pairings/byDisplay/\(displayId)": pair,
+            "pairingCodes/\(code)/lastClaimedBy": deviceId, "pairingCodes/\(code)/lastClaimedAt": Self.timestamp
+        ]
+        if let previous, previous.displayDeviceId != displayId {
+            let oldDisplay = PairingRecord.decode(try await request(path: "pairings/byDisplay/\(previous.displayDeviceId)"))
+            if oldDisplay?.mainDeviceId == deviceId {
+                updates["pairings/byDisplay/\(previous.displayDeviceId)"] = NSNull()
             }
         }
-    }
-
-    func syncDeviceRecord(
-        deviceId: String,
-        role: String,
-        model: String,
-        appVersion: String
-    ) async throws {
-        let user = try await signInAnonymouslyIfNeeded()
-        let payload: [String: Any?] = [
-            "deviceId": deviceId,
-            "authUid": user.uid,
-            "role": role,
-            "platform": "ios",
-            "manufacturer": "Apple",
-            "model": model,
-            "appVersion": appVersion,
-            "updatedAt": ServerValue.timestamp(),
-            "lastSeenAt": ServerValue.timestamp()
-        ]
-
-        try await updateChildren(path: "\(pathDevices)/\(deviceId)", payload: payload)
-        try await updateChildren(path: "\(pathPresence)/\(deviceId)", payload: [
-            "deviceId": deviceId,
-            "authUid": user.uid,
-            "role": role,
-            "platform": "ios",
-            "model": model,
-            "updatedAt": ServerValue.timestamp()
-        ])
-    }
-
-    func publishPairingCode(
-        deviceId: String,
-        pairCode: String,
-        displayName: String
-    ) async throws {
-        let user = try await signInAnonymouslyIfNeeded()
-        let payload: [String: Any?] = [
-            "pairCode": pairCode,
-            "displayDeviceId": deviceId,
-            "displayAuthUid": user.uid,
-            "displayName": displayName,
-            "platform": "ios",
-            "updatedAt": ServerValue.timestamp()
-        ]
-        try await setValue(path: "\(pathPairingCodes)/\(pairCode)", value: payload)
-    }
-
-    func removePairingCode(_ pairCode: String) async throws {
-        try await setValue(path: "\(pathPairingCodes)/\(pairCode)", value: nil)
-    }
-
-    func claimPairingCode(
-        deviceId: String,
-        deviceName: String,
-        pairInfo: PairInfo
-    ) async throws -> PairingRecord {
-        let user = try await signInAnonymouslyIfNeeded()
-        guard let displayDeviceId = pairInfo.displayDeviceId, let pairCode = pairInfo.pairCode else {
-            throw NSError(domain: "PHANToMGO", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid cloud pairing payload"])
-        }
-
-        let snapshot = try await getValue(path: "\(pathPairingCodes)/\(pairCode)")
-        guard snapshot.exists() else {
-            throw NSError(domain: "PHANToMGO", code: -3, userInfo: [NSLocalizedDescriptionKey: "Pairing code not found"])
-        }
-
-        let codeDisplayId = snapshot.childSnapshot(forPath: "displayDeviceId").value as? String
-        guard codeDisplayId == displayDeviceId else {
-            throw NSError(domain: "PHANToMGO", code: -4, userInfo: [NSLocalizedDescriptionKey: "QR code does not match display device"])
-        }
-
-        let displayName = snapshot.childSnapshot(forPath: "displayName").value as? String
-        let displayAuthUid = snapshot.childSnapshot(forPath: "displayAuthUid").value as? String
-
-        let payload: [String: Any?] = [
-            "displayDeviceId": displayDeviceId,
-            "displayAuthUid": displayAuthUid,
-            "displayName": displayName,
-            "mainDeviceId": deviceId,
-            "mainAuthUid": user.uid,
-            "mainName": deviceName,
-            "pairedAt": ServerValue.timestamp(),
-            "updatedAt": ServerValue.timestamp(),
-            "transportHint": "cloud_pending"
-        ]
-
-        let updates: [String: Any?] = [
-            "\(pathPairingsByDisplay)/\(displayDeviceId)": payload,
-            "\(pathPairingsByMain)/\(deviceId)": payload,
-            "\(pathPairingCodes)/\(pairCode)/lastClaimedBy": deviceId,
-            "\(pathPairingCodes)/\(pairCode)/lastClaimedAt": ServerValue.timestamp()
-        ]
-        try await updateRoot(payload: updates)
-
-        return PairingRecord(
-            displayDeviceId: displayDeviceId,
-            displayAuthUid: displayAuthUid,
-            displayName: displayName,
-            mainDeviceId: deviceId,
-            mainAuthUid: user.uid,
-            mainName: deviceName,
-            pairedAt: nil,
-            updatedAt: nil,
-            transportHint: "cloud_pending"
-        )
+        _ = try await request(path: "", method: "PATCH", value: updates)
+        return PairingRecord.decode(pair)!
     }
 
     func clearMainPairing(mainDeviceId: String, displayDeviceId: String?) async throws {
-        var updates: [String: Any?] = [
-            "\(pathPairingsByMain)/\(mainDeviceId)": nil
-        ]
-        if let displayDeviceId {
-            updates["\(pathPairingsByDisplay)/\(displayDeviceId)"] = nil
+        let current = PairingRecord.decode(try await request(path: "pairings/byMain/\(mainDeviceId)"))
+        var updates: [String: Any] = ["pairings/byMain/\(mainDeviceId)": NSNull()]
+        if let current {
+            let peer = PairingRecord.decode(try await request(path: "pairings/byDisplay/\(current.displayDeviceId)"))
+            if peer?.mainDeviceId == mainDeviceId {
+                updates["pairings/byDisplay/\(current.displayDeviceId)"] = NSNull()
+            }
         }
-        try await updateRoot(payload: updates)
+        _ = try await request(path: "", method: "PATCH", value: updates)
     }
 
     func clearDisplayPairing(displayDeviceId: String, mainDeviceId: String?, pairCode: String?) async throws {
-        var updates: [String: Any?] = [
-            "\(pathPairingsByDisplay)/\(displayDeviceId)": nil
+        let current = PairingRecord.decode(try await request(path: "pairings/byDisplay/\(displayDeviceId)"))
+        var updates: [String: Any] = ["pairings/byDisplay/\(displayDeviceId)": NSNull()]
+        if let current {
+            let peer = PairingRecord.decode(try await request(path: "pairings/byMain/\(current.mainDeviceId)"))
+            if peer?.displayDeviceId == displayDeviceId {
+                updates["pairings/byMain/\(current.mainDeviceId)"] = NSNull()
+            }
+        }
+        if let code = pairCode { updates["pairingCodes/\(code)"] = NSNull() }
+        _ = try await request(path: "", method: "PATCH", value: updates)
+    }
+
+    func sendRouteCommand(to displayId: String, from mainId: String, mainName: String,
+                          payload: RoutePayload, openBehavior: DisplayOpenBehavior,
+                          requestId: String = UUID().uuidString) async throws {
+        let identity = try await AuthSession.shared.current(allowCreate: false)
+        guard let url = payload.resolvedURL, Self.validKey(displayId), Self.validKey(mainId) else {
+            throw RelayError.message("Enter a Google Maps link, coordinates or a destination.")
+        }
+        var pendingIds: [String] = []
+        for attempt in 1...3 {
+            try Task.checkCancellation()
+            let commandId = UUID().uuidString.lowercased()
+            pendingIds.append(commandId)
+            let command = RouteDeliveryPolicy.command(
+                id: commandId, requestId: requestId, mainId: mainId, uid: identity.uid,
+                url: url, attempt: attempt, timestamp: Self.timestamp
+            )
+            _ = try await request(path: "", method: "PATCH", value: [
+                "commands/\(displayId)/\(commandId)": command,
+                "pairings/byMain/\(mainId)/lastActivityAt": Self.timestamp,
+                "pairings/byDisplay/\(displayId)/lastActivityAt": Self.timestamp
+            ])
+            let deadline = Date().addingTimeInterval(6)
+            while Date() < deadline {
+                try Task.checkCancellation()
+                for id in pendingIds {
+                    if let data = try await request(path: "commands/\(displayId)/\(id)") as? [String: Any],
+                       RouteDeliveryPolicy.isAcknowledged(data["status"] as? String) {
+                        return
+                    }
+                }
+                try await Task.sleep(nanoseconds: 750_000_000)
+            }
+        }
+        throw RelayError.message("Display has not acknowledged the route. Keep Display open and check internet before retrying.")
+    }
+
+    func acknowledge(deviceId: String, commandId: String, status: String) async throws {
+        _ = try await request(path: "commands/\(deviceId)/\(commandId)", method: "PATCH",
+                              value: ["status": status, "processedAt": Self.timestamp])
+    }
+
+    func updateLocation(deviceId: String, latitude: Double, longitude: Double, accuracy: Double,
+                        speed: Double, capturedAt: Date) async throws {
+        _ = try await request(path: "presence/\(deviceId)", method: "PATCH", value: [
+            "locationAvailable": true, "locationLat": latitude, "locationLng": longitude,
+            "locationAccuracyMeters": accuracy, "locationSpeedKmh": Int(speed.rounded()),
+            "locationCapturedAt": capturedAt.timeIntervalSince1970 * 1000,
+            "locationProvider": "corelocation", "updatedAt": Self.timestamp
+        ])
+    }
+
+    func sendSecurityAlert(displayId: String, mainId: String, name: String, type: String,
+                           sessionId: String, attempts: Int, jackPlugged: Bool, state: String,
+                           presence: DisplayPresence?) async throws {
+        let identity = try await AuthSession.shared.current()
+        let id = UUID().uuidString.lowercased()
+        var alert: [String: Any] = [
+            "alertId": id, "eventType": type, "fromDisplayDeviceId": displayId,
+            "fromDisplayAuthUid": identity.uid, "displayName": name, "toMainDeviceId": mainId,
+            "sessionId": sessionId, "wrongAttemptCount": attempts, "jackPlugged": jackPlugged,
+            "alarmState": state, "platform": "ios", "createdAt": Self.timestamp,
+            "eventAt": Date().timeIntervalSince1970 * 1000, "locationAvailable": false
         ]
-        if let mainDeviceId {
-            updates["\(pathPairingsByMain)/\(mainDeviceId)"] = nil
+        if let presence, let lat = presence.latitude, let lng = presence.longitude {
+            alert["locationAvailable"] = true
+            alert["lat"] = lat; alert["lng"] = lng
+            alert["locationCapturedAt"] = (presence.locationDate ?? Date()).timeIntervalSince1970 * 1000
+            alert["accuracyMeters"] = presence.accuracy
+            alert["speedKmh"] = presence.speedKmh
         }
-        if let pairCode {
-            updates["\(pathPairingCodes)/\(pairCode)"] = nil
-        }
-        try await updateRoot(payload: updates)
+        _ = try await request(path: "securityAlerts/byMain/\(mainId)/\(id)", method: "PUT", value: alert)
     }
 
-    func sendRouteCommand(
-        to displayDeviceId: String,
-        from mainDeviceId: String,
-        from mainName: String,
-        payload: RoutePayload,
-        openBehavior: DisplayOpenBehavior
-    ) async throws {
-        let commandId = UUID().uuidString.lowercased()
-        let command: [String: Any?] = [
-            "id": commandId,
-            "fromMainDeviceId": mainDeviceId,
-            "fromMainName": mainName,
-            "originalText": payload.originalText,
-            "resolvedURL": payload.resolvedURL ?? payload.originalText,
-            "navigationMode": payload.navigationMode.rawValue,
-            "openBehavior": openBehavior.rawValue,
-            "createdAt": ServerValue.timestamp(),
-            "status": "pending"
-        ]
-        try await setValue(path: "\(pathCommands)/\(displayDeviceId)/\(commandId)", value: command)
-    }
-
-    func observeDisplayPairing(deviceId: String, onChange: @escaping (PairingRecord?) -> Void) {
-        displayPairingRef?.removeAllObservers()
-        let ref = database.reference(withPath: "\(pathPairingsByDisplay)/\(deviceId)")
-        displayPairingRef = ref
-        displayPairingHandle = ref.observe(.value) { snapshot in
-            onChange(Self.decodePairing(snapshot))
-        }
-    }
-
-    func observeMainPairing(deviceId: String, onChange: @escaping (PairingRecord?) -> Void) {
-        mainPairingRef?.removeAllObservers()
-        let ref = database.reference(withPath: "\(pathPairingsByMain)/\(deviceId)")
-        mainPairingRef = ref
-        mainPairingHandle = ref.observe(.value) { snapshot in
-            onChange(Self.decodePairing(snapshot))
-        }
-    }
-
-    func observeDisplayCommands(deviceId: String, onCommand: @escaping (RouteCommand?) -> Void) {
-        commandRef?.removeAllObservers()
-        let ref = database.reference(withPath: "\(pathCommands)/\(deviceId)")
-        commandRef = ref
-        commandHandle = ref.observe(.childAdded) { snapshot in
-            onCommand(Self.decodeCommand(snapshot))
+    func observe(path: String, onChange: @escaping (Any?) -> Void,
+                 onError: @escaping (String) -> Void) {
+        observers[path]?.cancel()
+        observers[path] = Task { [weak self] in
+            guard let self else { return }
+            var retry: UInt64 = 1
+            while !Task.isCancelled {
+                do {
+                    var request = try await self.makeRequest(path: path)
+                    request.timeoutInterval = 3600
+                    request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                    let (bytes, response) = try await self.session.bytes(for: request)
+                    guard let response = response as? HTTPURLResponse,
+                          response.statusCode == 200 else {
+                        throw RelayError.message("Cloud listener unavailable. Check connection and pairing.")
+                    }
+                    var tree = FirebaseStreamTree()
+                    var event = ""
+                    retry = 1
+                    for try await line in bytes.lines {
+                        try Task.checkCancellation()
+                        if line.hasPrefix("event:") { event = String(line.dropFirst(6)).trimmingCharacters(in: .whitespaces) }
+                        if line.hasPrefix("data:") {
+                            let eventData = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+                            defer { event = "" }
+                            if event == "cancel" || event == "auth_revoked" {
+                                throw RelayError.message("Cloud access changed. Reopen Display or pair again.")
+                            }
+                            guard event == "put" || event == "patch",
+                                  let encoded = eventData.data(using: .utf8),
+                                  let update = try JSONSerialization.jsonObject(with: encoded) as? [String: Any],
+                                  let updatePath = update["path"] as? String else { continue }
+                            tree.apply(event: event, path: updatePath, value: update["data"])
+                            onChange(tree.value)
+                        }
+                    }
+                } catch {
+                    if Task.isCancelled { return }
+                    onError(error.localizedDescription)
+                }
+                try? await Task.sleep(nanoseconds: retry * 1_000_000_000)
+                retry = min(retry * 2, 15)
+            }
         }
     }
 
+    func stopObserver(path: String) { observers.removeValue(forKey: path)?.cancel() }
     func stopObservers() {
-        if let displayPairingHandle, let displayPairingRef {
-            displayPairingRef.removeObserver(withHandle: displayPairingHandle)
-        }
-        if let mainPairingHandle, let mainPairingRef {
-            mainPairingRef.removeObserver(withHandle: mainPairingHandle)
-        }
-        if let commandHandle, let commandRef {
-            commandRef.removeObserver(withHandle: commandHandle)
-        }
-        displayPairingHandle = nil
-        displayPairingRef = nil
-        mainPairingHandle = nil
-        mainPairingRef = nil
-        commandHandle = nil
-        commandRef = nil
+        observers.values.forEach { $0.cancel() }
+        observers.removeAll()
     }
+    static var timestamp: [String: String] { [".sv": "timestamp"] }
+    static func validKey(_ value: String) -> Bool {
+        FirebaseKeyValidation.valid(value)
+    }
+}
 
-    private func getValue(path: String) async throws -> DataSnapshot {
-        try await withCheckedThrowingContinuation { continuation in
-            database.reference(withPath: path).getData { error, snapshot in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                guard let snapshot else {
-                    continuation.resume(throwing: NSError(domain: "PHANToMGO", code: -10, userInfo: [NSLocalizedDescriptionKey: "Missing snapshot"]))
-                    return
-                }
-                continuation.resume(returning: snapshot)
-            }
+enum RouteDeliveryPolicy {
+    static func isAcknowledged(_ status: String?) -> Bool { status == "received" || status == "opened" }
+    static func command(id: String, requestId: String, mainId: String, uid: String, url: String,
+                        attempt: Int, timestamp: Any) -> [String: Any] {
+        [
+            "commandId": id, "clientRequestId": requestId, "attempt": attempt,
+            "fromMainDeviceId": mainId, "fromMainAuthUid": uid, "url": url,
+            "transport": "firebase_rtdb", "status": "pending", "createdAt": timestamp
+        ]
+    }
+}
+
+struct FirebaseStreamTree {
+    private(set) var value: Any?
+    mutating func apply(event: String, path: String, value incoming: Any?) {
+        if event == "patch", let dictionary = incoming as? [String: Any] {
+            for (key, child) in dictionary { put(path: path + "/" + key, value: child) }
+        } else {
+            put(path: path, value: incoming)
         }
     }
-
-    private func setValue(path: String, value: Any?) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            database.reference(withPath: path).setValue(value) { error, _ in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: ())
-                }
-            }
-        }
+    private mutating func put(path: String, value incoming: Any?) {
+        let keys = path.split(separator: "/").map(String.init)
+        value = Self.replace(root: value, keys: ArraySlice(keys), incoming: incoming)
     }
-
-    private func updateChildren(path: String, payload: [String: Any?]) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            database.reference(withPath: path).updateChildValues(payload.compactMapValues { $0 }) { error, _ in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: ())
-                }
-            }
-        }
-    }
-
-    private func updateRoot(payload: [String: Any?]) async throws {
-        let normalized = payload.reduce(into: [String: Any]()) { result, entry in
-            result[entry.key] = entry.value ?? NSNull()
-        }
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            database.reference().updateChildValues(normalized) { error, _ in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: ())
-                }
-            }
-        }
-    }
-
-    private static func decodePairing(_ snapshot: DataSnapshot) -> PairingRecord? {
-        guard snapshot.exists(), let value = snapshot.value as? [String: Any] else { return nil }
-        return PairingRecord(
-            displayDeviceId: value["displayDeviceId"] as? String ?? "",
-            displayAuthUid: value["displayAuthUid"] as? String,
-            displayName: value["displayName"] as? String,
-            mainDeviceId: value["mainDeviceId"] as? String ?? "",
-            mainAuthUid: value["mainAuthUid"] as? String,
-            mainName: value["mainName"] as? String,
-            pairedAt: value["pairedAt"] as? TimeInterval,
-            updatedAt: value["updatedAt"] as? TimeInterval,
-            transportHint: value["transportHint"] as? String
-        )
-    }
-
-    private static func decodeCommand(_ snapshot: DataSnapshot) -> RouteCommand? {
-        guard snapshot.exists(), let value = snapshot.value as? [String: Any] else { return nil }
-        return RouteCommand(
-            id: value["id"] as? String ?? snapshot.key,
-            fromMainDeviceId: value["fromMainDeviceId"] as? String ?? "",
-            fromMainName: value["fromMainName"] as? String,
-            originalText: value["originalText"] as? String ?? "",
-            resolvedURL: value["resolvedURL"] as? String ?? "",
-            navigationMode: value["navigationMode"] as? String ?? DisplayNavigationMode.driving.rawValue,
-            openBehavior: value["openBehavior"] as? String ?? DisplayOpenBehavior.previewRoute.rawValue,
-            createdAt: value["createdAt"] as? TimeInterval,
-            status: value["status"] as? String
-        )
+    private static func replace(root: Any?, keys: ArraySlice<String>, incoming: Any?) -> Any? {
+        guard let key = keys.first else { return incoming is NSNull ? nil : incoming }
+        var dictionary = root as? [String: Any] ?? [:]
+        dictionary[key] = replace(root: dictionary[key], keys: keys.dropFirst(), incoming: incoming)
+        return dictionary
     }
 }

@@ -1,59 +1,46 @@
 import SwiftUI
 
 struct PairingSheetView: View {
-    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var container: AppContainer
-    @State private var scannerMode = true
+    @Environment(\.dismiss) private var dismiss
+    @State private var scannerStatus = "Point at the QR shown on Display."
+    @State private var cameraVisible = true
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
-                Picker("Input", selection: $scannerMode) {
-                    Text("Scan QR").tag(true)
-                    Text("Paste Payload").tag(false)
-                }
-                .pickerStyle(.segmented)
-
-                if scannerMode {
-                    QRScannerView { raw in
-                        Task {
-                            await container.handleScannedPairPayload(raw)
-                            dismiss()
+            ScrollView {
+                VStack(spacing: 18) {
+                    if cameraVisible {
+                        QRScannerView(onCodeScanned: { code in
+                            cameraVisible = false
+                            Task { await container.handleScannedPairPayload(code) }
+                        }, onError: { scannerStatus = $0 })
+                            .frame(height: 280).clipShape(RoundedRectangle(cornerRadius: 20))
+                    }
+                    Text(scannerStatus).font(.footnote).foregroundStyle(.secondary)
+                    ScreenCard {
+                        Text("Paste QR payload").font(.headline)
+                        TextField("phantomgo://pair?...", text: $container.manualPairPayload, axis: .vertical)
+                            .lineLimit(3...6).textFieldStyle(.roundedBorder)
+                            .autocorrectionDisabled().textInputAutocapitalization(.never)
+                        PasteButton(payloadType: String.self) { values in
+                            if let text = values.first { container.manualPairPayload = text }
                         }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                } else {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Paste phantomgo:// payload")
-                            .font(.headline)
-                        TextEditor(text: $container.manualPairPayload)
-                            .frame(minHeight: 180)
-                            .padding(8)
-                            .background(Color.secondary.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                        Button {
-                            Task {
-                                await container.claimPairingFromManualPayload()
-                                dismiss()
-                            }
-                        } label: {
-                            Label("Pair Now", systemImage: "link")
-                                .frame(maxWidth: .infinity)
+                        Button("Connect") {
+                            cameraVisible = false
+                            Task { await container.claimPairingFromManualPayload() }
+                        }.buttonStyle(PrimaryActionStyle())
+                            .disabled(container.isBusy || container.manualPairPayload.isEmpty)
+                        if container.isBusy { ProgressView("Connecting") }
+                        if let message = container.toastMessage {
+                            Text(message).font(.footnote).foregroundStyle(.secondary)
                         }
-                        .buttonStyle(.borderedProminent)
+                        Button("Scan again") { cameraVisible = true }.disabled(container.isBusy)
                     }
-                }
-            }
-            .padding(20)
-            .navigationTitle("Pair Display")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") {
-                        dismiss()
-                    }
-                }
-            }
+                }.padding(18)
+            }.background(Theme.background.ignoresSafeArea())
+                .navigationTitle("Pair Display")
+                .toolbar { Button("Cancel") { dismiss() } }
         }
     }
 }
