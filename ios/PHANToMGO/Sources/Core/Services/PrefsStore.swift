@@ -27,6 +27,11 @@ final class PrefsStore {
         defaults.set(token, forKey: "ios_local_token")
         return token
     }
+    func refreshLocalToken() -> String {
+        let token = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+        defaults.set(token, forKey: "ios_local_token")
+        return token
+    }
     func selectedTab() -> AppTab { AppTab(rawValue: defaults.string(forKey: "ios_selected_tab") ?? "") ?? .home }
     func setSelectedTab(_ tab: AppTab) { defaults.set(tab.rawValue, forKey: "ios_selected_tab") }
     func isDisplayModeEnabled() -> Bool { defaults.bool(forKey: "ios_display_mode_enabled") }

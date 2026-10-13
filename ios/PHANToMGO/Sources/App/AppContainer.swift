@@ -160,6 +160,13 @@ final class AppContainer: ObservableObject {
             return
         }
         #endif
+        updateFeatureSettings()
+        if isDisplayModeEnabled && isForeground {
+            localRelay.mainId = displayPairing?.mainDeviceId
+            localRelay.start(token: prefsStore.localToken())
+        } else if !isDisplayModeEnabled {
+            localRelay.stop()
+        }
         guard !starting else { return }
         starting = true
         defer { starting = false }
@@ -421,6 +428,8 @@ final class AppContainer: ObservableObject {
             prefsStore.save(Optional<RouteCommand>.none, key: "latestCommand")
             localRelay.mainId = nil
             pairCode = prefsStore.refreshPairCode()
+            localRelay.stop()
+            if isDisplayModeEnabled { localRelay.start(token: prefsStore.refreshLocalToken()) }
             await publishPresenceAndQR()
             toastMessage = "Pairing reset; scan the new QR"
         } catch { toastMessage = error.localizedDescription }
@@ -471,9 +480,21 @@ final class AppContainer: ObservableObject {
         await firebaseService.observe(path: "pairings/byDisplay/\(deviceId)", onChange: { [weak self] raw in
             Task { @MainActor in
                 guard let self else { return }
+                let previousMain = self.displayPairing?.mainDeviceId
                 self.displayPairing = PairingRecord.decode(raw)
                 self.prefsStore.save(self.displayPairing, key: "displayPairing")
                 self.localRelay.mainId = self.displayPairing?.mainDeviceId
+                if previousMain != nil && previousMain != self.displayPairing?.mainDeviceId {
+                    self.localRelay.stop()
+                    let token = self.prefsStore.refreshLocalToken()
+                    if self.isDisplayModeEnabled { self.localRelay.start(token: token) }
+                    if !self.isBusy && self.displayPairing == nil {
+                        let previousCode = self.pairCode
+                        self.pairCode = self.prefsStore.refreshPairCode()
+                        try? await self.firebaseService.removePairingCode(previousCode)
+                        await self.publishPresenceAndQR()
+                    }
+                }
                 if self.isDisplayModeEnabled && self.displayPairing != nil {
                     await self.observeCommands()
                 }

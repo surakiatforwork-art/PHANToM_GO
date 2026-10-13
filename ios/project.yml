@@ -32,6 +32,8 @@ targets:
       path: build/Info.plist
       properties:
         CFBundleDisplayName: PHANToM GO
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -95,6 +97,8 @@ targets:
       path: build/Share-Info.plist
       properties:
         CFBundleDisplayName: PHANToM GO
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         PHANTOM_KEYCHAIN_GROUP: "$(AppIdentifierPrefix)$(PHANTOM_IOS_BUNDLE_ID).shared"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services

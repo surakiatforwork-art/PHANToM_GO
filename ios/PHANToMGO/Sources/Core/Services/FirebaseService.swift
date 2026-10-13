@@ -247,6 +247,7 @@ actor FirebaseService {
                                   let update = try JSONSerialization.jsonObject(with: encoded) as? [String: Any],
                                   let updatePath = update["path"] as? String else { continue }
                             tree.apply(event: event, path: updatePath, value: update["data"])
+                            if path.hasPrefix("commands/") { tree.keepPendingCommands() }
                             onChange(tree.value)
                         }
                     }
@@ -285,6 +286,15 @@ enum RouteDeliveryPolicy {
 
 struct FirebaseStreamTree {
     private(set) var value: Any?
+    mutating func keepPendingCommands() {
+        guard let commands = value as? [String: Any] else { return }
+        let pending = commands.filter { ($0.value as? [String: Any])?["status"] as? String == "pending" }
+            .sorted {
+                (($0.value as? [String: Any])?["createdAt"] as? NSNumber)?.doubleValue ?? 0
+                    > (($1.value as? [String: Any])?["createdAt"] as? NSNumber)?.doubleValue ?? 0
+            }
+        value = Dictionary(uniqueKeysWithValues: pending.prefix(200).map { ($0.key, $0.value) })
+    }
     mutating func apply(event: String, path: String, value incoming: Any?) {
         if event == "patch", let dictionary = incoming as? [String: Any] {
             for (key, child) in dictionary { put(path: path + "/" + key, value: child) }

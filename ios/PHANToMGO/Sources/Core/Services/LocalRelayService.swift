@@ -27,9 +27,9 @@ final class LocalRelayService: ObservableObject {
             let listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: port)!)
             self.listener = listener
             listener.service = NWListener.Service(name: "PHANToM GO", type: "_phantomgo._tcp")
-            listener.stateUpdateHandler = { [weak self] state in
+            listener.stateUpdateHandler = { [weak self, weak listener] state in
                 Task { @MainActor in
-                    guard let self else { return }
+                    guard let self, let listener, self.listener === listener else { return }
                     switch state {
                     case .ready:
                         self.ready = true; self.status = "Local relay ready"

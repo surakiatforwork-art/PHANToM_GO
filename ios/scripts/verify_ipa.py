@@ -1,6 +1,7 @@
 """Verify that a packaged IPA contains real iPhoneOS arm64 native executables."""
 import pathlib
 import plistlib
+import re
 import struct
 import subprocess
 import sys
@@ -15,6 +16,10 @@ for name in sys.argv[1:]:
             raise SystemExit("IPA must contain exactly one main app.")
         info_path = info_paths[0]
         info = plistlib.loads(package.read(info_path))
+        if not re.fullmatch(r"\d+\.\d+\.\d+", info.get("CFBundleShortVersionString", "")):
+            raise SystemExit("IPA must contain the configured semantic app version.")
+        if not info.get("CFBundleVersion", "").isdigit():
+            raise SystemExit("IPA build number must be numeric.")
         if info.get("CFBundleSupportedPlatforms") != ["iPhoneOS"]:
             raise SystemExit("Package is not an iPhoneOS app.")
         if info.get("MinimumOSVersion") != "16.0":

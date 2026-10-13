@@ -215,10 +215,20 @@ final class DashcamEngine: NSObject, AVCaptureFileOutputRecordingDelegate {
     private let queue = DispatchQueue(label: "com.phantom.dashcam.camera", qos: .userInitiated)
     var onFinished: ((String?) -> Void)?
     private var configured = false
+    private var configuredAudio = false
+    private var configuredHighQuality = false
 
     func prepare(audio: Bool, highQuality: Bool) async -> Bool {
         await withCheckedContinuation { continuation in
             queue.async { [self] in
+                if configured && (configuredAudio != audio || configuredHighQuality != highQuality) {
+                    if session.isRunning { session.stopRunning() }
+                    session.beginConfiguration()
+                    session.inputs.forEach(session.removeInput)
+                    session.outputs.forEach(session.removeOutput)
+                    session.commitConfiguration()
+                    configured = false
+                }
                 if !configured {
                     session.beginConfiguration()
                     let preset: AVCaptureSession.Preset = highQuality ? .hd1920x1080 : .hd1280x720
@@ -247,6 +257,8 @@ final class DashcamEngine: NSObject, AVCaptureFileOutputRecordingDelegate {
                     }
                     session.commitConfiguration()
                     configured = true
+                    configuredAudio = audio
+                    configuredHighQuality = highQuality
                 }
                 if !session.isRunning { session.startRunning() }
                 continuation.resume(returning: true)

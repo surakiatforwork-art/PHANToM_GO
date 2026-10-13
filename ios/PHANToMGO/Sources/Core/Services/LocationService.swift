@@ -12,6 +12,9 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     private let manager = CLLocationManager()
     private var wanted = false
     private var background = false
+    #if DEBUG
+    private var isUITestSample = false
+    #endif
 
     override init() {
         super.init()
@@ -44,6 +47,9 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         }
     }
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        #if DEBUG
+        if isUITestSample { return }
+        #endif
         authorization = manager.authorizationStatus
         setEnabled(wanted, background: background)
     }
@@ -65,6 +71,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     }
     #if DEBUG
     func setUITestSpeed(_ speed: Double) {
+        isUITestSample = true
         speedKmh = speed
         status = "Simulator test sample"
     }

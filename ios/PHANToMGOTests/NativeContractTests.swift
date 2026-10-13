@@ -71,6 +71,27 @@ final class NativeContractTests: XCTestCase {
         XCTAssertTrue(PrefsStore(defaults: defaults).hasProcessed("request"))
         XCTAssertFalse(PrefsStore(defaults: defaults).hasProcessed("another-request"))
     }
+    func testResetLocalTokenInvalidatesPreviousBearerToken() {
+        let name = "test-token-" + UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let store = PrefsStore(defaults: defaults)
+        let previous = store.localToken()
+        let next = store.refreshLocalToken()
+        XCTAssertNotEqual(previous, next)
+        XCTAssertEqual(store.localToken(), next)
+    }
+    func testCommandCacheDoesNotRetainAcknowledgedHistory() {
+        var tree = FirebaseStreamTree()
+        tree.apply(event: "put", path: "/", value: [
+            "old": ["status": "received", "url": "old"],
+            "new": ["status": "pending", "url": "new"]
+        ])
+        tree.keepPendingCommands()
+        let root = tree.value as? [String: Any]
+        XCTAssertNil(root?["old"])
+        XCTAssertNotNil(root?["new"])
+    }
     func testAntiTheftTimingAndWrongAttemptThresholds() {
         let initial = Date(timeIntervalSince1970: 1000)
         XCTAssertFalse(AntiTheftPolicy.shouldStartAlarm(detachedAt: initial, now: initial.addingTimeInterval(29), wrongAttempts: 1))

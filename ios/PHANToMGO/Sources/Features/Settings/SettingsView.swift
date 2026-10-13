@@ -44,6 +44,10 @@ struct SettingsView: View {
                         }
                     ))
                     Toggle("Keep Display awake in this app", isOn: flag("keepAwake"))
+                    if container.prefsStore.flag("backgroundLocation") {
+                        Text("Background GPS runs only when Location permission is Always. You can change this in iOS app settings.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                     Toggle("Automatic brightness on power changes", isOn: flag("powerAutomation"))
                     if container.prefsStore.flag("powerAutomation") {
                         brightness("Day brightness", key: "dayBrightness", fallback: 0.8)
