@@ -35,6 +35,7 @@ struct RouteCommand: Identifiable, Codable, Equatable {
     let resolvedURL: String
     let createdAt: TimeInterval?
     let status: String?
+    var fromMainAuthUid: String? = nil
 
     static func decode(id: String, value: Any?) -> RouteCommand? {
         guard let value = value as? [String: Any],
@@ -44,7 +45,8 @@ struct RouteCommand: Identifiable, Codable, Equatable {
             fromMainDeviceId: value["fromMainDeviceId"] as? String ?? "",
             originalText: value["originalText"] as? String ?? url, resolvedURL: url,
             createdAt: (value["createdAt"] as? NSNumber)?.doubleValue,
-            status: value["status"] as? String
+            status: value["status"] as? String,
+            fromMainAuthUid: value["fromMainAuthUid"] as? String
         )
     }
 }

@@ -24,8 +24,13 @@ struct HomeView: View {
                                 .accessibilityIdentifier("route-input")
                             HStack(spacing: 12) {
                                 PasteButton(payloadType: String.self) { strings in
-                                    if let text = strings.first { container.routeInput = text }
-                                }.labelStyle(.titleAndIcon)
+                                    if let text = strings.first {
+                                        container.routeInput = text
+                                        if container.prefsStore.flag("pasteAndSend", default: true) {
+                                            Task { await container.sendCurrentRoute() }
+                                        }
+                                    }
+                                }.labelStyle(.titleAndIcon).disabled(container.isBusy)
                                 Button {
                                     Task { await container.sendCurrentRoute() }
                                 } label: { Label("Send Route", systemImage: "paperplane.fill") }
@@ -34,7 +39,14 @@ struct HomeView: View {
                                     .accessibilityIdentifier("send-route")
                             }
                             if container.isBusy {
-                                ProgressView("Waiting for Display acknowledgement").font(.footnote)
+                                ProgressView("Sending route").font(.footnote)
+                            }
+                            Text(container.prefsStore.flag("pasteAndSend", default: true)
+                                 ? "Paste sends the destination to your paired Display immediately."
+                                 : "Paste a destination, then tap Send Route.")
+                                .font(.caption).foregroundStyle(.secondary)
+                            if !container.deliverySummary.isEmpty {
+                                Text(container.deliverySummary).font(.footnote)
                             }
                             if container.pendingRoute != nil {
                                 Button("Retry pending route") {
@@ -75,7 +87,7 @@ struct HomeView: View {
                     }
                     ScreenCard {
                         Label("Share from Maps", systemImage: "square.and.arrow.up").font(.headline)
-                        Text("Google Maps > Share > PHANToM GO. If your signing method does not enable Share relay, copy the link and use Paste here.")
+                        Text("Google Maps > Share > PHANToM GO sends directly when signing allows the shared session. Otherwise Copy Route, return here and tap Paste. Cloud queued means saved, not yet received by Display.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }

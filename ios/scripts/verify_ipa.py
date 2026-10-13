@@ -24,6 +24,12 @@ for name in sys.argv[1:]:
             raise SystemExit("Package is not an iPhoneOS app.")
         if info.get("MinimumOSVersion") != "16.0":
             raise SystemExit("Unexpected minimum iOS version.")
+        for key in ["CFBundleIcons", "CFBundleIcons~ipad"]:
+            primary = info.get(key, {}).get("CFBundlePrimaryIcon", {})
+            if primary.get("CFBundleIconName") != "AppIcon" or not primary.get("CFBundleIconFiles"):
+                raise SystemExit(f"Compiled app icon metadata missing: {key}")
+        if not any(entry.startswith(info_path.removesuffix("Info.plist") + "AppIcon") and entry.endswith(".png") for entry in package.namelist()):
+            raise SystemExit("Compiled launcher icon PNG is missing.")
         executable_path = info_path.removesuffix("Info.plist") + info["CFBundleExecutable"]
         binary = package.read(executable_path)
         magic, cpu = struct.unpack_from("<II", binary)

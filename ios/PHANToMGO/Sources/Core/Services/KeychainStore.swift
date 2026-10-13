@@ -4,9 +4,34 @@ import Security
 enum KeychainStore {
     private static let service = "com.phantom.PHANToMGO"
     static var sharedGroup: String? {
-        guard let group = Bundle.main.object(forInfoDictionaryKey: "PHANTOM_KEYCHAIN_GROUP") as? String,
-              !group.isEmpty, !group.contains("$(") else { return nil }
-        return group
+        let ownProbe: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
+            kSecAttrAccount as String: "group-probe-v1"
+        ]
+        var item = ownProbe
+        item[kSecValueData as String] = Data("scope".utf8)
+        item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        let added = SecItemAdd(item as CFDictionary, nil)
+        guard added == errSecSuccess || added == errSecDuplicateItem else { return nil }
+        var lookup = ownProbe
+        lookup[kSecReturnAttributes as String] = true
+        lookup[kSecMatchLimit as String] = kSecMatchLimitOne
+        var attributes: CFTypeRef?
+        _ = SecItemCopyMatching(lookup as CFDictionary, &attributes)
+        let ownGroup = (attributes as? [String: Any])?[kSecAttrAccessGroup as String] as? String
+        let candidates = KeychainGroupPolicy.candidates(
+            configured: Bundle.main.object(forInfoDictionaryKey: "PHANTOM_KEYCHAIN_GROUP") as? String,
+            defaultGroup: ownGroup,
+            suffix: Bundle.main.object(forInfoDictionaryKey: "PHANTOM_SHARE_GROUP_SUFFIX") as? String
+        )
+        // Probe only harmless markers; a declared group is not proof of a signing entitlement.
+        for group in candidates {
+            var probe = item
+            probe[kSecAttrAccessGroup as String] = group
+            let status = SecItemAdd(probe as CFDictionary, nil)
+            if status == errSecSuccess || status == errSecDuplicateItem { return group }
+        }
+        return nil
     }
     private static func query(_ key: String, shared: Bool) -> [String: Any] {
         var result: [String: Any] = [
@@ -38,6 +63,7 @@ enum KeychainStore {
         return SecItemAdd(item as CFDictionary, nil) == errSecSuccess
     }
     static func remove(_ key: String, shared: Bool = false) {
+        if shared && sharedGroup == nil { return }
         SecItemDelete(query(key, shared: shared) as CFDictionary)
     }
 }
@@ -55,6 +81,7 @@ struct ShareSession: Codable {
     let displayDeviceId: String
     let navMode: DisplayNavigationMode
     let openBehavior: DisplayOpenBehavior
+    var autoSend: Bool? = nil
 
     static var current: ShareSession? {
         KeychainStore.data("share-session", shared: true)

@@ -3,6 +3,7 @@ import SwiftUI
 @main
 @MainActor
 struct PHANToMGOApp: App {
+    @UIApplicationDelegateAdaptor(NotificationAppDelegate.self) private var appDelegate
     @StateObject private var container = AppContainer()
     @Environment(\.scenePhase) private var phase
 
@@ -11,10 +12,10 @@ struct PHANToMGOApp: App {
             RootTabView()
                 .environmentObject(container)
                 .environmentObject(container.security)
-                .task { await container.start() }
+                .task { await container.setScenePhase(phase) }
                 .onOpenURL { container.handleIncomingURL($0) }
                 .onChange(of: phase) { phase in
-                    Task { await container.setForeground(phase == .active) }
+                    Task { await container.setScenePhase(phase) }
                 }
         }
     }

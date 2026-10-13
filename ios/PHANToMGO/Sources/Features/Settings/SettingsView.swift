@@ -29,8 +29,8 @@ struct SettingsView: View {
                     Picker("Map app", selection: Binding(
                         get: { container.preferredMapApp }, set: { container.updateSettings(preferredMapApp: $0) }
                     )) { ForEach(PreferredMapApp.allCases) { Text($0.title).tag($0) } }
-                    Toggle("Open received routes automatically", isOn: flag("autoOpen", default: true))
-                    Text("Automatic Maps opening works while PHANToM GO is active. iOS may require Start in Maps. Apple Maps has no separate motorcycle routing mode.")
+                    Toggle("Open received routes automatically", isOn: flag("autoOpen"))
+                    Text("Tap to open is the default to avoid switching away from Display unexpectedly. Optional automatic opening works only while this app is active. iOS may require Start in Maps. Apple Maps has no separate motorcycle routing mode.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Display GPS & power") {
@@ -70,8 +70,17 @@ struct SettingsView: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Main & sharing") {
+                    Toggle("Send automatically from Share", isOn: flag("shareAutoSend", default: true))
+                    Toggle("Paste and send immediately", isOn: flag("pasteAndSend", default: true))
                     LabeledContent("Share relay", value: container.shareAvailable ? "Shared session available" : "Use Copy/Paste if signing does not enable sharing")
                     Text("Notification reading, Android Accessibility automation and overlays are not available on iOS.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Text("Share relay needs the same permitted Keychain group in the app and extension. Free-account signing may not preserve it; Copy/Paste stays available. Saved to cloud is not confirmation of delivery.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                Section("Background notifications") {
+                    Text("Remote push is not configured in this build.").font(.headline)
+                    Text("Local notifications require this app to be running. When Display is in Maps or suspended, return here to receive the latest route. Native APNs requires supported Apple signing and a notification backend; granting notification permission alone does not enable it.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Connection") {

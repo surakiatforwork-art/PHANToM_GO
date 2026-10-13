@@ -4,14 +4,21 @@ actor FirebaseService {
     static let shared = FirebaseService()
     private var observers: [String: Task<Void, Never>] = [:]
     private let session: URLSession
+    private let authProvider: @Sendable (Bool) async throws -> AuthIdentity
 
-    init(session: URLSession = .shared) { self.session = session }
+    init(session: URLSession = .shared,
+         authProvider: @escaping @Sendable (Bool) async throws -> AuthIdentity = {
+             try await AuthSession.shared.current(allowCreate: $0)
+         }) {
+        self.session = session
+        self.authProvider = authProvider
+    }
 
     func configureIfNeeded() -> Bool { !RuntimeConfiguration.apiKey.isEmpty }
-    func signInAnonymouslyIfNeeded() async throws -> AuthIdentity { try await AuthSession.shared.current() }
+    func signInAnonymouslyIfNeeded() async throws -> AuthIdentity { try await authProvider(true) }
 
     private func makeRequest(path: String, method: String = "GET", value: Any? = nil) async throws -> URLRequest {
-        let identity = try await AuthSession.shared.current()
+        let identity = try await authProvider(true)
         var components = URLComponents(string: RuntimeConfiguration.databaseURL + "/" + path + ".json")!
         components.queryItems = [URLQueryItem(name: "auth", value: identity.idToken)]
         var request = URLRequest(url: components.url!)
@@ -24,8 +31,9 @@ actor FirebaseService {
         return request
     }
 
-    func request(path: String, method: String = "GET", value: Any? = nil) async throws -> Any? {
-        let request = try await makeRequest(path: path, method: method, value: value)
+    func request(path: String, method: String = "GET", value: Any? = nil, timeout: TimeInterval = 15) async throws -> Any? {
+        var request = try await makeRequest(path: path, method: method, value: value)
+        request.timeoutInterval = max(0.5, timeout)
         let (data, response) = try await session.data(for: request)
         guard let response = response as? HTTPURLResponse else {
             throw RelayError.message("The server did not return a response.")
@@ -43,7 +51,7 @@ actor FirebaseService {
 
     func syncDeviceRecord(deviceId: String, role: String, model: String, appVersion: String,
                           local: LocalEndpoint? = nil, connected: Bool = true) async throws {
-        let identity = try await AuthSession.shared.current()
+        let identity = try await authProvider(true)
         let record: [String: Any] = [
             "deviceId": deviceId, "authUid": identity.uid, "role": role, "platform": "ios",
             "manufacturer": "Apple", "model": model, "appVersion": appVersion,
@@ -63,7 +71,7 @@ actor FirebaseService {
 
     func publishPairingCode(deviceId: String, pairCode: String, displayName: String,
                             local: LocalEndpoint? = nil) async throws {
-        let identity = try await AuthSession.shared.current()
+        let identity = try await authProvider(true)
         var record: [String: Any] = [
             "pairCode": pairCode, "displayDeviceId": deviceId, "displayAuthUid": identity.uid,
             "displayName": displayName, "platform": "ios", "updatedAt": Self.timestamp
@@ -85,7 +93,7 @@ actor FirebaseService {
               displayId != deviceId, Self.validKey(displayId), Self.validKey(code) else {
             throw RelayError.message("Scan a valid cloud QR from another Display device.")
         }
-        let identity = try await AuthSession.shared.current()
+        let identity = try await authProvider(true)
         guard let record = try await request(path: "pairingCodes/\(code)") as? [String: Any],
               record["displayDeviceId"] as? String == displayId,
               let displayUid = record["displayAuthUid"] as? String, !displayUid.isEmpty else {
@@ -143,38 +151,53 @@ actor FirebaseService {
 
     func sendRouteCommand(to displayId: String, from mainId: String, mainName: String,
                           payload: RoutePayload, openBehavior: DisplayOpenBehavior,
-                          requestId: String = UUID().uuidString) async throws {
-        let identity = try await AuthSession.shared.current(allowCreate: false)
+                          requestId: String = UUID().uuidString,
+                          maxAttempts: Int = 2, acknowledgementTimeout: TimeInterval = 3) async throws -> RouteDeliveryResult {
+        let identity = try await authProvider(false)
         guard let url = payload.resolvedURL, Self.validKey(displayId), Self.validKey(mainId) else {
             throw RelayError.message("Enter a Google Maps link, coordinates or a destination.")
         }
         var pendingIds: [String] = []
-        for attempt in 1...3 {
+        for attempt in 1...max(1, min(3, maxAttempts)) {
             try Task.checkCancellation()
             let commandId = UUID().uuidString.lowercased()
-            pendingIds.append(commandId)
             let command = RouteDeliveryPolicy.command(
                 id: commandId, requestId: requestId, mainId: mainId, uid: identity.uid,
                 url: url, attempt: attempt, timestamp: Self.timestamp
             )
-            _ = try await request(path: "", method: "PATCH", value: [
-                "commands/\(displayId)/\(commandId)": command,
-                "pairings/byMain/\(mainId)/lastActivityAt": Self.timestamp,
-                "pairings/byDisplay/\(displayId)/lastActivityAt": Self.timestamp
-            ])
-            let deadline = Date().addingTimeInterval(6)
+            do {
+                _ = try await request(path: "", method: "PATCH", value: [
+                    "commands/\(displayId)/\(commandId)": command,
+                    "pairings/byMain/\(mainId)/lastActivityAt": Self.timestamp,
+                    "pairings/byDisplay/\(displayId)/lastActivityAt": Self.timestamp
+                ])
+                pendingIds.append(commandId)
+            } catch let error as URLError {
+                try Task.checkCancellation()
+                if let accepted = pendingIds.last { return .queued(commandId: accepted) }
+                throw error
+            }
+            let deadline = Date().addingTimeInterval(max(0, acknowledgementTimeout))
             while Date() < deadline {
                 try Task.checkCancellation()
                 for id in pendingIds {
-                    if let data = try await request(path: "commands/\(displayId)/\(id)") as? [String: Any],
-                       RouteDeliveryPolicy.isAcknowledged(data["status"] as? String) {
-                        return
+                    let remaining = deadline.timeIntervalSinceNow
+                    guard remaining > 0 else { break }
+                    do {
+                        if let data = try await request(path: "commands/\(displayId)/\(id)", timeout: min(2, remaining)) as? [String: Any],
+                           RouteDeliveryPolicy.isAcknowledged(data["status"] as? String) {
+                            return .acknowledged
+                        }
+                    } catch is URLError {
+                        try Task.checkCancellation()
+                        return .queued(commandId: pendingIds.last!)
                     }
                 }
-                try await Task.sleep(nanoseconds: 750_000_000)
+                let remaining = deadline.timeIntervalSinceNow
+                if remaining > 0 { try await Task.sleep(nanoseconds: UInt64(min(0.4, remaining) * 1_000_000_000)) }
             }
         }
-        throw RelayError.message("Display has not acknowledged the route. Keep Display open and check internet before retrying.")
+        return .queued(commandId: pendingIds.last!)
     }
 
     func acknowledge(deviceId: String, commandId: String, status: String) async throws {
@@ -195,7 +218,7 @@ actor FirebaseService {
     func sendSecurityAlert(displayId: String, mainId: String, name: String, type: String,
                            sessionId: String, attempts: Int, jackPlugged: Bool, state: String,
                            presence: DisplayPresence?) async throws {
-        let identity = try await AuthSession.shared.current()
+        let identity = try await authProvider(true)
         let id = UUID().uuidString.lowercased()
         var alert: [String: Any] = [
             "alertId": id, "eventType": type, "fromDisplayDeviceId": displayId,
@@ -216,7 +239,7 @@ actor FirebaseService {
 
     func observe(path: String, onChange: @escaping (Any?) -> Void,
                  onError: @escaping (String) -> Void) {
-        observers[path]?.cancel()
+        guard observers[path] == nil else { return }
         observers[path] = Task { [weak self] in
             guard let self else { return }
             var retry: UInt64 = 1
@@ -247,7 +270,9 @@ actor FirebaseService {
                                   let update = try JSONSerialization.jsonObject(with: encoded) as? [String: Any],
                                   let updatePath = update["path"] as? String else { continue }
                             tree.apply(event: event, path: updatePath, value: update["data"])
-                            if path.hasPrefix("commands/") { tree.keepPendingCommands() }
+                            if path.split(separator: "/").count == 2 && path.hasPrefix("commands/") {
+                                tree.keepPendingCommands()
+                            }
                             onChange(tree.value)
                         }
                     }

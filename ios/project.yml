@@ -10,8 +10,8 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     PHANTOM_IOS_BUNDLE_ID: com.phantom.PHANToMGO
-    CURRENT_PROJECT_VERSION: 2
-    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 3
+    MARKETING_VERSION: 1.0.1
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
 
 targets:
@@ -37,6 +37,15 @@ targets:
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         NSCameraUsageDescription: Scan a Display pairing QR or record dashcam footage when you enable the camera.
         NSMicrophoneUsageDescription: Record audio with dashcam video only when you enable microphone recording.
         NSLocationWhenInUseUsageDescription: Show driving speed and share this Display's location with your paired Main.
@@ -59,6 +68,7 @@ targets:
           - comgooglemaps
           - comgooglemapsurl
         PHANTOM_KEYCHAIN_GROUP: "$(AppIdentifierPrefix)$(PHANTOM_IOS_BUNDLE_ID).shared"
+        PHANTOM_SHARE_GROUP_SUFFIX: "$(PHANTOM_IOS_BUNDLE_ID).shared"
     entitlements:
       path: build/PHANToMGO.entitlements
       properties:
@@ -100,6 +110,7 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         PHANTOM_KEYCHAIN_GROUP: "$(AppIdentifierPrefix)$(PHANTOM_IOS_BUNDLE_ID).shared"
+        PHANTOM_SHARE_GROUP_SUFFIX: "$(PHANTOM_IOS_BUNDLE_ID).shared"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"

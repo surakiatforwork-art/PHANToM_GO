@@ -64,6 +64,18 @@ struct DisplayView: View {
                             }
                         }
                         ScreenCard {
+                            Label("Receive the next route", systemImage: "arrow.clockwise").font(.headline)
+                            Text("After using Maps, return to Display and check the latest route. This free-account build has no remote push while the app is suspended.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                            Button {
+                                Task { await container.refreshLatestRoute(openAfterRefresh: true) }
+                            } label: { Label("Check latest route and open Maps", systemImage: "map") }
+                                .buttonStyle(PrimaryActionStyle())
+                                .disabled(container.isFetchingLatestRoute || container.security.challengeVisible || container.displayPairing == nil)
+                                .accessibilityIdentifier("check-latest-route")
+                            if container.isFetchingLatestRoute { ProgressView("Checking current pairing and latest destination") }
+                        }
+                        ScreenCard {
                             Label("GO Cam", systemImage: "video.fill").font(.headline)
                             Text("Native loop recording and clip export. Recording stops when this app leaves the foreground.")
                                 .font(.footnote).foregroundStyle(.secondary)

@@ -40,6 +40,7 @@ jobs:
         run: |
           python3 scripts/prepare_configuration.py
           swift scripts/generate_icon.swift
+          python3 scripts/verify_icon.py
           xcodegen generate
       - name: Select iPhone and iPad simulators
         run: |
@@ -86,6 +87,11 @@ jobs:
             ios/build/screenshots/
             ios/build/*Tests.xcresult
           retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PHANToMGO-ios-icon-preview
+          path: ios/PHANToMGO/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: PHANToMGO-ios-simulator-app

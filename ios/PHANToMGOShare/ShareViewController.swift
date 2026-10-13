@@ -29,9 +29,13 @@ final class ShareRelayModel: ObservableObject {
     @Published var sent = false
     private let context: NSExtensionContext?
     let session = ShareSession.current
+    private var didLoad = false
+    private var payload: RoutePayload?
     init(context: NSExtensionContext?) { self.context = context }
 
     func load() async {
+        guard !didLoad else { return }
+        didLoad = true
         for item in context?.inputItems as? [NSExtensionItem] ?? [] {
             for provider in item.attachments ?? [] {
                 for type in [UTType.url.identifier, UTType.plainText.identifier] where provider.hasItemConformingToTypeIdentifier(type) {
@@ -43,9 +47,11 @@ final class ShareRelayModel: ObservableObject {
                     let text = (value as? URL)?.absoluteString ?? (value as? String) ?? ""
                     if RouteParser.parse(text, navMode: session?.navMode ?? .driving).resolvedURL != nil {
                         route = text
+                        payload = RouteParser.parse(text, navMode: session?.navMode ?? .driving)
                         message = session == nil
-                            ? "Open PHANToM GO and pair a Display first. If your signing tool disables shared Keychain access, use Copy Route and Paste in the app."
+                            ? "Shared session unavailable. Open PHANToM GO to pair first. If already paired, signing may not allow the shared Keychain. Copy Route and tap Paste on Home instead."
                             : "Send this destination to your paired Display."
+                        if session?.autoSend ?? false { await send() }
                         return
                     }
                 }
@@ -54,18 +60,19 @@ final class ShareRelayModel: ObservableObject {
         message = "No supported map link found. Share a Google Maps destination or copy its link."
     }
     func send() async {
-        guard !busy, let session, !route.isEmpty else { return }
+        guard !busy, !sent, let session, let payload else { return }
         busy = true
         defer { busy = false }
         do {
             _ = try await AuthSession.shared.current(allowCreate: false)
-            let payload = RouteParser.parse(route, navMode: session.navMode)
-            try await FirebaseService.shared.sendRouteCommand(
+            let result = try await FirebaseService.shared.sendRouteCommand(
                 to: session.displayDeviceId, from: session.mainDeviceId, mainName: session.deviceName,
-                payload: payload, openBehavior: session.openBehavior, requestId: payload.id
+                payload: payload, openBehavior: session.openBehavior, requestId: payload.id,
+                maxAttempts: 1, acknowledgementTimeout: 2
             )
             sent = true
-            message = "Display acknowledged the route."
+            message = result == .acknowledged ? "Display acknowledged the route."
+                : "Saved to cloud. Display has not received it yet. Open PHANToM GO on Display to receive the latest route."
         } catch { message = error.localizedDescription }
     }
     func copy() { UIPasteboard.general.string = route; message = "Copied. Paste the route in PHANToM GO." }
@@ -80,12 +87,12 @@ private struct ShareRelayView: View {
             Text("Route relay").font(.headline)
             Text(model.route).font(.footnote).lineLimit(4)
             Text(model.message).foregroundStyle(.secondary)
-            if model.busy { ProgressView("Waiting for Display") }
+            if model.busy { ProgressView("Sending route") }
             if model.session != nil && !model.sent {
                 Button("Send to Display") { Task { await model.send() } }
                     .buttonStyle(.borderedProminent).disabled(model.busy || model.route.isEmpty)
             }
-            Button("Copy Route") { model.copy() }.disabled(model.route.isEmpty)
+            Button("Copy Route") { model.copy() }.disabled(model.route.isEmpty || model.busy)
             Button(model.sent ? "Done" : "Close") { model.close() }.disabled(model.busy)
             Spacer()
         }.padding(24)

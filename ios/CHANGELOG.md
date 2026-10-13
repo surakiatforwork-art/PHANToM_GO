@@ -1,5 +1,18 @@
 # iOS Changelog
 
+## 1.0.1 (build 3) - In Progress
+
+- Shorter Share relay wait, optional auto-send and one-tap Paste/Send fallback.
+- Separate cloud acceptance/queued state from Display acknowledgement; retain pending route for retry.
+- Resolve and verify actual shared Keychain access groups after re-signing; never bypass entitlements.
+- Explicit latest-route refresh/open action for free-account Display and notification-tap routing.
+- Tap-to-open Maps by default; preserve explicitly configured automatic foreground opening.
+- Keep listeners during temporary inactive/permission dialogs, remove old peer presence observers.
+- Validate both current Main device ID and auth UID; ignore older peer/history routes.
+- Match the APK ghost launcher icon, generate opaque RGB 1024x1024, verify compiled icon metadata.
+- Explicit iPhone/iPad orientations and stronger landscape UI validation.
+- Native remote push remains unavailable until supported signing/provider setup; no Firebase rules changes.
+
 ## 1.0.0 (build 2) - 2026-10-13
 
 - Native SwiftUI Home / Display / Settings / Security.

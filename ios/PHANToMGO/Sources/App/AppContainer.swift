@@ -26,11 +26,13 @@ final class AppContainer: ObservableObject {
     @Published var manualPairPayload = ""
     @Published var debugLog: [String] = []
     @Published var pairCode: String
-    @Published var isForeground = true
+    @Published var isForeground = false
     @Published var pendingRoute: RoutePayload?
     @Published var dashcamPresented = false
     @Published var shareAvailable = false
     @Published var heartbeatDate = Date()
+    @Published var deliverySummary = ""
+    @Published var isFetchingLatestRoute = false
 
     let prefsStore: PrefsStore
     let firebaseService: FirebaseService
@@ -49,6 +51,10 @@ final class AppContainer: ObservableObject {
     private var receiving = Set<String>()
     private var latestLocationSent = Date.distantPast
     private var deferredMapRequestId: String?
+    private var pendingNotificationIntent: NavigationNotificationIntent?
+    private var processingNotification = false
+    private var observedPeerPresenceId: String?
+    private var queuedReceiptPath: String?
     private let geocoder = CLGeocoder()
 
     init(prefsStore: PrefsStore = .shared, firebaseService: FirebaseService = .shared) {
@@ -70,6 +76,12 @@ final class AppContainer: ObservableObject {
         securityAlerts = prefsStore.load([SecurityAlert].self, key: "securityAlerts") ?? []
         peerPresence = nil
 
+        NotificationService.shared.setNavigationHandler { [weak self] intent in
+            guard let self else { return }
+            self.pendingNotificationIntent = intent
+            Task { await self.processNotificationIntent() }
+        }
+
         location.onLocation = { [weak self] location in
             guard let self, self.isDisplayModeEnabled,
                   Date().timeIntervalSince(self.latestLocationSent) >= 20 else { return }
@@ -89,7 +101,8 @@ final class AppContainer: ObservableObject {
             let command = RouteCommand(id: "local_" + requestId, clientRequestId: requestId,
                                        fromMainDeviceId: pairing.mainDeviceId,
                                        originalText: url, resolvedURL: url,
-                                       createdAt: Date().timeIntervalSince1970 * 1000, status: "pending")
+                                       createdAt: Date().timeIntervalSince1970 * 1000, status: "pending",
+                                       fromMainAuthUid: pairing.mainAuthUid)
             self.receive(command)
             return true
         }
@@ -117,6 +130,10 @@ final class AppContainer: ObservableObject {
             }
         }
         security.onVerified = { [weak self] in
+            if let self, self.pendingNotificationIntent != nil {
+                Task { await self.processNotificationIntent() }
+                return
+            }
             guard let self, let deferred = self.deferredMapRequestId,
                   self.latestCommand?.clientRequestId == deferred else { return }
             self.deferredMapRequestId = nil
@@ -188,6 +205,7 @@ final class AppContainer: ObservableObject {
             } else {
                 localRelay.stop()
                 await observeSecurityAlerts()
+                await observeQueuedReceipt()
             }
             authSummary = "Cloud connected"
             started = true
@@ -214,6 +232,17 @@ final class AppContainer: ObservableObject {
         prefsStore.flag("backgroundLocation") && location.authorization == .authorizedAlways
     }
 
+    func setScenePhase(_ phase: ScenePhase) async {
+        switch phase {
+        case .active: await setForeground(true)
+        case .background: await setForeground(false)
+        case .inactive:
+            isForeground = false
+            routeTask?.cancel()
+        @unknown default: break
+        }
+    }
+
     func setForeground(_ active: Bool) async {
         isForeground = active
         #if DEBUG
@@ -223,11 +252,14 @@ final class AppContainer: ObservableObject {
         security.refreshJack()
         if active {
             await start()
+            await processNotificationIntent()
         } else {
             routeTask?.cancel()
             dashcam.stopForBackground()
             if !isDisplayModeEnabled || !backgroundLocationEnabled {
                 await firebaseService.stopObservers()
+                observedPeerPresenceId = nil
+                queuedReceiptPath = nil
                 try? await firebaseService.syncDeviceRecord(
                     deviceId: deviceId, role: isDisplayModeEnabled ? "display" : "main",
                     model: deviceName, appVersion: currentAppVersion, connected: false
@@ -251,7 +283,8 @@ final class AppContainer: ObservableObject {
         }
         shareAvailable = ShareSession(
             mainDeviceId: deviceId, deviceName: deviceName, displayDeviceId: display,
-            navMode: navMode, openBehavior: openBehavior
+            navMode: navMode, openBehavior: openBehavior,
+            autoSend: prefsStore.flag("shareAutoSend", default: true)
         ).save()
     }
 
@@ -273,9 +306,16 @@ final class AppContainer: ObservableObject {
         isBusy = true
         defer { isBusy = false }
         do {
+            let previousDisplayId = mainPairing?.displayDeviceId
             let pairing = try await firebaseService.claimPairingCode(
                 deviceId: deviceId, deviceName: deviceName, pairInfo: info
             )
+            if previousDisplayId != pairing.displayDeviceId {
+                prefsStore.clearPairing()
+                pendingRoute = nil; deliverySummary = ""
+                prefsStore.save(Optional<RoutePayload>.none, key: "pendingRoute")
+                await clearQueuedReceipt()
+            }
             mainPairing = pairing
             prefsStore.saveCloudPairing(displayDeviceId: pairing.displayDeviceId, displayName: pairing.displayName)
             prefsStore.save(pairing, key: "mainPairing")
@@ -314,16 +354,32 @@ final class AppContainer: ObservableObject {
             if let local, let url = payload.resolvedURL {
                 sentLocally = await LocalRelayService.send(url: url, requestId: payload.id, endpoint: local)
             } else { sentLocally = false }
-            if !sentLocally {
-                try await firebaseService.sendRouteCommand(
+            let delivery: RouteDeliveryResult
+            if sentLocally { delivery = .acknowledged }
+            else {
+                delivery = try await firebaseService.sendRouteCommand(
                     to: display, from: deviceId, mainName: deviceName,
                     payload: payload, openBehavior: openBehavior, requestId: payload.id
                 )
             }
-            pendingRoute = nil
-            prefsStore.save(Optional<RoutePayload>.none, key: "pendingRoute")
-            toastMessage = sentLocally ? "Display received the route over local Wi-Fi" : "Display acknowledged the route"
-            appendLog("Route delivered")
+            if delivery == .acknowledged {
+                pendingRoute = nil
+                prefsStore.save(Optional<RoutePayload>.none, key: "pendingRoute")
+                deliverySummary = sentLocally ? "Display received the route over local Wi-Fi" : "Display acknowledged the route"
+                await clearQueuedReceipt()
+                appendLog("Route delivered")
+            } else {
+                pendingRoute = payload
+                prefsStore.save(payload, key: "pendingRoute")
+                deliverySummary = "Saved to cloud; waiting for Display. Open PHANToM GO on Display to receive it."
+                if case .queued(let id) = delivery {
+                    prefsStore.save(QueuedRouteReceipt(displayDeviceId: display, commandId: id, requestId: payload.id),
+                                    key: "queuedReceipt")
+                    await observeQueuedReceipt()
+                }
+                appendLog("Route queued; Display acknowledgement is pending")
+            }
+            toastMessage = deliverySummary
         } catch {
             pendingRoute = payload
             prefsStore.save(payload, key: "pendingRoute")
@@ -355,10 +411,15 @@ final class AppContainer: ObservableObject {
     }
 
     func openLatestRoute() async {
-        guard let command = latestCommand, !security.challengeVisible, isForeground else { return }
+        guard isDisplayModeEnabled, let command = latestCommand,
+              command.fromMainDeviceId == displayPairing?.mainDeviceId,
+              displayPairing?.mainAuthUid == nil || command.fromMainAuthUid == displayPairing?.mainAuthUid,
+              !security.challengeVisible, isForeground else { return }
         let original = RouteParser.parse(command.resolvedURL, navMode: navMode)
         let payload = await MapLaunchPlanner.resolve(original)
         guard !Task.isCancelled, isForeground, !security.challengeVisible,
+              command.fromMainDeviceId == displayPairing?.mainDeviceId,
+              displayPairing?.mainAuthUid == nil || command.fromMainAuthUid == displayPairing?.mainAuthUid,
               latestCommand?.clientRequestId == command.clientRequestId,
               let url = MapLaunchPlanner.url(for: payload, preferredMapApp: preferredMapApp, openBehavior: openBehavior) else { return }
         let opened: Bool = await withCheckedContinuation { continuation in
@@ -376,6 +437,70 @@ final class AppContainer: ObservableObject {
     private func scheduleMapOpening() {
         routeTask?.cancel()
         routeTask = Task { await openLatestRoute() }
+    }
+
+    private func processNotificationIntent() async {
+        guard isForeground, !starting, !isBusy, !processingNotification, !isFetchingLatestRoute else { return }
+        processingNotification = true
+        defer { processingNotification = false }
+        while isForeground, let intent = pendingNotificationIntent {
+            if security.challengeVisible { return }
+            pendingNotificationIntent = nil
+            if intent.destination == .security {
+                switchTab(.security)
+            } else if isDisplayModeEnabled && intent.displayDeviceId == deviceId {
+                switchTab(.display)
+                await refreshLatestRoute(openAfterRefresh: true)
+            }
+        }
+    }
+
+    func refreshLatestRoute(openAfterRefresh: Bool = false) async {
+        guard isForeground, isDisplayModeEnabled, !isBusy, !isFetchingLatestRoute else { return }
+        isFetchingLatestRoute = true
+        defer {
+            isFetchingLatestRoute = false
+            if pendingNotificationIntent != nil {
+                Task { await processNotificationIntent() }
+            }
+        }
+        do {
+            let pairing = PairingRecord.decode(try await firebaseService.request(path: "pairings/byDisplay/\(deviceId)"))
+            guard isForeground, isDisplayModeEnabled, !isBusy else { return }
+            await applyDisplayPairing(pairing)
+            guard let pairing else {
+                latestCommand = nil
+                prefsStore.save(Optional<RouteCommand>.none, key: "latestCommand")
+                toastMessage = "Display is no longer paired. Scan its current QR from Main."
+                return
+            }
+            let raw = try await firebaseService.request(path: "commands/\(deviceId)") as? [String: Any] ?? [:]
+            guard isForeground, isDisplayModeEnabled, !isBusy,
+                  displayPairing?.mainDeviceId == pairing.mainDeviceId,
+                  displayPairing?.mainAuthUid == pairing.mainAuthUid else { return }
+            let commands = raw.compactMap { RouteCommand.decode(id: $0.key, value: $0.value) }
+            guard let command = RouteInboxPolicy.latest(
+                commands, mainId: pairing.mainDeviceId, mainAuthUid: pairing.mainAuthUid, cached: latestCommand
+            ) else {
+                toastMessage = "No route from the current Main is available yet."
+                return
+            }
+            if command.status == "pending" { await ingest(command, allowAutoOpen: false) }
+            guard isForeground, isDisplayModeEnabled, !isBusy,
+                  displayPairing?.mainDeviceId == pairing.mainDeviceId,
+                  displayPairing?.mainAuthUid == pairing.mainAuthUid else { return }
+            let current = RouteInboxPolicy.latest([command], mainId: pairing.mainDeviceId,
+                                                  mainAuthUid: pairing.mainAuthUid, cached: latestCommand) ?? command
+            latestCommand = current
+            prefsStore.save(current, key: "latestCommand")
+            if openAfterRefresh {
+                if security.challengeVisible { deferredMapRequestId = current.clientRequestId }
+                else { await openLatestRoute() }
+            }
+        } catch {
+            toastMessage = "Could not refresh the latest route. Check internet and try again on Display."
+            appendLog("Latest route refresh failed")
+        }
     }
 
     func handleIncomingURL(_ url: URL) {
@@ -399,10 +524,11 @@ final class AppContainer: ObservableObject {
         defer { isBusy = false }
         do {
             try await firebaseService.clearMainPairing(mainDeviceId: deviceId, displayDeviceId: mainPairing?.displayDeviceId)
-            if let displayId = mainPairing?.displayDeviceId {
-                await firebaseService.stopObserver(path: "presence/\(displayId)")
-            }
+            await stopPeerPresence()
+            await clearQueuedReceipt()
             mainPairing = nil; peerPresence = nil
+            pendingRoute = nil; deliverySummary = ""
+            prefsStore.save(Optional<RoutePayload>.none, key: "pendingRoute")
             prefsStore.clearPairing()
             prefsStore.save(Optional<PairingRecord>.none, key: "mainPairing")
             updateShareSession()
@@ -465,14 +591,26 @@ final class AppContainer: ObservableObject {
             Task { @MainActor in
                 guard let self else { return }
                 let pairing = PairingRecord.decode(raw)
+                let previous = self.mainPairing
                 self.mainPairing = pairing
                 self.prefsStore.save(pairing, key: "mainPairing")
+                if previous != nil && (previous?.displayDeviceId != pairing?.displayDeviceId || previous?.displayAuthUid != pairing?.displayAuthUid) {
+                    self.prefsStore.clearPairing()
+                    self.peerPresence = nil
+                    self.pendingRoute = nil
+                    self.deliverySummary = ""
+                    self.prefsStore.save(Optional<RoutePayload>.none, key: "pendingRoute")
+                    await self.clearQueuedReceipt()
+                }
+                guard self.mainPairing?.displayDeviceId == pairing?.displayDeviceId else { return }
                 if let pairing {
                     self.prefsStore.saveCloudPairing(displayDeviceId: pairing.displayDeviceId, displayName: pairing.displayName)
                     await self.observePeerPresence(pairing.displayDeviceId)
+                    await self.observeQueuedReceipt()
                 } else {
                     self.prefsStore.clearPairing()
                     self.peerPresence = nil
+                    await self.stopPeerPresence()
                 }
                 self.updateShareSession()
             }
@@ -480,21 +618,7 @@ final class AppContainer: ObservableObject {
         await firebaseService.observe(path: "pairings/byDisplay/\(deviceId)", onChange: { [weak self] raw in
             Task { @MainActor in
                 guard let self else { return }
-                let previousMain = self.displayPairing?.mainDeviceId
-                self.displayPairing = PairingRecord.decode(raw)
-                self.prefsStore.save(self.displayPairing, key: "displayPairing")
-                self.localRelay.mainId = self.displayPairing?.mainDeviceId
-                if previousMain != nil && previousMain != self.displayPairing?.mainDeviceId {
-                    self.localRelay.stop()
-                    let token = self.prefsStore.refreshLocalToken()
-                    if self.isDisplayModeEnabled { self.localRelay.start(token: token) }
-                    if !self.isBusy && self.displayPairing == nil {
-                        let previousCode = self.pairCode
-                        self.pairCode = self.prefsStore.refreshPairCode()
-                        try? await self.firebaseService.removePairingCode(previousCode)
-                        await self.publishPresenceAndQR()
-                    }
-                }
+                await self.applyDisplayPairing(PairingRecord.decode(raw))
                 if self.isDisplayModeEnabled && self.displayPairing != nil {
                     await self.observeCommands()
                 }
@@ -502,7 +626,32 @@ final class AppContainer: ObservableObject {
         }, onError: listenerError)
     }
 
+    private func applyDisplayPairing(_ pairing: PairingRecord?) async {
+        let previous = displayPairing
+        displayPairing = pairing
+        prefsStore.save(pairing, key: "displayPairing")
+        localRelay.mainId = pairing?.mainDeviceId
+        guard previous != nil && (previous?.mainDeviceId != pairing?.mainDeviceId || previous?.mainAuthUid != pairing?.mainAuthUid) else { return }
+        latestCommand = nil
+        deferredMapRequestId = nil
+        prefsStore.save(Optional<RouteCommand>.none, key: "latestCommand")
+        localRelay.stop()
+        let token = prefsStore.refreshLocalToken()
+        if isDisplayModeEnabled && isForeground { localRelay.start(token: token) }
+        if !isBusy && pairing == nil {
+            let previousCode = pairCode
+            pairCode = prefsStore.refreshPairCode()
+            try? await firebaseService.removePairingCode(previousCode)
+            await publishPresenceAndQR()
+        }
+    }
+
     private func observePeerPresence(_ id: String) async {
+        guard mainPairing?.displayDeviceId == id else { return }
+        let previous = observedPeerPresenceId
+        observedPeerPresenceId = id
+        if let previous, previous != id { await firebaseService.stopObserver(path: "presence/\(previous)") }
+        guard observedPeerPresenceId == id, mainPairing?.displayDeviceId == id else { return }
         await firebaseService.observe(path: "presence/\(id)", onChange: { [weak self] raw in
             Task { @MainActor in
                 guard let self, self.mainPairing?.displayDeviceId == id else { return }
@@ -515,49 +664,96 @@ final class AppContainer: ObservableObject {
         }, onError: listenerError)
     }
 
+    private func stopPeerPresence() async {
+        let previous = observedPeerPresenceId
+        observedPeerPresenceId = nil
+        if let previous { await firebaseService.stopObserver(path: "presence/\(previous)") }
+    }
+
+    private func clearQueuedReceipt() async {
+        let previous = queuedReceiptPath
+        queuedReceiptPath = nil
+        prefsStore.save(Optional<QueuedRouteReceipt>.none, key: "queuedReceipt")
+        if let previous { await firebaseService.stopObserver(path: previous) }
+    }
+
+    private func observeQueuedReceipt() async {
+        guard !isDisplayModeEnabled, let receipt = prefsStore.load(QueuedRouteReceipt.self, key: "queuedReceipt"),
+              mainPairing?.displayDeviceId == receipt.displayDeviceId, pendingRoute?.id == receipt.requestId else { return }
+        let previous = queuedReceiptPath
+        queuedReceiptPath = receipt.path
+        if let previous, previous != receipt.path { await firebaseService.stopObserver(path: previous) }
+        await firebaseService.observe(path: receipt.path, onChange: { [weak self] raw in
+            Task { @MainActor in
+                guard let self, !self.isDisplayModeEnabled, self.queuedReceiptPath == receipt.path,
+                      self.pendingRoute?.id == receipt.requestId,
+                      self.mainPairing?.displayDeviceId == receipt.displayDeviceId,
+                      let command = raw as? [String: Any],
+                      command["clientRequestId"] as? String == receipt.requestId,
+                      RouteDeliveryPolicy.isAcknowledged(command["status"] as? String) else { return }
+                self.pendingRoute = nil
+                self.prefsStore.save(Optional<RoutePayload>.none, key: "pendingRoute")
+                self.deliverySummary = "Last sent route acknowledged by Display"
+                self.appendLog("Queued route acknowledged")
+                await self.clearQueuedReceipt()
+            }
+        }, onError: listenerError)
+    }
+
     private func observeCommands() async {
         await firebaseService.observe(path: "commands/\(deviceId)", onChange: { [weak self] raw in
             Task { @MainActor in
-                guard let self, self.isDisplayModeEnabled, let raw = raw as? [String: Any] else { return }
+                guard let self, self.isDisplayModeEnabled, let pairing = self.displayPairing,
+                      let raw = raw as? [String: Any] else { return }
                 let commands = raw.compactMap { RouteCommand.decode(id: $0.key, value: $0.value) }
-                    .filter { $0.status == "pending" }
+                    .filter {
+                        $0.status == "pending" && $0.fromMainDeviceId == pairing.mainDeviceId
+                            && (pairing.mainAuthUid == nil || $0.fromMainAuthUid == pairing.mainAuthUid)
+                    }
                     .sorted { ($0.createdAt ?? 0) < ($1.createdAt ?? 0) }
-                guard let latest = commands.last else { return }
-                for command in commands.dropLast() {
+                guard let latest = RouteInboxPolicy.latest(commands, mainId: pairing.mainDeviceId,
+                                                           mainAuthUid: pairing.mainAuthUid, cached: self.latestCommand) else { return }
+                if commands.contains(where: { $0.id == latest.id }) { await self.ingest(latest) }
+                for command in commands where command.id != latest.id {
                     let status = command.clientRequestId == latest.clientRequestId ? "received" : "superseded"
                     try? await self.firebaseService.acknowledge(deviceId: self.deviceId, commandId: command.id, status: status)
                 }
-                self.receive(latest)
             }
         }, onError: listenerError)
     }
 
     private func receive(_ command: RouteCommand) {
+        Task { await ingest(command) }
+    }
+
+    private func ingest(_ command: RouteCommand, allowAutoOpen: Bool = true) async {
         guard isDisplayModeEnabled, command.fromMainDeviceId == displayPairing?.mainDeviceId,
+              displayPairing?.mainAuthUid == nil || command.fromMainAuthUid == displayPairing?.mainAuthUid,
               !receiving.contains(command.id) else { return }
         receiving.insert(command.id)
-        Task {
-            defer { receiving.remove(command.id) }
-            let duplicate = prefsStore.hasProcessed(command.clientRequestId)
-            if !duplicate {
-                guard RouteParser.parse(command.resolvedURL, navMode: navMode).resolvedURL != nil else { return }
-                prefsStore.markProcessed(command.clientRequestId)
-                latestCommand = command
-                prefsStore.save(command, key: "latestCommand")
-                selectedTab = .display
-                if !isForeground {
-                    NotificationService.shared.post(id: "route-" + command.clientRequestId,
-                                                    title: "New route received", body: "Open PHANToM GO Display to view the destination.")
-                }
+        defer { receiving.remove(command.id) }
+        let duplicate = prefsStore.hasProcessed(command.clientRequestId)
+        if !duplicate {
+            guard RouteParser.parse(command.resolvedURL, navMode: navMode).resolvedURL != nil else { return }
+            prefsStore.markProcessed(command.clientRequestId)
+            latestCommand = command
+            prefsStore.save(command, key: "latestCommand")
+            selectedTab = .display
+            if security.challengeVisible && deferredMapRequestId != nil { deferredMapRequestId = command.clientRequestId }
+            if !isForeground {
+                NotificationService.shared.post(id: "route-" + command.clientRequestId,
+                                                title: "New route received", body: "Tap to open the latest destination.",
+                                                intent: NavigationNotificationIntent(destination: .route,
+                                                    displayDeviceId: deviceId, requestId: command.clientRequestId))
             }
-            if !command.id.hasPrefix("local_") {
-                try? await firebaseService.acknowledge(deviceId: deviceId, commandId: command.id, status: "received")
-            }
-            if !duplicate && isForeground && prefsStore.flag("autoOpen", default: true) && !security.challengeVisible {
-                scheduleMapOpening()
-            } else if !duplicate && security.challengeVisible && prefsStore.flag("autoOpen", default: true) {
-                deferredMapRequestId = command.clientRequestId
-            }
+        }
+        if !command.id.hasPrefix("local_") {
+            try? await firebaseService.acknowledge(deviceId: deviceId, commandId: command.id, status: "received")
+        }
+        if allowAutoOpen && !duplicate && isForeground && prefsStore.flag("autoOpen") && !security.challengeVisible {
+            scheduleMapOpening()
+        } else if allowAutoOpen && !duplicate && security.challengeVisible && prefsStore.flag("autoOpen") {
+            deferredMapRequestId = command.clientRequestId
         }
     }
 
@@ -570,7 +766,9 @@ final class AppContainer: ObservableObject {
                     .sorted { $0.date > $1.date }
                 for alert in alerts.prefix(20) where !previous.contains(alert.id) && abs(alert.date.timeIntervalSinceNow) < 300 {
                     NotificationService.shared.post(id: "security-" + alert.id, title: "Display security alert",
-                                                    body: alert.displayName + ": " + alert.eventType)
+                                                    body: alert.displayName + ": " + alert.eventType,
+                                                    intent: NavigationNotificationIntent(destination: .security,
+                                                        displayDeviceId: nil, requestId: nil))
                 }
                 self.securityAlerts = Array(alerts.prefix(50))
                 self.prefsStore.save(self.securityAlerts, key: "securityAlerts")
