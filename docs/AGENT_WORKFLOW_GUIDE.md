@@ -2,6 +2,8 @@
 
 เอกสารนี้กำหนดความหมายและขั้นตอนมาตรฐานเมื่อเจ้าของโปรเจกต์สั่งงาน agent เพื่อให้ทุกคนทำงานในรูปแบบเดียวกัน ลดความเสี่ยงจากการ push ไฟล์ผิด การสร้าง release ที่ติดตั้งไม่ได้ หรือการแก้ไขส่วนที่ไม่ได้รับอนุญาต
 
+Repository ปัจจุบัน: `https://github.com/surakiatforwork-art/PHANToM_GO` (ย้ายเมื่อ 2026-10-13) ให้ใช้ repository นี้กับ `origin`, `gh --repo`, Release และลิงก์ดาวน์โหลดทั้งหมด โดย hotfix Auto Local LAN Relay ยังเป็น beta จนกว่าผู้ใช้จะยืนยันให้เป็น stable
+
 ## 1. หลักการสำคัญของโปรเจกต์
 
 - ตรวจสอบโค้ดและสถานะ Git ก่อนแก้ไขเสมอ
@@ -93,11 +95,11 @@
 ตัวอย่างชื่อ:
 
 ```text
-Tag: v1.0.14
-Release title: PHANToM GO v1.0.14
-APK: PHANToM_GO-v1.0.14.apk
+Tag: v1.3.1
+Release title: PHANToM GO v1.3.1
+APK: PHANToM_GO-v1.3.1.apk
 Direct download:
-https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.0.14/PHANToM_GO-v1.0.14.apk
+https://github.com/surakiatforwork-art/PHANToM_GO/releases/download/v1.3.1/PHANToM_GO-v1.3.1.apk
 ```
 
 ### “สร้าง Beta Release”

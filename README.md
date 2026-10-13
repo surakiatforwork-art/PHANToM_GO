@@ -51,7 +51,9 @@ Optional permissions can be skipped, but their related features will remain unav
 
 ## Downloads and Web App
 
-- Stable APK: [Download PHANToM GO v1.3.0](https://github.com/Phantomguy7845/PHANToM_GO/releases/download/v1.3.0/PHANToM_GO-v1.3.0.apk)
+- Stable APK: [Download PHANToM GO v1.3.1](https://github.com/surakiatforwork-art/PHANToM_GO/releases/download/v1.3.1/PHANToM_GO-v1.3.1.apk)
+- Beta APK: [Test Auto Local LAN Relay v1.3.2-beta.1](https://github.com/surakiatforwork-art/PHANToM_GO/releases/download/v1.3.2-beta.1/PHANToM_GO-v1.3.2-beta.1.apk)
+- Repository: [surakiatforwork-art/PHANToM_GO](https://github.com/surakiatforwork-art/PHANToM_GO)
 - Landing page: [`docs/web/index.html`](docs/web/index.html)
 - Browser Web App: [`docs/web/webapp/index.html`](docs/web/webapp/index.html)
 
@@ -71,7 +73,9 @@ app/build/outputs/apk/debug/app-debug.apk
 
 - [Current app overview](docs/PHANTOM_GO_APP_OVERVIEW.md)
 - [Interactive workflow review](docs/PHANTOM_GO_WORKFLOW.html)
-- [Latest stable release notes](docs/RELEASE_v1.3.0.md)
+- [Latest stable release notes](docs/RELEASE_v1.3.1.md)
+- [Beta release notes](docs/BETA_RELEASE_v1.3.2-beta.1.md)
+- [Repository migration and release handoff](docs/REPOSITORY_MIGRATION_2026-10-13.md)
 - [Firebase Realtime Database rules](docs/firebase-realtime-database.rules.json)
 
 ## Important Limitations

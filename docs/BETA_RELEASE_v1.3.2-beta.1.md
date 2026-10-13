@@ -25,3 +25,19 @@ This beta writes local endpoint data under existing Display `presence`, which th
 - Share route with both devices on the same Wi-Fi/hotspot.
 - Test with internet unstable but LAN still active.
 - Confirm Firebase cloud fallback still works when devices are not on the same LAN.
+
+## Repository Migration (2026-10-13)
+
+- Published under https://github.com/surakiatforwork-art/PHANToM_GO after migrating the Git repository.
+- This hotfix remains a pre-release; Stable downloads continue to use `v1.3.1`.
+- Android build, unit-test tasks, and lint passed during migration verification.
+- The installable APK is byte-identical to the previously published beta and retains its original signing certificate.
+- No Android source or Firebase rules were changed during migration.
+- No ADB device was connected for runtime testing in this migration.
+
+## APK
+
+- File: `PHANToM_GO-v1.3.2-beta.1.apk`
+- Package: `com.phantom.carnavrelay`
+- Version: `1.3.2-beta.1` (`versionCode 32`)
+- SHA-256: `0cd9bace25c15ddc48af7fd9e3004e439cddaa48c5703395534b5e4827d5f8cc`
