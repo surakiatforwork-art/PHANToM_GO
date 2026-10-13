@@ -42,7 +42,7 @@ Repository: https://github.com/surakiatforwork-art/PHANToM_GO
 ## แนวทาง Firebase
 
 - ใช้ Firebase Auth REST และ Realtime Database REST streaming ผ่าน URLSession ของ iOS
-- reuse public project configuration จาก `app/google-services.json` ใน build pipeline
+- reuse public Web API configuration จาก `docs/web/webapp/index.html` ใน build pipeline โดยไม่ต้องมี iOS plist
 - ไม่สร้าง auth แบบ admin ไม่ใช้ service-account และไม่เปิด security rules
 - เก็บ refresh token ใน Keychain ไม่เก็บใน logs หรือ UserDefaults
 - วิธี REST ไม่ต้องมี Firebase iOS app ID หรือ `GoogleService-Info.plist` เพื่อใช้ Auth/Database ของโปรเจกต์เดิม
@@ -99,4 +99,14 @@ Repository: https://github.com/surakiatforwork-art/PHANToM_GO
 
 ## สถานะ
 
-กำลังดำเนินการ ผล build/test และ release จริงจะบันทึกเพิ่มหลังตรวจสอบครบ
+ตัวแอป native และ Share Extension build ผ่านแล้วบน Xcode 26.6 ทั้ง simulator และ iPhoneOS arm64
+
+- ชุดแรกที่ผ่าน: unit tests 24 รายการ และ UI smoke tests 3 รายการต่อเครื่องบน iPhone/iPad simulator
+- แก้ regression เพิ่มก่อนปล่อย: alarm จาก wrong PIN ขณะขอ disarm ต้องเดินเวลา/เสียงพูด/ยกระดับหน้าจอได้แม้ยังไม่ถอด jack และไม่ส่ง alarm event ซ้ำ
+- ผลสุดท้ายของ commit `087b4d0`: unit tests 25 รายการ, iPhone UI tests 3 รายการ และ iPad UI tests 3 รายการผ่านทั้งหมด ไม่มี test failure
+- Simulator run: https://github.com/surakiatforwork-art/PHANToM_GO/actions/runs/38376680495
+- Device IPA run: https://github.com/surakiatforwork-art/PHANToM_GO/actions/runs/38376712861
+- Tag ที่ใช้ส่งมอบ: `ios-v1.0.0`; unsigned IPA สำหรับเซ็นเอง ไม่เปลี่ยน Android Latest Stable
+- ไฟล์ในเครื่อง: `docs/build/ios-v1.0.0/PHANToM_GO-iOS-v1.0.0-unsigned.ipa` พร้อม `SHA256SUMS.txt`
+- SHA-256: `c96f8859b2228742064c856d9e1a362d00d77e36b3011e1aec553e7aff52cb1e`
+- หลังติดตั้งต้องทดสอบบนเครื่องจริงตาม `TEST_READINESS.md`; ยังไม่มีผล real-device runtime ในงานนี้

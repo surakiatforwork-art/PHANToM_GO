@@ -1,45 +1,33 @@
 param(
-    [string]$GoogleServiceInfoPlist,
     [string]$P12Certificate,
-    [string]$ProvisioningProfile
+    [string]$ProvisioningProfile,
+    [string]$ShareProvisioningProfile,
+    [string]$AppleTeamId,
+    [string]$Repository = "surakiatforwork-art/PHANToM_GO"
 )
 
-function Convert-FileToBase64 {
-    param([Parameter(Mandatory = $true)][string]$Path)
+$ErrorActionPreference = "Stop"
 
-    if (-not (Test-Path -LiteralPath $Path)) {
-        throw "File not found: $Path"
+function Set-FileSecret {
+    param([string]$Name, [string]$FilePath)
+    if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) {
+        throw "Signing file not found: $FilePath"
     }
-
-    [Convert]::ToBase64String([IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $Path)))
+    $resolvedSigningPath = (Resolve-Path -LiteralPath $FilePath).Path
+    $encodedSigningFile = [Convert]::ToBase64String([IO.File]::ReadAllBytes($resolvedSigningPath))
+    $encodedSigningFile | gh secret set $Name --repo $Repository
+    if ($LASTEXITCODE -ne 0) { throw "Unable to save GitHub secret $Name" }
+    Write-Output "Configured $Name; signing data was not printed."
 }
 
-Write-Host ""
-Write-Host "PHANToM GO iOS GitHub Secrets Helper" -ForegroundColor Cyan
-Write-Host "Copy each output below into the matching GitHub Actions secret." -ForegroundColor DarkGray
-Write-Host ""
-
-if ($GoogleServiceInfoPlist) {
-    Write-Host "===== IOS_FIREBASE_PLIST_BASE64 =====" -ForegroundColor Yellow
-    Convert-FileToBase64 -Path $GoogleServiceInfoPlist
-    Write-Host ""
+if ($P12Certificate) { Set-FileSecret "BUILD_CERTIFICATE_BASE64" $P12Certificate }
+if ($ProvisioningProfile) { Set-FileSecret "BUILD_PROVISION_PROFILE_BASE64" $ProvisioningProfile }
+if ($ShareProvisioningProfile) { Set-FileSecret "BUILD_SHARE_PROVISION_PROFILE_BASE64" $ShareProvisioningProfile }
+if ($AppleTeamId) {
+    $AppleTeamId | gh secret set APPLE_TEAM_ID --repo $Repository
+    if ($LASTEXITCODE -ne 0) { throw "Unable to save APPLE_TEAM_ID" }
 }
-
-if ($P12Certificate) {
-    Write-Host "===== BUILD_CERTIFICATE_BASE64 =====" -ForegroundColor Yellow
-    Convert-FileToBase64 -Path $P12Certificate
-    Write-Host ""
-}
-
-if ($ProvisioningProfile) {
-    Write-Host "===== BUILD_PROVISION_PROFILE_BASE64 =====" -ForegroundColor Yellow
-    Convert-FileToBase64 -Path $ProvisioningProfile
-    Write-Host ""
-}
-
-Write-Host "Manual secrets you still need to prepare:" -ForegroundColor Green
-Write-Host "- P12_PASSWORD"
-Write-Host "- KEYCHAIN_PASSWORD"
-Write-Host "- APPLE_TEAM_ID"
-Write-Host "- Optional: IOS_BUNDLE_IDENTIFIER"
-Write-Host "- Optional: CODE_SIGN_IDENTITY"
+Write-Output "Signed mode also needs P12_PASSWORD and KEYCHAIN_PASSWORD."
+Write-Output "Set password secrets interactively with gh secret set; do not paste private data in chat."
+Write-Output "Firebase plist is not required by the native REST implementation."
+Write-Output "Unsigned mode requires no signing secrets."

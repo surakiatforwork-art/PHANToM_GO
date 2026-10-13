@@ -1,185 +1,69 @@
-# PHANToM GO iOS Build & Install
+# วิธีติดตั้ง PHANToM GO Native iOS
 
-## Important
-โปรเจกต์นี้ถูก scaffold บน Windows ดังนั้น `ยัง build iOS app จริงบนเครื่องนี้ไม่ได้`
+อัปเดต 2026-10-13
 
-การ build และติดตั้งต้องทำบน:
+## สิ่งที่ต้องมี
 
-- macOS
-- Xcode
-- iPhone จริง หรือ iOS Simulator
+- iPhone/iPad ที่ใช้ iOS/iPadOS 16 ขึ้นไป
+- Windows และสาย USB สำหรับวิธี Sideloadly
+- Apple Account ของผู้ติดตั้ง ใช้กรอกในโปรแกรมติดตั้งเอง
+- IPA ของ PHANToM GO จาก GitHub Release
 
-ถ้าคุณ `ไม่มี Mac` ให้ใช้คู่กับเอกสารนี้:
+APK ใช้ติดตั้งบน iOS ไม่ได้ และ simulator `.app.zip` ก็ใช้ติดตั้งบน iPad จริงไม่ได้ ต้องใช้ IPA ของ iPhoneOS
 
-- `ios/NO_MAC_PLAYBOOK.md`
-- `ios/DEVICE_BUILD_PIPELINE.md`
-- `ios/TEST_READINESS.md`
+## ติดตั้งด้วย Sideloadly บน Windows
 
-เอกสารนั้นอธิบาย flow ที่เราวางไว้แล้วสำหรับ:
+1. ดาวน์โหลด Sideloadly จากเว็บไซต์ทางการ https://sideloadly.io/
+2. ติดตั้งส่วนประกอบ Apple/iTunes/iCloud ตามคำแนะนำ Windows ของ Sideloadly รุ่นปัจจุบัน
+3. ดาวน์โหลดไฟล์ `PHANToM_GO-iOS-v1.0.0-unsigned.ipa` จาก iOS release ของ repo https://github.com/surakiatforwork-art/PHANToM_GO
+4. เสียบ iPhone/iPad กับ Windows ปลดล็อกเครื่อง และเลือก Trust เมื่อระบบถาม
+5. เปิด Sideloadly แล้วเลือกอุปกรณ์ที่ต่ออยู่
+6. ลาก IPA ใส่โปรแกรม
+7. ใช้ Apple Account ของคุณใน Sideloadly แล้วเริ่มขั้นตอนเซ็นและติดตั้งตามโปรแกรม
+8. หาก iOS ขอให้ Trust developer ให้ไปที่ Settings > General > VPN & Device Management แล้วเลือก profile ของคุณ
+9. หาก development signing ต้องการ Developer Mode ให้ไปที่ Settings > Privacy & Security > Developer Mode แล้วทำตามขั้นตอนรีสตาร์ต/ยืนยันของ Apple
+10. เปิด PHANToM GO แล้วทดสอบตามรายการด้านล่าง
 
-1. build บน GitHub Actions
-2. ส่ง simulator build ไป Appetize
-3. ตรวจ UI/flow ผ่าน browser
+อย่าส่ง Apple Account password, OTP หรือ private certificate ในแชท ให้กรอกในขั้นตอน Apple/Sideloadly ที่คุณควบคุมเอง
 
----
+Personal Team มี provisioning profile อายุ 7 วัน จึงต้องเซ็น/refresh ใหม่ตามระยะเวลา การอัปเดตควรใช้ account และ bundle ID เดิมเพื่อรักษาข้อมูลเดิม อย่าถอนแอปโดยไม่จำเป็น เพราะข้อมูลใน app sandbox อาจหาย
 
-## What is included
-ในโฟลเดอร์ `ios` ตอนนี้มี:
+Share Extension แบบส่งทันทีต้องเข้าถึง shared Keychain หากเครื่องมือเซ็น/profile ไม่รองรับ ส่วน Main ในแอปยังส่งได้โดย Copy Route แล้ว Paste บน Home
 
-- source files ของแอป
-- project spec (`project.yml`)
-- template ของ Firebase plist
-- เอกสาร implementation plan
-- workflow build iOS ที่ `.github/workflows/ios.yml`
-- workflow signed IPA ที่ `.github/workflows/ios-device.yml`
-- unit tests ใน `ios/PHANToMGOTests`
-- helper script ที่ `ios/scripts/generate-github-secrets.ps1`
+## เปิดใช้งานครั้งแรก
 
----
+1. ให้อุปกรณ์ทั้งสองมีอินเทอร์เน็ต
+2. ถ้าจะเป็น Main ให้เปิด Home แล้ว Scan QR จาก Display
+3. ถ้าจะเป็น Display ให้เปิด Display แล้วเปิด Display Mode
+4. อนุญาต Camera เฉพาะเมื่อสแกนหรือบันทึกวิดีโอ
+5. เปิด Notifications เพื่อรับแจ้งเตือนที่แอปสร้างได้ขณะกำลังทำงาน
+6. อนุญาต Location เพื่อใช้ความเร็ว/Find Display; เลือก Always หากต้องการ Background GPS
+7. จับคู่สำเร็จแล้วส่งตำแหน่งทดสอบก่อนใช้งานจริง
+8. Display เลือก Maps app/โหมดยานพาหนะ/preview หรือ navigation ใน Settings
+9. ถ้า iOS Display อยู่ในแอปอื่น ให้กลับเข้า PHANToM GO แล้วเปิด latest route; การรับใน background ไม่รับประกัน
+10. หากใช้ GO Cam ให้เปิดจาก Display และเริ่ม recording; การออกไป Maps จะหยุดกล้องตามข้อจำกัด iOS
 
-## Prerequisites on macOS
+ไม่ต้องเปลี่ยน Firebase rules หรือใช้ `GoogleService-Info.plist` สำหรับ implementation แบบ REST นี้
 
-1. ติดตั้ง Xcode ล่าสุด
-2. เปิด Xcode อย่างน้อย 1 ครั้ง
-3. ติดตั้ง Command Line Tools
-4. ติดตั้ง `xcodegen` ถ้าจะ generate project จาก `project.yml`
-
-ตัวอย่างติดตั้ง `xcodegen`:
-
-```bash
-brew install xcodegen
-```
-
----
-
-## Firebase Setup
-
-1. ไปที่ Firebase Console ของโปรเจกต์ `PHANToM GO`
-2. Add app แบบ iOS
-3. กรอก bundle identifier ให้ตรงกับค่าใน project
-4. ดาวน์โหลด `GoogleService-Info.plist`
-5. วางไฟล์นี้ไว้ใน:
-
-```text
-ios/PHANToMGO/Resources/GoogleService-Info.plist
-```
-
-ไฟล์ `GoogleService-Info.plist.template` เป็นแค่ placeholder ห้ามใช้แทนของจริง
-
----
-
-## Generate Xcode Project
-ถ้าใช้ `xcodegen`:
+## Build เองบน macOS
 
 ```bash
 cd ios
+brew install xcodegen
+python3 scripts/prepare_configuration.py
+swift scripts/generate_icon.swift
 xcodegen generate
+xcodebuild -project PHANToMGO.xcodeproj -scheme PHANToMGO -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 ```
 
-จะได้ไฟล์ `.xcodeproj`
+## Build โดยไม่มี Mac
 
----
+- GitHub > Actions > iOS Device Build > Run workflow > `signing_mode=unsigned`
+- รอผลสำเร็จและดาวน์โหลด artifact `PHANToMGO-ios-device-ipa-unsigned`
+- signed mode ต้องมี certificate และ provisioning profile สำหรับทั้ง Main app กับ Share Extension; ดู DEVICE_BUILD_PIPELINE.md
 
-## Open Project
-เปิด project ใน Xcode แล้วเช็ก:
+## แหล่งอ้างอิง
 
-1. Signing team
-2. Bundle identifier
-3. Deployment target
-4. Firebase package resolve สำเร็จ
-
----
-
-## Build Steps
-
-### Build for Simulator
-1. เลือก iPhone Simulator
-2. กด Build
-3. แก้ compile errors ถ้ามี
-4. รัน unit tests
-
-ถ้าไม่มี Mac:
-
-- ใช้ GitHub Actions เพื่อ build simulator app แทน
-- workflow จะพยายามรัน unit tests ให้ก่อน build
-- ดาวน์โหลด artifact จาก workflow `iOS CI`
-- หรือให้อัปโหลดขึ้น Appetize เพื่อเปิดดูบน browser
-
-### Build for Device
-1. เสียบ iPhone
-2. เปิด Developer Mode บนเครื่อง
-3. Trust เครื่องกับ Mac
-4. เลือก target เป็น iPhone เครื่องจริง
-5. Build และ Run
-
-### Build for Device without a local Mac
-ถ้าไม่มี Mac อยู่กับตัว แต่มี Apple signing assets:
-
-1. ใช้ workflow `iOS Device Build`
-2. export `.ipa` ผ่าน GitHub Actions
-3. ดาวน์โหลด artifact จาก workflow run
-4. ใช้ต่อกับวิธีติดตั้ง/แจกจ่ายที่เหมาะกับ distribution method นั้น
-
----
-
-## First Runtime Checklist
-
-หลังเปิดแอปครั้งแรก ให้เช็ก:
-
-1. แอปเปิดได้ถึงหน้า Home
-2. Firebase auth anonymous สำเร็จ
-3. เขียน `devices/{deviceId}` สำเร็จ
-4. เขียน `presence/{deviceId}` สำเร็จ
-5. เปิด Display tab แล้วมี `pairingCodes/{pairCode}`
-6. QR scan เปิดกล้องได้
-7. Pair กับ Android ได้
-8. ส่ง route ไป Android Display ได้
-9. รับ route จาก Android Main ได้
-
----
-
-## Installation on iPhone
-
-เมื่อ build ผ่านและ Run จาก Xcode:
-
-1. แอปจะถูกติดตั้งลง iPhone โดยตรง
-2. ถ้าใช้บัญชีฟรี อาจต้องไปที่:
-   - `Settings`
-   - `General`
-   - `VPN & Device Management`
-   - trust developer profile
-
-หลังจากนั้นจึงเปิดแอปได้
-
-## Without a Mac
-
-กรณีไม่มี Mac ให้แยกเป็น 2 เรื่อง:
-
-### ดูแอป/เช็ก flow
-- ใช้ `GitHub Actions` + `Appetize`
-
-### ลง iPhone/iPad จริง
-- ต้องมี `signed IPA`
-- ตอนนี้โปรเจกต์มี workflow สำหรับสร้าง IPA ผ่าน macOS CI แล้ว
-- ถ้ายังไม่มี signing assets จะยังไปได้แค่ simulator/app preview ก่อน
-
----
-
-## If Build Fails
-
-### Common causes
-- ไม่มี `GoogleService-Info.plist`
-- bundle identifier ไม่ตรง Firebase
-- signing team ยังไม่ตั้ง
-- package Firebase resolve ไม่สำเร็จ
-- เปิด project บนเครื่องที่ไม่มี Xcode
-
----
-
-## Recommended Next Milestones After First Build
-
-1. Validate Firebase
-2. Validate pairing
-3. Validate route relay
-4. Add Share Extension
-5. Polish display mode
+- https://sideloadly.io/
+- https://developer.apple.com/help/account/basics/about-your-developer-account
+- https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device

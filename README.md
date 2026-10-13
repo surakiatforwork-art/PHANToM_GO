@@ -54,6 +54,8 @@ Optional permissions can be skipped, but their related features will remain unav
 - Stable APK: [Download PHANToM GO v1.3.1](https://github.com/surakiatforwork-art/PHANToM_GO/releases/download/v1.3.1/PHANToM_GO-v1.3.1.apk)
 - Beta APK: [Test Auto Local LAN Relay v1.3.2-beta.1](https://github.com/surakiatforwork-art/PHANToM_GO/releases/download/v1.3.2-beta.1/PHANToM_GO-v1.3.2-beta.1.apk)
 - Repository: [surakiatforwork-art/PHANToM_GO](https://github.com/surakiatforwork-art/PHANToM_GO)
+- Native iOS IPA: [PHANToM GO iOS v1.0.0 (unsigned)](https://github.com/surakiatforwork-art/PHANToM_GO/releases/download/ios-v1.0.0/PHANToM_GO-iOS-v1.0.0-unsigned.ipa). Requires signing with Sideloadly/Apple provisioning; iOS/iPadOS 16+.
+- [iOS installation guide and platform limitations](ios/BUILD_AND_INSTALL.md)
 - Landing page: [`docs/web/index.html`](docs/web/index.html)
 - Browser Web App: [`docs/web/webapp/index.html`](docs/web/webapp/index.html)
 

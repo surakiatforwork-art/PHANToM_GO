@@ -8,3 +8,7 @@ PHANToMGO.xcodeproj/
 Package.resolved
 PHANToMGO/Resources/FirebaseConfiguration.plist
 PHANToMGO/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+*.p12
+*.mobileprovision
+*.cer
+__pycache__/
