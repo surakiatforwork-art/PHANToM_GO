@@ -35,8 +35,12 @@ final class NativeSmokeTests: XCTestCase {
         snapshot("Display-portrait-123", app: app)
         XCUIDevice.shared.orientation = .landscapeLeft
         let landscape = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "frame.size.width > frame.size.height"), object: app.windows.firstMatch
+            predicate: NSPredicate { _, _ in
+                let frame = app.windows.firstMatch.frame
+                return frame.width > frame.height
+            }, object: nil
         )
+        snapshot("Display-rotation-requested", app: app)
         XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 10), .completed)
         XCTAssertTrue(speed.waitForExistence(timeout: 10))
         XCTAssertEqual(speed.label, "123")
